@@ -27,7 +27,7 @@ const validateBeforeCreate = async (data) => {
   return await BORROWING_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const borrowingModel = {
   BORROWING_COLLECTION_NAME,
   BORROWING_COLLECTION_SCHEMA
 }

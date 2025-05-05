@@ -22,7 +22,7 @@ const validateBeforeCreate = async (data) => {
   return await CONTACT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const contactModel = {
   CONTACT_COLLECTION_NAME,
   CONTACT_COLLECTION_SCHEMA
 }

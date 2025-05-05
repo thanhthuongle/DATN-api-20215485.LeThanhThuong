@@ -25,7 +25,7 @@ const validateBeforeCreate = async (data) => {
   return await INCOME_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const incomeModel = {
   INCOME_COLLECTION_NAME,
   INCOME_COLLECTION_SCHEMA
 }

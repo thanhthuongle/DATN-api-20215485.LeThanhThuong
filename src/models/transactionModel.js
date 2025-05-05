@@ -35,7 +35,7 @@ const validateBeforeCreate = async (data) => {
   return await TRANSACTION_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const transactionModel = {
   TRANSACTION_COLLECTION_NAME,
   TRANSACTION_COLLECTION_SCHEMA
 }

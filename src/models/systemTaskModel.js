@@ -22,7 +22,7 @@ const validateBeforeCreate = async (data) => {
   return await SYSTEM_TASK_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const systemTaskModel = {
   SYSTEM_TASK_COLLECTION_NAME,
   SYSTEM_TASK_COLLECTION_SCHEMA
 }
