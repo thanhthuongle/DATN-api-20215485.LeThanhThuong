@@ -9,7 +9,7 @@ const NOTIFICATION_COLLECTION_SCHEMA = Joi.object({
   type: Joi.string().valid(...Object.values(NOTIFICATION_TYPES)).required(),
   link: Joi.string().trim().strict().optional(),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 })

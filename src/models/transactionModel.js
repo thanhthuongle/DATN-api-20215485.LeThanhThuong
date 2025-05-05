@@ -5,20 +5,20 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 // Định nghĩa Collection (name & schema)
 const TRANSACTION_COLLECTION_NAME = 'transactions'
 const TRANSACTION_COLLECTION_SCHEMA = Joi.object({
-  ownerType: Joi.string().valid(OWNER_TYPE.INDIVIDUAL, OWNER_TYPE.FAMILY).required(),
+  ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   responsiblePersonId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE), // user: người thực hiện hoặc phê duyệt
   proposalId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  type: Joi.string().valid(TRANSACTION_TYPES.EXPENSE, TRANSACTION_TYPES.INCOME, TRANSACTION_TYPES.LOAN, TRANSACTION_TYPES.BORROWING, TRANSACTION_TYPES.TRANSFER, TRANSACTION_TYPES.CONTRIBUTION).required(),
+  type: Joi.string().valid(...Object.values(TRANSACTION_TYPES)).required(),
   categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   name: Joi.string().required().min(3).max(256).trim().strict(),
   description: Joi.string().required().min(3).max(256).trim().strict(),
   amount: Joi.number().integer().min(0).required(),
   transactionTime: Joi.date().timestamp('javascript').required(),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 }).custom((obj, helpers) => {

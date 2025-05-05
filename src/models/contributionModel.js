@@ -8,16 +8,16 @@ const CONTRIBUTION_COLLECTION_SCHEMA = Joi.object({
   transactionId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   recipientId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE), // familyID
-  moneyFromType: Joi.string().valid(MONEY_SOURCE_TYPE.WALLET, MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT, MONEY_SOURCE_TYPE.ACCUMULATION).required(),
+  moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  moneyTargetType: Joi.string().valid(MONEY_SOURCE_TYPE.WALLET, MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT, MONEY_SOURCE_TYPE.ACCUMULATION).required(),
+  moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   contributionRequestId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional().default(null),
   image: Joi.array().items(
     Joi.string()
   ).default([]),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 })

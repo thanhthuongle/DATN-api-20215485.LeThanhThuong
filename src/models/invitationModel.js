@@ -11,7 +11,7 @@ const INVITATION_COLLECTION_SCHEMA = Joi.object({
   familyId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   status: Joi.string().valid(...Object.values(INVITATION_STATUS)).required(),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 }).custom((obj, helpers) => {
