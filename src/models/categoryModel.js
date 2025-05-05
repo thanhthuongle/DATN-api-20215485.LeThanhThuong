@@ -5,11 +5,11 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 // Định nghĩa Collection (name & schema)
 const CATEGORY_COLLECTION_NAME = 'categories'
 const CATEGORY_COLLECTION_SCHEMA = Joi.object({
-  ownerType: Joi.string().valid(OWNER_TYPE.INDIVIDUAL, OWNER_TYPE.FAMILY).required(),
+  ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   name: Joi.string().required().min(3).max(256).trim().strict(),
-  type: Joi.string().valid(TRANSACTION_TYPES.EXPENSE, TRANSACTION_TYPES.INCOME, TRANSACTION_TYPES.LOAN, TRANSACTION_TYPES.BORROWING, TRANSACTION_TYPES.TRANSFER, TRANSACTION_TYPES.CONTRIBUTION).required(),
+  type: Joi.string().valid(...Object.values(TRANSACTION_TYPES)).required(),
   allowDelete: Joi.boolean().default(false),
   icon: Joi.string().default(null),
   childrenIds: Joi.array().items(
@@ -19,7 +19,7 @@ const CATEGORY_COLLECTION_SCHEMA = Joi.object({
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 })

@@ -7,7 +7,7 @@ const LOAN_COLLECTION_NAME = 'loans'
 const LOAN_COLLECTION_SCHEMA = Joi.object({
   transactionId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  moneyFromType: Joi.string().valid(MONEY_SOURCE_TYPE.WALLET, MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT, MONEY_SOURCE_TYPE.ACCUMULATION).required(),
+  moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   borrowerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   collectTime: Joi.date().timestamp('javascript').default(null),
@@ -15,7 +15,7 @@ const LOAN_COLLECTION_SCHEMA = Joi.object({
     Joi.string()
   ).default([]),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 })

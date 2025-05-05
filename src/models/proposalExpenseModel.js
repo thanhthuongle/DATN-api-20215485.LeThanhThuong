@@ -5,7 +5,7 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 // Định nghĩa Collection (name & schema)
 const PROPOSAL_EXPENSE_COLLECTION_NAME = 'proposal_expenses'
 const PROPOSAL_EXPENSE_COLLECTION_SCHEMA = Joi.object({
-  ownerType: Joi.string().valid(OWNER_TYPE.INDIVIDUAL, OWNER_TYPE.FAMILY).required(),
+  ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   targetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE), // familyId
@@ -13,14 +13,14 @@ const PROPOSAL_EXPENSE_COLLECTION_SCHEMA = Joi.object({
   amount: Joi.number().integer().min(0).required(),
   categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   description: Joi.string().min(3).max(256).trim().strict().optional(),
-  status: Joi.string().valid(PROPOSAL_EXPENSE_STATUS.APPROVED, PROPOSAL_EXPENSE_STATUS.REJECTED, PROPOSAL_EXPENSE_STATUS.WAITING).default(PROPOSAL_EXPENSE_STATUS.WAITING),
+  status: Joi.string().valid(...Object.values(PROPOSAL_EXPENSE_STATUS)),
   image: Joi.array().items(
     Joi.string()
   ).default([]),
   reviewerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   reviewed_at: Joi.date().timestamp('javascript').optional().default(null),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 })

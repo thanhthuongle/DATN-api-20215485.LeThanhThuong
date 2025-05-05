@@ -5,12 +5,12 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 // Định nghĩa Collection (name & schema)
 const CONTACT_COLLECTION_NAME = 'contacts'
 const CONTACT_COLLECTION_SCHEMA = Joi.object({
-  ownerType: Joi.string().valid(OWNER_TYPE.INDIVIDUAL, OWNER_TYPE.FAMILY).required(),
+  ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   name: Joi.string().required().min(3).max(60).trim().strict(),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 })

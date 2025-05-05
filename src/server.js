@@ -6,6 +6,7 @@ import { APIs } from './routes'
 import { errorHandlingMiddleware } from './middlewares/errorHandlingMiddleware'
 import cors from 'cors'
 import { corsOptions } from './config/cors'
+import { seedBanksIfEmpty } from './utils/seedBanks'
 
 const START_SERVER = () => {
   const app = express()
@@ -21,6 +22,8 @@ const START_SERVER = () => {
   app.use('/', APIs)
 
   app.use(errorHandlingMiddleware)
+
+  seedBanksIfEmpty()
 
   app.listen(env.APP_PORT, env.APP_HOST, async () => {
     // eslint-disable-next-line no-console

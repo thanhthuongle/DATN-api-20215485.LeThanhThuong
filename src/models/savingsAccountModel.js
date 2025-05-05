@@ -5,7 +5,7 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 // Định nghĩa Collection (name & schema)
 const SAVINGS_ACCOUNT_COLLECTION_NAME = 'savings_accounts'
 const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
-  ownerType: Joi.string().valid(OWNER_TYPE.INDIVIDUAL, OWNER_TYPE.FAMILY).required(),
+  ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   moneySourceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   savingsAccountName: Joi.string().required().min(3).max(256).trim().strict(),
@@ -28,8 +28,8 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
     .required(),
   startDate: Joi.date().timestamp('javascript').required(),
   term: Joi.string().required().trim().strict(), // Kỳ hạn
-  interestPaid: Joi.string().valid(INTEREST_PAID.MATURITY, INTEREST_PAID.UP_FRONT, INTEREST_PAID.MONTHLY).required(), // Thời gian trả lãi
-  termEnded: Joi.string().valid(TERM_ENDED.ROLL_OVER_PRINCIPAL, TERM_ENDED.CLOSE_ACCOUNT, TERM_ENDED.ROLL_OVER_PRINCIPAL_AND_INTEREST).required(), // hành động khi hết kỳ hạn: ROLL_OVER_PRINCIPAL_AND_INTEREST chỉ tồn tại khi trả lãi vào cuối kỳ
+  interestPaid: Joi.string().valid(...Object.values(INTEREST_PAID)).required(), // Thời gian trả lãi
+  termEnded: Joi.string().valid(...Object.values(TERM_ENDED)).required(), // hành động khi hết kỳ hạn: ROLL_OVER_PRINCIPAL_AND_INTEREST chỉ tồn tại khi trả lãi vào cuối kỳ
   interestPaidTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   interestPaidTargetType: Joi.string().valid(MONEY_SOURCE_TYPE.WALLET).required(),
   description: Joi.string().trim().strict().optional(),
@@ -38,7 +38,7 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   moneyFromType: Joi.string().valid(MONEY_SOURCE_TYPE.WALLET).required(),
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 })

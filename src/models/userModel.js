@@ -23,7 +23,7 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   startDayOfWeek: Joi.string().default('MONDAY'),
   startDayOfMonth: Joi.number().integer().min(1).default(1),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 })

@@ -1,0 +1,23 @@
+export const banks = [
+  { code: 'VCB', name: 'Vietcombank', logo: 'https://logo.clearbit.com/vietcombank.com.vn' },
+  { code: 'CTG', name: 'VietinBank', logo: 'https://logo.clearbit.com/vietinbank.vn' },
+  { code: 'BID', name: 'BIDV', logo: 'https://logo.clearbit.com/bidv.com.vn' },
+  { code: 'AGR', name: 'Agribank', logo: 'https://logo.clearbit.com/agribank.com.vn' },
+  { code: 'TCB', name: 'Techcombank', logo: 'https://logo.clearbit.com/techcombank.com.vn' },
+  { code: 'VPB', name: 'VPBank', logo: 'https://logo.clearbit.com/vpbank.com.vn' },
+  { code: 'MBB', name: 'MB Bank', logo: 'https://logo.clearbit.com/mbbank.com.vn' },
+  { code: 'ACB', name: 'ACB', logo: 'https://logo.clearbit.com/acb.com.vn' },
+  { code: 'HDB', name: 'HDBank', logo: 'https://logo.clearbit.com/hdbank.com.vn' },
+  { code: 'VIB', name: 'VIB', logo: 'https://logo.clearbit.com/vib.com.vn' },
+  { code: 'TPB', name: 'TPBank', logo: 'https://logo.clearbit.com/tpbank.com.vn' },
+  { code: 'EIB', name: 'Eximbank', logo: 'https://logo.clearbit.com/eximbank.com.vn' },
+  { code: 'OCB', name: 'OCB', logo: 'https://logo.clearbit.com/ocb.com.vn' },
+  { code: 'SCB', name: 'SCB', logo: 'https://logo.clearbit.com/scb.com.vn' },
+  { code: 'SHB', name: 'SHB', logo: 'https://logo.clearbit.com/shb.com.vn' },
+  { code: 'MSB', name: 'MSB', logo: 'https://logo.clearbit.com/msb.com.vn' },
+  { code: 'LPB', name: 'LienVietPostBank', logo: 'https://logo.clearbit.com/lienvietpostbank.com.vn' },
+  { code: 'ABB', name: 'ABBANK', logo: 'https://logo.clearbit.com/abbank.vn' },
+  { code: 'BAOVIET', name: 'BaoVietBank', logo: 'https://logo.clearbit.com/baovietbank.vn' },
+  { code: 'NVB', name: 'Nam A Bank', logo: 'https://logo.clearbit.com/nambaobank.com.vn' },
+  { code: 'PGB', name: 'PG Bank', logo: 'https://logo.clearbit.com/pgbank.com.vn' }
+]

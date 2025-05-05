@@ -1,11 +1,11 @@
-import Joi from 'joi'
+import Joi, { object } from 'joi'
 import { OWNER_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
 // Định nghĩa Collection (name & schema)
 const ACCUMULATION_COLLECTION_NAME = 'accumulations'
 const ACCUMULATION_COLLECTION_SCHEMA = Joi.object({
-  ownerType: Joi.string().valid(OWNER_TYPE.INDIVIDUAL, OWNER_TYPE.FAMILY).required(),
+  ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   moneySourceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   accumulationName: Joi.string().required().min(3).max(256).trim().strict(),
@@ -15,7 +15,7 @@ const ACCUMULATION_COLLECTION_SCHEMA = Joi.object({
   endDate: Joi.date().timestamp('javascript').required(),
   isFinish: Joi.boolean().default(false),
 
-  createdAt: Joi.date().timestamp('javascript').default(() => Date.now),
+  createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 }).custom((obj, helpers) => {
