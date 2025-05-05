@@ -1,3 +1,5 @@
+import { env } from '~/config/environment'
+
 export const WHITELIST_DOMAINS = [
 
 ]
@@ -56,3 +58,5 @@ export const SYSTEM_TASK_TYPE = {
   REMINDER: 'reminder',
   BUDGET_REPEAT: 'budget_repeat'
 }
+
+export const WEBSITE_DOMAIN = env.BUILD_MODE === 'production' ? env.WEBSITE_DOMAIN_PRODUCTION : env.WEBSITE_DOMAIN_DEVELOPMENT
