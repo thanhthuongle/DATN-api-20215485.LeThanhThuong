@@ -50,7 +50,7 @@ const validateBeforeCreate = async (data) => {
   return await SAVINGS_ACCOUNT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const savingsAccountModel = {
   SAVINGS_ACCOUNT_COLLECTION_NAME,
   SAVINGS_ACCOUNT_COLLECTION_SCHEMA
 }

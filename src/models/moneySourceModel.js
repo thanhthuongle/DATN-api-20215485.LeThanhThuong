@@ -33,7 +33,7 @@ const validateBeforeCreate = async (data) => {
   return await MONEY_SOURCE_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const moneySourceModel = {
   MONEY_SOURCE_COLLECTION_NAME,
   MONEY_SOURCE_COLLECTION_SCHEMA
 }

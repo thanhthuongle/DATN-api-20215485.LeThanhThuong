@@ -31,7 +31,7 @@ const validateBeforeCreate = async (data) => {
   return await CATEGORY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const categorieModel = {
   CATEGORY_COLLECTION_NAME,
   CATEGORY_COLLECTION_SCHEMA
 }

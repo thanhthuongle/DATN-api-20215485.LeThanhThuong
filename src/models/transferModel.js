@@ -28,7 +28,7 @@ const validateBeforeCreate = async (data) => {
   return await TRANSFER_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const transferModel = {
   TRANSFER_COLLECTION_NAME,
   TRANSFER_COLLECTION_SCHEMA
 }

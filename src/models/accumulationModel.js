@@ -32,7 +32,7 @@ const validateBeforeCreate = async (data) => {
   return await ACCUMULATION_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const accumulationModel = {
   ACCUMULATION_COLLECTION_NAME,
   ACCUMULATION_COLLECTION_SCHEMA
 }

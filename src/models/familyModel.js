@@ -28,7 +28,7 @@ const validateBeforeCreate = async (data) => {
   return await FAMILY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const familyModel = {
   FAMILY_COLLECTION_NAME,
   FAMILY_COLLECTION_SCHEMA
 }

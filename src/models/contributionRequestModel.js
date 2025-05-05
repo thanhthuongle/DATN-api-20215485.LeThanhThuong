@@ -31,7 +31,7 @@ const validateBeforeCreate = async (data) => {
   return await CONTRIBUTION_REQUEST_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const contributionRequestModel = {
   CONTRIBUTION_REQUEST_COLLECTION_NAME,
   CONTRIBUTION_REQUEST_COLLECTION_SCHEMA
 }

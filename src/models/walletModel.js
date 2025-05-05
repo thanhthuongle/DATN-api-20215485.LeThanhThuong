@@ -24,7 +24,7 @@ const validateBeforeCreate = async (data) => {
   return await WALLET_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const walletModel = {
   WALLET_COLLECTION_NAME,
   WALLET_COLLECTION_SCHEMA
 }

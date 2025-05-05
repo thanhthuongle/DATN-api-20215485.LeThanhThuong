@@ -28,7 +28,7 @@ const validateBeforeCreate = async (data) => {
   return await GROUP_PAYOUT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const groupPayoutModel = {
   GROUP_PAYOUT_COLLECTION_NAME,
   GROUP_PAYOUT_COLLECTION_SCHEMA
 }

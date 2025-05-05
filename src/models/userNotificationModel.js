@@ -19,7 +19,7 @@ const validateBeforeCreate = async (data) => {
   return await USER_NOTIFICATION_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const userNotificationModel = {
   USER_NOTIFICATION_COLLECTION_NAME,
   USER_NOTIFICATION_COLLECTION_SCHEMA
 }

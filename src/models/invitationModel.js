@@ -28,7 +28,7 @@ const validateBeforeCreate = async (data) => {
   return await INVITATION_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-export const userModel = {
+export const invitationModel = {
   INVITATION_COLLECTION_NAME,
   INVITATION_COLLECTION_SCHEMA
 }
