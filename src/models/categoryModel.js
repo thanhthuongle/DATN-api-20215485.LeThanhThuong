@@ -1,4 +1,6 @@
 import Joi from 'joi'
+import { ObjectId } from 'mongodb'
+import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
@@ -31,7 +33,15 @@ const validateBeforeCreate = async (data) => {
   return await CATEGORY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const findOneById = async (userId) => {
+  try {
+    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(userId)) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const categorieModel = {
   CATEGORY_COLLECTION_NAME,
-  CATEGORY_COLLECTION_SCHEMA
+  CATEGORY_COLLECTION_SCHEMA,
+  findOneById
 }

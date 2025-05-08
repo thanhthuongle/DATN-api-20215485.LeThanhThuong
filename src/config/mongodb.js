@@ -5,7 +5,7 @@ import { env } from '~/config/environment'
 let DatabaseInstance = null
 
 // Khởi tạo một đối tượng MongoClientInstance để connect đến mongodb
-const MongoClientInstance = new MongoClient(env.MONGODB_URI, {
+export const MongoClientInstance = new MongoClient(env.MONGODB_URI, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,

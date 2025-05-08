@@ -1,4 +1,6 @@
 import Joi from 'joi'
+import { ObjectId } from 'mongodb'
+import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
@@ -22,7 +24,15 @@ const validateBeforeCreate = async (data) => {
   return await CONTACT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const findOneById = async (contactId) => {
+  try {
+    const result = await GET_DB().collection(CONTACT_COLLECTION_NAME).findOne({ _id: new ObjectId(String(contactId)) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const contactModel = {
   CONTACT_COLLECTION_NAME,
-  CONTACT_COLLECTION_SCHEMA
+  CONTACT_COLLECTION_SCHEMA,
+  findOneById
 }

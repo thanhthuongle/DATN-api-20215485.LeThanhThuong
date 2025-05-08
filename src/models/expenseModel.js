@@ -1,6 +1,8 @@
 import Joi from 'joi'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
+import { GET_DB } from '~/config/mongodb'
+import { ObjectId } from 'mongodb'
 
 // Định nghĩa Collection (name & schema)
 const EXPENSE_COLLECTION_NAME = 'expenses'
@@ -25,7 +27,29 @@ const validateBeforeCreate = async (data) => {
   return await EXPENSE_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdTransaction = await GET_DB().collection(EXPENSE_COLLECTION_NAME).insertOne({
+      ...validData,
+      transactionId: new ObjectId(validData.transactionId),
+      moneyFromId: new ObjectId(validData.moneyFromId)
+    }, options)
+
+    return createdTransaction
+  } catch (error) { throw new Error(error) }
+}
+
+const findOneByTransactionId = async (transactionId) => {
+  try {
+    const result = await GET_DB().collection(EXPENSE_COLLECTION_NAME).findOne({ transactionId: new ObjectId(String(transactionId)) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const expenseModel = {
   EXPENSE_COLLECTION_NAME,
-  EXPENSE_COLLECTION_SCHEMA
+  EXPENSE_COLLECTION_SCHEMA,
+  createNew,
+  findOneByTransactionId
 }

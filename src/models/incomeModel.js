@@ -1,4 +1,6 @@
 import Joi from 'joi'
+import { ObjectId } from 'mongodb'
+import { GET_DB } from '~/config/mongodb'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
@@ -25,7 +27,29 @@ const validateBeforeCreate = async (data) => {
   return await INCOME_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdTransaction = await GET_DB().collection(INCOME_COLLECTION_NAME).insertOne({
+      ...validData,
+      transactionId: new ObjectId(validData.transactionId),
+      moneyTargetId: new ObjectId(validData.moneyTargetId)
+    }, options)
+
+    return createdTransaction
+  } catch (error) { throw new Error(error) }
+}
+
+const findOneByTransactionId = async (transactionId) => {
+  try {
+    const result = await GET_DB().collection(INCOME_COLLECTION_NAME).findOne({ transactionId: new ObjectId(String(transactionId)) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const incomeModel = {
   INCOME_COLLECTION_NAME,
-  INCOME_COLLECTION_SCHEMA
+  INCOME_COLLECTION_SCHEMA,
+  createNew,
+  findOneByTransactionId
 }
