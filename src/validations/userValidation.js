@@ -54,7 +54,13 @@ const update = async (req, res, next) => {
   const correctCondition = Joi.object({
     displayName: Joi.string().trim().strict(),
     current_password: Joi.string().pattern(PASSWORD_RULE).message(`current_password: ${PASSWORD_RULE_MESSAGE}`),
-    new_password: Joi.string().pattern (PASSWORD_RULE).message(`new_password: ${PASSWORD_RULE_MESSAGE}`)
+    new_password: Joi.string().pattern(PASSWORD_RULE).message(`new_password: ${PASSWORD_RULE_MESSAGE}`),
+    language: Joi.string(),
+    currency: Joi.string(),
+    remindToInput: Joi.boolean(),
+    remindTime: Joi.date().iso(),
+    startDayOfWeek: Joi.string(),
+    startDayOfMonth: Joi.number().integer().min(1).max(31)
   })
 
   try {

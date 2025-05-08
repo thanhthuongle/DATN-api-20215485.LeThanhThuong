@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb'
 import { categoriesDefault } from '../data/categoriesDefault.js'
 import { TRANSACTION_TYPES } from './constants.js'
 
-export const cloneCategories = async (ownerId, ownerType) => {
+export const cloneCategories = (ownerId, ownerType) => {
   const tempIdToRealId = {}
   const categoriesReady = []
 

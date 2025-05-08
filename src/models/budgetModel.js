@@ -10,8 +10,8 @@ const BUDGET_COLLECTION_SCHEMA = Joi.object({
 
   categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   amount: Joi.number().integer().min(0).required(),
-  startTime: Joi.date().timestamp('javascript').required(),
-  endTime: Joi.date().timestamp('javascript').required(),
+  startTime: Joi.date().iso().required(),
+  endTime: Joi.date().iso().required(),
   repeat: Joi.boolean().default(false),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),

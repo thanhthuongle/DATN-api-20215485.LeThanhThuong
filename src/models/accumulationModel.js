@@ -13,8 +13,8 @@ const ACCUMULATION_COLLECTION_SCHEMA = Joi.object({
   accumulationName: Joi.string().required().min(3).max(256).trim().strict(),
   balance: Joi.number().integer().min(0).default(0),
   targetBalance: Joi.number().integer().min(0).required(),
-  startDate: Joi.date().timestamp('javascript').required(),
-  endDate: Joi.date().timestamp('javascript').required(),
+  startDate: Joi.date().iso().required(),
+  endDate: Joi.date().iso().required(),
   isFinish: Joi.boolean().default(false),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),

@@ -40,8 +40,16 @@ const findOneById = async (userId) => {
   } catch (error) { throw new Error(error) }
 }
 
+const insertMany = async (data, options = {}) => {
+  try {
+    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).insertMany(data, options)
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const categorieModel = {
   CATEGORY_COLLECTION_NAME,
   CATEGORY_COLLECTION_SCHEMA,
-  findOneById
+  findOneById,
+  insertMany
 }

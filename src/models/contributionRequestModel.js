@@ -16,7 +16,7 @@ const CONTRIBUTION_REQUEST_COLLECTION_SCHEMA = Joi.object({
   amount: Joi.number().integer().min(0).required(),
   moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  deadline: Joi.date().timestamp('javascript').required(),
+  deadline: Joi.date().iso().required(),
   contributerIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).required(),

@@ -20,7 +20,7 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   currency: Joi.string().default('VND'),
 
   remindToInput: Joi.boolean().default(false),
-  remindTime: Joi.date().timestamp('javascript').default(null),
+  remindTime: Joi.date().iso().default(null),
 
   startDayOfWeek: Joi.string().default('MONDAY'),
   startDayOfMonth: Joi.number().integer().min(1).default(1),
