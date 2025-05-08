@@ -28,7 +28,7 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
       return num
     }, 'Parse and validate interest rate')
     .required(),
-  startDate: Joi.date().timestamp('javascript').required(),
+  startDate: Joi.date().iso().required(),
   term: Joi.string().required().trim().strict(), // Kỳ hạn
   interestPaid: Joi.string().valid(...Object.values(INTEREST_PAID)).required(), // Thời gian trả lãi
   termEnded: Joi.string().valid(...Object.values(TERM_ENDED)).required(), // hành động khi hết kỳ hạn: ROLL_OVER_PRINCIPAL_AND_INTEREST chỉ tồn tại khi trả lãi vào cuối kỳ

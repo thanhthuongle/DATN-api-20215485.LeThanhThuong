@@ -5,11 +5,13 @@ import { StatusCodes } from 'http-status-codes'
 import bcryptjs from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 import { pickUser } from '~/utils/formatter'
-import { WEBSITE_DOMAIN } from '~/utils/constants'
+import { OWNER_TYPE, WEBSITE_DOMAIN } from '~/utils/constants'
 import { BrevoProvider } from '~/providers/BrevoProvider'
 import { JwtProvider } from '~/providers/JwtProvider'
 import { env } from '~/config/environment'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
+import { cloneCategories } from '~/utils/cloneCategory'
+import { categorieModel } from '~/models/categoryModel'
 
 const createNew = async (reqBody) => {
   try {
@@ -35,6 +37,10 @@ const createNew = async (reqBody) => {
     // Gọi đến modal để xử lý lưu bản ghi newBoard
     const createdUser = await userModel.createNew(newUser)
     const getNewUser = await userModel.findOneById(createdUser.insertedId)
+
+    // clone category cho ng dùng
+    const dataCategory = cloneCategories(createdUser.insertedId, OWNER_TYPE.INDIVIDUAL)
+    await categorieModel.insertMany(dataCategory)
 
     // Gửi email cho người dùng xác thực tài khoản
     const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getNewUser.email}&token=${getNewUser.verifyToken}`

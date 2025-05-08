@@ -18,7 +18,7 @@ const PROPOSAL_EXPENSE_COLLECTION_SCHEMA = Joi.object({
     Joi.string()
   ).default([]),
   reviewerId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
-  reviewed_at: Joi.date().timestamp('javascript').optional().default(null),
+  reviewed_at: Joi.date().iso().optional().default(null),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),

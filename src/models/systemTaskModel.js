@@ -6,7 +6,7 @@ const SYSTEM_TASK_COLLECTION_NAME = 'system_tasks'
 const SYSTEM_TASK_COLLECTION_SCHEMA = Joi.object({
   type: Joi.string().valid(...Object.values(SYSTEM_TASK_TYPE)).required(),
   data: Joi.object().required(),
-  scheduleTime: Joi.date().timestamp('javascript').required(),
+  scheduleTime: Joi.date().iso().required(),
   repeat: Joi.boolean().default(false),
   status: Joi.string().required(),
 
