@@ -1,4 +1,6 @@
 import Joi from 'joi'
+import { ObjectId } from 'mongodb'
+import { GET_DB } from '~/config/mongodb'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
@@ -28,7 +30,30 @@ const validateBeforeCreate = async (data) => {
   return await TRANSFER_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdTransaction = await GET_DB().collection(TRANSFER_COLLECTION_NAME).insertOne({
+      ...validData,
+      transactionId: new ObjectId(validData.transactionId),
+      moneyFromId: new ObjectId(validData.moneyFromId),
+      moneyTargetId: new ObjectId(validData.moneyTargetId)
+    }, options)
+
+    return createdTransaction
+  } catch (error) { throw new Error(error) }
+}
+
+const findOneByTransactionId = async (transactionId) => {
+  try {
+    const result = await GET_DB().collection(TRANSFER_COLLECTION_NAME).findOne({ transactionId: new ObjectId(String(transactionId)) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const transferModel = {
   TRANSFER_COLLECTION_NAME,
-  TRANSFER_COLLECTION_SCHEMA
+  TRANSFER_COLLECTION_SCHEMA,
+  createNew,
+  findOneByTransactionId
 }

@@ -1,4 +1,6 @@
 import Joi from 'joi'
+import { ObjectId } from 'mongodb'
+import { GET_DB } from '~/config/mongodb'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
 // Định nghĩa Collection (name & schema)
@@ -28,7 +30,15 @@ const validateBeforeCreate = async (data) => {
   return await FAMILY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const findOneById = async (familyId) => {
+  try {
+    const result = await GET_DB().collection(FAMILY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(familyId)) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const familyModel = {
   FAMILY_COLLECTION_NAME,
-  FAMILY_COLLECTION_SCHEMA
+  FAMILY_COLLECTION_SCHEMA,
+  findOneById
 }
