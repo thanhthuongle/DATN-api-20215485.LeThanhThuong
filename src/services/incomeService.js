@@ -3,13 +3,13 @@ import { StatusCodes } from 'http-status-codes'
 import { accumulationModel } from '~/models/accumulationModel'
 import { incomeModel } from '~/models/incomeModel'
 import { savingsAccountModel } from '~/models/savingsAccountModel'
-import { walletModel } from '~/models/walletModel'
+import { accountModel } from '~/models/accountModel'
 import ApiError from '~/utils/ApiError'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 
 const createNew = async (amount, dataDetail, { session }) => {
   const moneyTargetModelHandle = {
-    [MONEY_SOURCE_TYPE.WALLET]: walletModel,
+    [MONEY_SOURCE_TYPE.ACCOUNT]: accountModel,
     [MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT]: savingsAccountModel,
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }

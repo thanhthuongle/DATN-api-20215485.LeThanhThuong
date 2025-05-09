@@ -4,13 +4,13 @@ import { accumulationModel } from '~/models/accumulationModel'
 import { contactModel } from '~/models/contactModel'
 import { loanModel } from '~/models/loanModel'
 import { savingsAccountModel } from '~/models/savingsAccountModel'
-import { walletModel } from '~/models/walletModel'
+import { accountModel } from '~/models/accountModel'
 import ApiError from '~/utils/ApiError'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 
 const createNew = async (amount, dataDetail, { session }) => {
   const moneySourceModelHandle = {
-    [MONEY_SOURCE_TYPE.WALLET]: walletModel,
+    [MONEY_SOURCE_TYPE.ACCOUNT]: accountModel,
     [MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT]: savingsAccountModel,
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }

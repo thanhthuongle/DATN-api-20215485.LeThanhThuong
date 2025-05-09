@@ -8,6 +8,7 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 const SAVINGS_ACCOUNT_COLLECTION_NAME = 'savings_accounts'
 const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
+  ownerId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   moneySourceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   savingsAccountName: Joi.string().required().min(3).max(256).trim().strict(),
@@ -33,11 +34,11 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   interestPaid: Joi.string().valid(...Object.values(INTEREST_PAID)).required(), // Thời gian trả lãi
   termEnded: Joi.string().valid(...Object.values(TERM_ENDED)).required(), // hành động khi hết kỳ hạn: ROLL_OVER_PRINCIPAL_AND_INTEREST chỉ tồn tại khi trả lãi vào cuối kỳ
   interestPaidTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  interestPaidTargetType: Joi.string().valid(MONEY_SOURCE_TYPE.WALLET).required(),
+  interestPaidTargetType: Joi.string().valid(MONEY_SOURCE_TYPE.ACCOUNT).required(),
   description: Joi.string().trim().strict().optional(),
   isClosed: Joi.boolean().default(false),
 
-  moneyFromType: Joi.string().valid(MONEY_SOURCE_TYPE.WALLET).required(),
+  moneyFromType: Joi.string().valid(MONEY_SOURCE_TYPE.ACCOUNT).required(),
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),

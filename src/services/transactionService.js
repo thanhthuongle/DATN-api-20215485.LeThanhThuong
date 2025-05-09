@@ -112,7 +112,7 @@ const getIndividualTransactions = async (userId, query) => {
       if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)
       if (query.toDate) filter.transactionTime.$lte = new Date(query.toDate)
     }
-    if (query.moneySourceId && query.moneySourceType) { // wallet, savings, accumulation
+    if (query.moneySourceId && query.moneySourceType) { // account, savings, accumulation
       filter.$or = [
         { moneyFromType : query.moneySourceType, moneyFromId : new ObjectId(query.moneySourceId) },
         { moneyTargetType: query.moneySourceType, moneyTargetId : new ObjectId(query.moneySourceId) }
@@ -139,7 +139,7 @@ const getFamilyTransactions = async (familyId, query) => {
       if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)
       if (query.toDate) filter.transactionTime.$lte = new Date(query.toDate)
     }
-    if (query.moneySourceId && query.moneySourceType) { // wallet, savings, accumulation
+    if (query.moneySourceId && query.moneySourceType) { // account, savings, accumulation
       filter.$or = [
         { moneyFromType : query.moneySourceType, moneyFromId : new ObjectId(query.moneySourceId) },
         { moneyTargetType: query.moneySourceType, moneyTargetId : new ObjectId(query.moneySourceId) }

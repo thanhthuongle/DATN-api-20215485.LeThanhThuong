@@ -10,7 +10,7 @@ export const OWNER_TYPE = {
 }
 
 export const MONEY_SOURCE_TYPE = {
-  WALLET: 'wallet',
+  ACCOUNT: 'account',
   SAVINGS_ACCOUNT: 'savings_account',
   ACCUMULATION: 'accumulation'
 }
@@ -57,6 +57,12 @@ export const NOTIFICATION_TYPES = {
 export const SYSTEM_TASK_TYPE = {
   REMINDER: 'reminder',
   BUDGET_REPEAT: 'budget_repeat'
+}
+
+export const ACCOUNT_TYPES = {
+  WALLET: 'wallet',
+  BANK: 'bank',
+  OTHER: 'orther'
 }
 
 export const WEBSITE_DOMAIN = env.BUILD_MODE === 'production' ? env.WEBSITE_DOMAIN_PRODUCTION : env.WEBSITE_DOMAIN_DEVELOPMENT
