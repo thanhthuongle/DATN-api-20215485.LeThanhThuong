@@ -40,7 +40,8 @@ const createNew = async (data, options = {}) => {
       ownerId: new ObjectId(String(validData.ownerId)),
       proposalId: validData.proposalId ? new ObjectId(validData.proposalId) : null,
       responsiblePersonId: validData.responsiblePersonId ? new ObjectId(validData.responsiblePersonId) : null,
-      categoryId: new ObjectId(String(validData.categoryId))
+      categoryId: new ObjectId(String(validData.categoryId)),
+      transactionTime: new Date(validData.transactionTime)
     }, options)
 
     return createdTransaction
@@ -54,9 +55,28 @@ const findOneById = async (transactionId) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getIndividualTransactions = async (filter) => {
+  try {
+
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter).toArray()
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const getFamilyTransactions = async (filter) => {
+  try {
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter).toArray()
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const transactionModel = {
   TRANSACTION_COLLECTION_NAME,
   TRANSACTION_COLLECTION_SCHEMA,
   createNew,
-  findOneById
+  findOneById,
+  getIndividualTransactions,
+  getFamilyTransactions
 }
