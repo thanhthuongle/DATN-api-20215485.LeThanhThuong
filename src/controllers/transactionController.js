@@ -8,7 +8,7 @@ const createNew = async (req, res, next) => {
     // console.log('req.params: ', req.params)
     const createdTransaction = await transactionService.createNew(req.body)
 
-    res.status(StatusCodes.CREATED).json({ createdTransaction })
+    res.status(StatusCodes.CREATED).json(createdTransaction)
   } catch (error) { next(error) }
 }
 
@@ -17,7 +17,7 @@ const createIndividualTransaction = async (req, res, next) => {
     const userId = req.jwtDecoded._id
     const createdTransaction = await transactionService.createIndividualTransaction(userId, req.body)
 
-    res.status(StatusCodes.CREATED).json({ createdTransaction })
+    res.status(StatusCodes.CREATED).json(createdTransaction)
   } catch (error) { next(error) }
 }
 
@@ -27,7 +27,7 @@ const createFamilyTransaction = async (req, res, next) => {
     const familyId = req.params.familyId
     const createdTransaction = await transactionService.createFamilyTransaction(userId, familyId, req.body)
 
-    res.status(StatusCodes.CREATED).json({ createdTransaction })
+    res.status(StatusCodes.CREATED).json(createdTransaction)
   } catch (error) { next(error) }
 }
 
