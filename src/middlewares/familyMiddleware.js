@@ -27,7 +27,7 @@ const isFamilyMember = async (req, res, next) => {
 
     const family = await validateAndGetFamily(familyId)
 
-    const isOwner = family.ownerIds?.some(id => id.equals(userId))
+    const isOwner = family.managerIds?.some(id => id.equals(userId))
     const isMember = family.memberIds?.some(id => id.equals(userId))
 
     if (!isOwner && !isMember) {
@@ -42,16 +42,16 @@ const isFamilyMember = async (req, res, next) => {
   }
 }
 
-const isFamilyOwner = async (req, res, next) => {
+const isFamilyManager = async (req, res, next) => {
   try {
     const { familyId } = req.params
     const userId = req.jwtDecoded._id
 
     const family = await validateAndGetFamily(familyId)
 
-    const isOwner = family.ownerIds?.some(id => id.equals(userId))
+    const isManager = family.managerIds?.some(id => id.equals(userId))
 
-    if (!isOwner) {
+    if (!isManager) {
       next(new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền quản trị gia đình này.'))
       return
     }
@@ -65,5 +65,5 @@ const isFamilyOwner = async (req, res, next) => {
 
 export const familyMiddleware = {
   isFamilyMember,
-  isFamilyOwner
+  isFamilyManager
 }

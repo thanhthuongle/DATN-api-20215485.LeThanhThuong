@@ -6,8 +6,8 @@ import { StatusCodes } from 'http-status-codes'
 
 const createNew = async (req, res, next) => {
   const CorrectCommonCondition = Joi.object({
-    ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
-    ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    // ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
+    // ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
     responsiblePersonId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
     proposalId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),

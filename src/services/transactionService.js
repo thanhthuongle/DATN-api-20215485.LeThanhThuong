@@ -31,20 +31,21 @@ const transactionTypeModelHandle = {
   [TRANSACTION_TYPES.CONTRIBUTION]: contributionModel
 }
 
+const transactionTypeServiceHandle = {
+  [TRANSACTION_TYPES.EXPENSE]: expenseService,
+  [TRANSACTION_TYPES.INCOME]: incomeService,
+  [TRANSACTION_TYPES.LOAN]: loanService,
+  [TRANSACTION_TYPES.BORROWING]: borrowingService,
+  [TRANSACTION_TYPES.TRANSFER]: transferService,
+  [TRANSACTION_TYPES.CONTRIBUTION]: contributionService
+}
+
 const createNew = async (reqBody) => {
   const session = MongoClientInstance.startSession()
   let transactionInsertedId
   const ownerHandle = {
     [OWNER_TYPE.INDIVIDUAL]: userModel,
     [OWNER_TYPE.FAMILY]: familyModel
-  }
-  const transactionTypeServiceHandle = {
-    [TRANSACTION_TYPES.EXPENSE]: expenseService,
-    [TRANSACTION_TYPES.INCOME]: incomeService,
-    [TRANSACTION_TYPES.LOAN]: loanService,
-    [TRANSACTION_TYPES.BORROWING]: borrowingService,
-    [TRANSACTION_TYPES.TRANSFER]: transferService,
-    [TRANSACTION_TYPES.CONTRIBUTION]: contributionService
   }
   let transactionTypeModelHandler
   let transactionTypeServiceHandler
@@ -65,6 +66,130 @@ const createNew = async (reqBody) => {
       })
 
       const { detailInfo, ...commonData } = reqBody
+
+      const createdTransaction = await transactionModel.createNew(commonData, { session })
+      transactionInsertedId = createdTransaction.insertedId
+
+      transactionTypeModelHandler = transactionTypeModelHandle[commonData.type]
+
+      transactionTypeServiceHandler = transactionTypeServiceHandle[commonData.type]
+      const dataDetail = { transactionId: transactionInsertedId.toString(), ...detailInfo }
+      const amount = commonData.amount
+      await transactionTypeServiceHandler.createNew(amount, dataDetail, { session })
+
+      await commitWithRetry(session)
+    }, MongoClientInstance, session)
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction().catch(() => {})
+    }
+    throw error
+  } finally {
+    await session.endSession()
+  }
+
+  try {
+    const getNewTransaction = await transactionModel.findOneById(transactionInsertedId)
+    getNewTransaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(transactionInsertedId)
+
+    return getNewTransaction
+  } catch (error) {
+    throw error
+  }
+}
+
+const createIndividualTransaction = async (userId, reqBody) => {
+  const session = MongoClientInstance.startSession()
+
+  const { detailInfo, ...commonData } = reqBody
+  commonData.ownerType = OWNER_TYPE.INDIVIDUAL
+  commonData.ownerId = userId
+  commonData.responsiblePersonId = userId
+  if (detailInfo.moneyFromType && detailInfo.moneyFromId) {
+    commonData.moneyFromType = detailInfo.moneyFromType
+    commonData.moneyFromId = detailInfo.moneyFromId
+  }
+  if (detailInfo.moneyTargetType && detailInfo.moneyTargetId) {
+    commonData.moneyTargetType = detailInfo.moneyTargetType
+    commonData.moneyTargetId = detailInfo.moneyTargetId
+  }
+
+  let transactionInsertedId
+  let transactionTypeModelHandler
+  let transactionTypeServiceHandler
+
+  try {
+    const category = await categoryModel.findOneById(reqBody?.categoryId)
+    if (!category) throw new ApiError (StatusCodes.NOT_FOUND, 'category of transaction not found')
+
+    await runTransactionWithRetry(async (session) => {
+      session.startTransaction({
+        readConcern: { level: 'snapshot' },
+        writeConcern: { w: 'majority' },
+        readPreference: 'primary'
+      })
+
+      const createdTransaction = await transactionModel.createNew(commonData, { session })
+      transactionInsertedId = createdTransaction.insertedId
+
+      transactionTypeModelHandler = transactionTypeModelHandle[commonData.type]
+
+      transactionTypeServiceHandler = transactionTypeServiceHandle[commonData.type]
+      const dataDetail = { transactionId: transactionInsertedId.toString(), ...detailInfo }
+      const amount = commonData.amount
+      await transactionTypeServiceHandler.createNew(amount, dataDetail, { session })
+
+      await commitWithRetry(session)
+    }, MongoClientInstance, session)
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction().catch(() => {})
+    }
+    throw error
+  } finally {
+    await session.endSession()
+  }
+
+  try {
+    const getNewTransaction = await transactionModel.findOneById(transactionInsertedId)
+    getNewTransaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(transactionInsertedId)
+
+    return getNewTransaction
+  } catch (error) {
+    throw error
+  }
+}
+
+const createFamilyTransaction = async (userId, familyId, reqBody) => {
+  const session = MongoClientInstance.startSession()
+
+  const { detailInfo, ...commonData } = reqBody
+  commonData.ownerType = OWNER_TYPE.FAMILY
+  commonData.ownerId = familyId
+  commonData.responsiblePersonId = userId
+  if (detailInfo.moneyFromType && detailInfo.moneyFromId) {
+    commonData.moneyFromType = detailInfo.moneyFromType
+    commonData.moneyFromId = detailInfo.moneyFromId
+  }
+  if (detailInfo.moneyTargetType && detailInfo.moneyTargetId) {
+    commonData.moneyTargetType = detailInfo.moneyTargetType
+    commonData.moneyTargetId = detailInfo.moneyTargetId
+  }
+
+  let transactionInsertedId
+  let transactionTypeModelHandler
+  let transactionTypeServiceHandler
+
+  try {
+    const category = await categoryModel.findOneById(reqBody?.categoryId)
+    if (!category) throw new ApiError (StatusCodes.NOT_FOUND, 'category of transaction not found')
+
+    await runTransactionWithRetry(async (session) => {
+      session.startTransaction({
+        readConcern: { level: 'snapshot' },
+        writeConcern: { w: 'majority' },
+        readPreference: 'primary'
+      })
 
       const createdTransaction = await transactionModel.createNew(commonData, { session })
       transactionInsertedId = createdTransaction.insertedId
@@ -200,6 +325,8 @@ const getDetailFamilyTransaction = async (familyId, transactionId) => {
 
 export const transactionService = {
   createNew,
+  createIndividualTransaction,
+  createFamilyTransaction,
   getIndividualTransactions,
   getFamilyTransactions,
   getDetailIndividualTransaction,

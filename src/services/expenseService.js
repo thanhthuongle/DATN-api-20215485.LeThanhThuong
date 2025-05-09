@@ -20,7 +20,7 @@ const createNew = async (amount, dataDetail, { session }) => {
     const accountId = dataDetail.moneyFromId
 
     // kiểm tra các id có tồn tại ko
-    const moneySource = await moneySourceModelHandler.findOneById(accountId)
+    const moneySource = await moneySourceModelHandler.findOneById(accountId, { session })
     if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
 
     await moneySourceModelHandler.decreaseBalance(accountId, amount, { session })

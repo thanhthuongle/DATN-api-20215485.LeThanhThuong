@@ -24,9 +24,9 @@ const validateBeforeCreate = async (data) => {
   return await CONTACT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-const findOneById = async (contactId) => {
+const findOneById = async (contactId, options = {}) => {
   try {
-    const result = await GET_DB().collection(CONTACT_COLLECTION_NAME).findOne({ _id: new ObjectId(String(contactId)) })
+    const result = await GET_DB().collection(CONTACT_COLLECTION_NAME).findOne({ _id: new ObjectId(String(contactId)) }, options)
     return result
   } catch (error) { throw new Error(error) }
 }

@@ -26,14 +26,14 @@ const createNew = async (amount, dataDetail, { session }) => {
     const contributionRequestId = dataDetail.contributionRequestId ? dataDetail.contributionRequestId : null
 
     // kiểm tra các id có tồn tại ko
-    const moneySource = await moneyFromModelHandler.findOneById(accountFromId)
+    const moneySource = await moneyFromModelHandler.findOneById(accountFromId, { session })
     if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'Tài khoản nguồn tiền không tồn tại!')
-    const moneyTarget = await moneyTargetModelHandler.findOneById(accountTargetId)
+    const moneyTarget = await moneyTargetModelHandler.findOneById(accountTargetId, { session })
     if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'Tài khoản nhận tiền không tồn tại!')
-    const recipient = await familyModel.findOneById(recipientId)
+    const recipient = await familyModel.findOneById(recipientId, { session })
     if (!recipient) throw new ApiError(StatusCodes.NOT_FOUND, 'Gia đình nhận tiền không tồn tại!')
     if (contributionRequestId) {
-      const contributionRequest = await contributionRequestModel.findOneById(contributionRequestId)
+      const contributionRequest = await contributionRequestModel.findOneById(contributionRequestId, { session })
       if (!contributionRequest) throw new ApiError(StatusCodes.NOT_FOUND, 'Yêu cầu đóng góp không tồn tại!')
     }
 

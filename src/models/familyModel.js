@@ -30,9 +30,16 @@ const validateBeforeCreate = async (data) => {
   return await FAMILY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-const findOneById = async (familyId) => {
+const findOneById = async (familyId, options = {}) => {
   try {
-    const result = await GET_DB().collection(FAMILY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(familyId)) })
+    const result = await GET_DB().collection(FAMILY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(familyId)) }, options)
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const findOne = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(FAMILY_COLLECTION_NAME).findOne(filter, options)
     return result
   } catch (error) { throw new Error(error) }
 }
@@ -40,5 +47,6 @@ const findOneById = async (familyId) => {
 export const familyModel = {
   FAMILY_COLLECTION_NAME,
   FAMILY_COLLECTION_SCHEMA,
-  findOneById
+  findOneById,
+  findOne
 }

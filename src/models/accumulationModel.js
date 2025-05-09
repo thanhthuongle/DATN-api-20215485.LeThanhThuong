@@ -43,8 +43,9 @@ const decreaseBalance = async (accountId, amount, options = {}) => {
         $inc: { balance: -amount },
         $set: { updatedAt: Date.now() }
       },
-      { returnDocument: 'after' },
-      options
+      { returnDocument: 'after',
+        ...options
+      }
     )
 
     return result
@@ -59,21 +60,21 @@ const increaseBalance = async (accountId, amount, options = {}) => {
         $inc: { balance: amount },
         $set: { updatedAt: Date.now() }
       },
-      { returnDocument: 'after' },
-      options
+      { returnDocument: 'after',
+        ...options
+      }
     )
 
     return result
   } catch (error) { throw new Error(error) }
 }
 
-const findOneById = async (accumulationId) => {
+const findOneById = async (accumulationId, options = {}) => {
   try {
-    const result = await GET_DB().collection(ACCUMULATION_COLLECTION_NAME).findOne({ _id: new ObjectId(String(accumulationId)) })
+    const result = await GET_DB().collection(ACCUMULATION_COLLECTION_NAME).findOne({ _id: new ObjectId(String(accumulationId)) }, options)
     return result
   } catch (error) { throw new Error(error) }
 }
-
 
 export const accumulationModel = {
   ACCUMULATION_COLLECTION_NAME,

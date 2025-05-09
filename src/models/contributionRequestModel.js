@@ -33,9 +33,9 @@ const validateBeforeCreate = async (data) => {
   return await CONTRIBUTION_REQUEST_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-const findOneById = async (requestId) => {
+const findOneById = async (requestId, options = {}) => {
   try {
-    const result = await GET_DB().collection(CONTRIBUTION_REQUEST_COLLECTION_NAME).findOne({ _id: new ObjectId(String(requestId)) })
+    const result = await GET_DB().collection(CONTRIBUTION_REQUEST_COLLECTION_NAME).findOne({ _id: new ObjectId(String(requestId)) }, options)
     return result
   } catch (error) { throw new Error(error) }
 }
