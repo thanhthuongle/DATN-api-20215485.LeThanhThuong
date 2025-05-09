@@ -11,7 +11,7 @@ import { JwtProvider } from '~/providers/JwtProvider'
 import { env } from '~/config/environment'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { cloneCategories } from '~/utils/cloneCategory'
-import { categorieModel } from '~/models/categoryModel'
+import { categoryModel } from '~/models/categoryModel'
 
 const createNew = async (reqBody) => {
   try {
@@ -40,7 +40,7 @@ const createNew = async (reqBody) => {
 
     // clone category cho ng dùng
     const dataCategory = cloneCategories(createdUser.insertedId, OWNER_TYPE.INDIVIDUAL)
-    await categorieModel.insertMany(dataCategory)
+    await categoryModel.insertMany(dataCategory)
 
     // Gửi email cho người dùng xác thực tài khoản
     const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getNewUser.email}&token=${getNewUser.verifyToken}`

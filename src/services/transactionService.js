@@ -16,7 +16,7 @@ import { borrowingService } from './borrowingService'
 import { contributionService } from './contributionService'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
-import { categorieModel } from '~/models/categoryModel'
+import { categoryModel } from '~/models/categoryModel'
 import { userModel } from '~/models/userModel'
 import { familyModel } from '~/models/familyModel'
 import { transferService } from './transferService'
@@ -54,7 +54,7 @@ const createNew = async (reqBody) => {
     const ownerHandler = ownerHandle[reqBody.ownerType]
     const owner = await ownerHandler.findOneById(reqBody.ownerId)
     if (!owner) throw new ApiError (StatusCodes.NOT_FOUND, 'owner of transaction not found')
-    const category = await categorieModel.findOneById(reqBody.categoryId)
+    const category = await categoryModel.findOneById(reqBody.categoryId)
     if (!category) throw new ApiError (StatusCodes.NOT_FOUND, 'category of transaction not found')
 
     await runTransactionWithRetry(async (session) => {
