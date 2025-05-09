@@ -1,17 +1,22 @@
 import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
-import { OWNER_TYPE } from '~/utils/constants'
+import { ACCOUNT_TYPES, OWNER_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
 // Định nghĩa Collection (name & schema)
-const WALLET_COLLECTION_NAME = 'wallets'
-const WALLET_COLLECTION_SCHEMA = Joi.object({
+const ACCOUNT_COLLECTION_NAME = 'accounts'
+const ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
+  ownerId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   moneySourceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  walletName: Joi.string().required().min(3).max(256).trim().strict(),
+  type: Joi.string().valid(...Object.values(ACCOUNT_TYPES)).required(),
+  accountName: Joi.string().required().min(3).max(256).trim().strict(),
+  initBalance: Joi.number().integer().required(),
   balance: Joi.number().integer().required(),
+  bankId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  description: Joi.string().optional,
   icon: Joi.string().default(null),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
@@ -23,12 +28,12 @@ const WALLET_COLLECTION_SCHEMA = Joi.object({
 const INVALID_UPDATE_FIELDS = ['_id', 'ownerType', 'moneySourceId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
-  return await WALLET_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
+  return await ACCOUNT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
 const decreaseBalance = async (accountId, amount, options = {}) => {
   try {
-    const result = await GET_DB().collection(WALLET_COLLECTION_NAME).findOneAndUpdate(
+    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(accountId) },
       {
         $inc: { balance: -amount },
@@ -44,7 +49,7 @@ const decreaseBalance = async (accountId, amount, options = {}) => {
 
 const increaseBalance = async (accountId, amount, options = {}) => {
   try {
-    const result = await GET_DB().collection(WALLET_COLLECTION_NAME).findOneAndUpdate(
+    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(accountId) },
       {
         $inc: { balance: amount },
@@ -58,16 +63,16 @@ const increaseBalance = async (accountId, amount, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
-const findOneById = async (walletId) => {
+const findOneById = async (accountId) => {
   try {
-    const result = await GET_DB().collection(WALLET_COLLECTION_NAME).findOne({ _id: new ObjectId(String(walletId)) })
+    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).findOne({ _id: new ObjectId(String(accountId)) })
     return result
   } catch (error) { throw new Error(error) }
 }
 
-export const walletModel = {
-  WALLET_COLLECTION_NAME,
-  WALLET_COLLECTION_SCHEMA,
+export const accountModel = {
+  ACCOUNT_COLLECTION_NAME,
+  ACCOUNT_COLLECTION_SCHEMA,
   decreaseBalance,
   increaseBalance,
   findOneById

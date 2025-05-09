@@ -8,7 +8,7 @@ const MONEY_SOURCE_COLLECTION_SCHEMA = Joi.object({
   ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  walletIds: Joi.array().items(
+  accountIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
   savings_accountIds: Joi.array().items(

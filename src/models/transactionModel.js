@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
+import { MONEY_SOURCE_TYPE, OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { ObjectId } from 'mongodb'
@@ -10,7 +10,7 @@ const TRANSACTION_COLLECTION_SCHEMA = Joi.object({
   ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  responsiblePersonId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional().default(null), // user: người thực hiện hoặc phê duyệt
+  responsiblePersonId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).required(), // user: người thực hiện hoặc phê duyệt
   proposalId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional().default(null),
 
   type: Joi.string().valid(...Object.values(TRANSACTION_TYPES)).required(),
@@ -19,6 +19,11 @@ const TRANSACTION_COLLECTION_SCHEMA = Joi.object({
   description: Joi.string().min(3).max(256).trim().strict().optional(),
   amount: Joi.number().integer().min(0).required(),
   transactionTime: Joi.date().iso().required(),
+
+  moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).optional(),
+  moneyFromId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).optional(),
+  moneyTargetId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
