@@ -16,7 +16,7 @@ const ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   initBalance: Joi.number().integer().required(),
   balance: Joi.number().integer().required(),
   bankId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  description: Joi.string().optional,
+  description: Joi.string().optional(),
   icon: Joi.string().default(null),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
@@ -29,6 +29,20 @@ const INVALID_UPDATE_FIELDS = ['_id', 'ownerType', 'moneySourceId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
   return await ACCOUNT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
+}
+
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdAccount = GET_DB().collection(ACCOUNT_COLLECTION_NAME).insertOne({
+      ...validData,
+      ownerId: new ObjectId(validData.ownerId),
+      moneySourceId: new ObjectId(validData.moneySourceId),
+      ...(validData.bankId && { bankId: new ObjectId(validData.bankId) })
+    }, options)
+
+    return createdAccount
+  } catch (error) { throw new Error(error) }
 }
 
 const decreaseBalance = async (accountId, amount, options = {}) => {
@@ -75,6 +89,7 @@ const findOneById = async (accountId, options = {}) => {
 export const accountModel = {
   ACCOUNT_COLLECTION_NAME,
   ACCOUNT_COLLECTION_SCHEMA,
+  createNew,
   decreaseBalance,
   increaseBalance,
   findOneById
