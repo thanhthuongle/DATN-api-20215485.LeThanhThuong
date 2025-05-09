@@ -2,11 +2,11 @@
 import { StatusCodes } from 'http-status-codes'
 import { accumulationModel } from '~/models/accumulationModel'
 import { contactModel } from '~/models/contactModel'
-import { incomeModel } from '~/models/incomeModel'
 import { savingsAccountModel } from '~/models/savingsAccountModel'
 import { accountModel } from '~/models/accountModel'
 import ApiError from '~/utils/ApiError'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
+import { borrowingModel } from '~/models/borrowingModel'
 
 const createNew = async (amount, dataDetail, { session }) => {
   const moneyTargetModelHandle = {
@@ -15,7 +15,7 @@ const createNew = async (amount, dataDetail, { session }) => {
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }
   try {
-    const createdIncome = await incomeModel.createNew(dataDetail, { session })
+    const createdIncome = await borrowingModel.createNew(dataDetail, { session })
 
     const moneyTargetModelHandler = moneyTargetModelHandle[dataDetail.moneyTargetType]
     const accountId = dataDetail.moneyTargetId
@@ -24,7 +24,7 @@ const createNew = async (amount, dataDetail, { session }) => {
     // kiểm tra các id có tồn tại ko
     const moneyTarget = await moneyTargetModelHandler.findOneById(accountId)
     if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
-    const lender = await contactModel.findOneById(lenderId)
+    const lender = await contactModel.findOneById(lenderId, { session })
     if (!lender) throw new ApiError(StatusCodes.NOT_FOUND, 'Người cho vay không tồn tại!')
 
     await moneyTargetModelHandler.increaseBalance(accountId, amount, { session })

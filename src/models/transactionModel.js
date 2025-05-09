@@ -44,9 +44,11 @@ const createNew = async (data, options = {}) => {
       ...validData,
       ownerId: new ObjectId(String(validData.ownerId)),
       proposalId: validData.proposalId ? new ObjectId(validData.proposalId) : null,
-      responsiblePersonId: validData.responsiblePersonId ? new ObjectId(validData.responsiblePersonId) : null,
+      responsiblePersonId: new ObjectId(validData.responsiblePersonId),
       categoryId: new ObjectId(String(validData.categoryId)),
-      transactionTime: new Date(validData.transactionTime)
+      transactionTime: new Date(validData.transactionTime),
+      ...(validData.moneyFromId && { moneyFromId: new ObjectId(validData.moneyFromId) }),
+      ...(validData.moneyTargetId && { moneyTargetId: new ObjectId(validData.moneyTargetId) })
     }, options)
 
     return createdTransaction

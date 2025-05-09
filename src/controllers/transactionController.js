@@ -12,6 +12,25 @@ const createNew = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const createIndividualTransaction = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const createdTransaction = await transactionService.createIndividualTransaction(userId, req.body)
+
+    res.status(StatusCodes.CREATED).json({ createdTransaction })
+  } catch (error) { next(error) }
+}
+
+const createFamilyTransaction = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const familyId = req.params.familyId
+    const createdTransaction = await transactionService.createFamilyTransaction(userId, familyId, req.body)
+
+    res.status(StatusCodes.CREATED).json({ createdTransaction })
+  } catch (error) { next(error) }
+}
+
 const getIndividualTransactions = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
@@ -56,6 +75,8 @@ const getDetailFamilyTransaction = async (req, res, next) => {
 
 export const transactionController = {
   createNew,
+  createIndividualTransaction,
+  createFamilyTransaction,
   getIndividualTransactions,
   getFamilyTransactions,
   getDetailIndividualTransaction,

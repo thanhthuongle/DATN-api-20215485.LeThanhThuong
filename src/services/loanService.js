@@ -22,9 +22,9 @@ const createNew = async (amount, dataDetail, { session }) => {
     const borrowerId = dataDetail.borrowerId
 
     // kiểm tra các id có tồn tại ko
-    const moneySource = await moneySourceModelHandler.findOneById(accountId)
+    const moneySource = await moneySourceModelHandler.findOneById(accountId, { session })
     if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
-    const borrower = await contactModel.findOneById(borrowerId)
+    const borrower = await contactModel.findOneById(borrowerId, { session })
     if (!borrower) throw new ApiError(StatusCodes.NOT_FOUND, 'Người vay không tồn tại!')
 
     await moneySourceModelHandler.decreaseBalance(accountId, amount, { session })
