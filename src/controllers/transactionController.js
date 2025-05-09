@@ -1,7 +1,5 @@
 import { StatusCodes } from 'http-status-codes'
 import { transactionService } from '~/services/transactionService'
-import ApiError from '~/utils/ApiError'
-import { OWNER_TYPE } from '~/utils/constants'
 
 const createNew = async (req, res, next) => {
   try {

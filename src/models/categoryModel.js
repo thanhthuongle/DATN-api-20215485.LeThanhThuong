@@ -47,9 +47,27 @@ const insertMany = async (data, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
-export const categorieModel = {
+const getIndividualCategories = async (filter) => {
+  try {
+    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).find(filter).toArray()
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const getFamilyCategories = async (filter) => {
+  try {
+    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).find(filter).toArray()
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+export const categoryModel = {
   CATEGORY_COLLECTION_NAME,
   CATEGORY_COLLECTION_SCHEMA,
   findOneById,
-  insertMany
+  insertMany,
+  getIndividualCategories,
+  getFamilyCategories
 }
