@@ -17,13 +17,17 @@ const ACCUMULATION_COLLECTION_SCHEMA = Joi.object({
   startDate: Joi.date().iso().required(),
   endDate: Joi.date().iso().required(),
   isFinish: Joi.boolean().default(false),
+  transactionIds: Joi.array().items(
+    Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+  ).optional().default([]),
+  description: Joi.string().optional(),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
 }).custom((obj, helpers) => {
   if (obj.startDate > obj.endDate) {
-    return helpers.message('any.invalid', { message: 'startDate cannot be after endDate' })
+    return helpers.message('Thời gian bắt đầu không thể ở sau thời gian kết thúc')
   }
   return obj
 })
@@ -33,6 +37,19 @@ const INVALID_UPDATE_FIELDS = ['_id', 'ownerType', 'moneySourceId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
   return await ACCUMULATION_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
+}
+
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdAccount = GET_DB().collection(ACCUMULATION_COLLECTION_NAME).insertOne({
+      ...validData,
+      ownerId: new ObjectId(validData.ownerId),
+      moneySourceId: new ObjectId(validData.moneySourceId)
+    }, options)
+
+    return createdAccount
+  } catch (error) { throw new Error(error) }
 }
 
 const decreaseBalance = async (accountId, amount, options = {}) => {
@@ -79,6 +96,7 @@ const findOneById = async (accumulationId, options = {}) => {
 export const accumulationModel = {
   ACCUMULATION_COLLECTION_NAME,
   ACCUMULATION_COLLECTION_SCHEMA,
+  createNew,
   decreaseBalance,
   increaseBalance,
   findOneById

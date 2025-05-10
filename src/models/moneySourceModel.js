@@ -88,6 +88,18 @@ const pushSavingIds = async (account, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const pushAccumulationIds = async (account, options = {}) => {
+  try {
+    const result = await GET_DB().collection(MONEY_SOURCE_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(account.moneySourceId)) },
+      { $push: { accumulationIds: new ObjectId(String(account._id)) } },
+      { returnDocument: 'after', ...options }
+    )
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const moneySourceModel = {
   MONEY_SOURCE_COLLECTION_NAME,
   MONEY_SOURCE_COLLECTION_SCHEMA,
@@ -95,5 +107,6 @@ export const moneySourceModel = {
   findOneById,
   findOneRecord,
   pushAccountIds,
-  pushSavingIds
+  pushSavingIds,
+  pushAccumulationIds
 }
