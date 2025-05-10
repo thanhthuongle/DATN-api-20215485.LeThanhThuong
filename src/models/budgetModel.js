@@ -19,7 +19,7 @@ const BUDGET_COLLECTION_SCHEMA = Joi.object({
   _destroy: Joi.boolean().default(false)
 }).custom((obj, helpers) => {
   if (obj.startTime > obj.endTime) {
-    return helpers.message('any.invalid', { message: 'startTime cannot be after endTime' })
+    return helpers.message('Thời gian bắt đầu không thể ở sau thời gian kết thúc')
   }
   return obj
 })
