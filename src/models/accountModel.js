@@ -18,6 +18,7 @@ const ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   bankId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   description: Joi.string().optional(),
   icon: Joi.string().default(null),
+  isBlock: Joi.boolean().default(false),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),

@@ -15,28 +15,21 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   bankId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   initBalance: Joi.number().integer().min(0).required(),
   balance: Joi.number().integer().min(0).required(),
-  rate: Joi.string().trim()
-    .custom((value, helpers) => {
-      const normalized = value.replace(',', '.')
-      const num = parseFloat(normalized)
-      if (isNaN(num)) {
-        return helpers.error('any.invalid')
-      }
-      if (num < 0 || num > 100) {
-        return helpers.error('number.outOfRange', { value: num })
-      }
-
-      return num
-    }, 'Parse and validate interest rate')
-    .required(),
+  rate: Joi.number().precision(2).min(0).max(100).required(),
+  nonTermRate: Joi.number().precision(2).min(0).max(100).required(),
   startDate: Joi.date().iso().required(),
-  term: Joi.string().required().trim().strict(), // Kỳ hạn
+  term: Joi.number().integer().min(1), // Kỳ hạn: 1m 2m 6m ....: đơn vị tháng
   interestPaid: Joi.string().valid(...Object.values(INTEREST_PAID)).required(), // Thời gian trả lãi
   termEnded: Joi.string().valid(...Object.values(TERM_ENDED)).required(), // hành động khi hết kỳ hạn: ROLL_OVER_PRINCIPAL_AND_INTEREST chỉ tồn tại khi trả lãi vào cuối kỳ
-  interestPaidTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  interestPaidTargetType: Joi.string().valid(MONEY_SOURCE_TYPE.ACCOUNT).required(),
+  interestPaidTargetId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  interestPaidTargetType: Joi.string().valid(MONEY_SOURCE_TYPE.ACCOUNT).optional(),
   description: Joi.string().trim().strict().optional(),
   isClosed: Joi.boolean().default(false),
+  isRolledOver: Joi.boolean().default(false),
+  parentSavingId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  transactionIds: Joi.array().items(
+    Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+  ).default([]),
 
   moneyFromType: Joi.string().valid(MONEY_SOURCE_TYPE.ACCOUNT).required(),
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
@@ -44,6 +37,38 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
+}).custom((value, helpers) => {
+  const { interestPaid, termEnded, interestPaidTargetId, interestPaidTargetType } = value
+
+  // 1. Nếu interestPaid !== "maturity", thì không được chọn ROLL_OVER_PRINCIPAL_AND_INTEREST
+  if (
+    interestPaid !== INTEREST_PAID.MATURITY &&
+    termEnded === TERM_ENDED.ROLL_OVER_PRINCIPAL_AND_INTEREST
+  ) {
+    return helpers.message(
+      'Không thể tái tục gốc và lãi khi trả lãi không phải vào cuối kỳ'
+    )
+  }
+
+  // 2. Nếu interestPaid !== "maturity", thì bắt buộc phải có interestPaidTargetId + Type
+  const isInterestTargetRequired = interestPaid !== INTEREST_PAID.MATURITY
+  if (isInterestTargetRequired) {
+    if (!interestPaidTargetId) {
+      return helpers.message('Thông tin tài khoản nhận lãi là bắt buộc')
+    }
+    if (!interestPaidTargetType) {
+      return helpers.message('Thông tin tài khoản nhận lãi là bắt buộc')
+    }
+  }
+
+  // 3. Nếu interestPaid === "maturity", thì 2 field kia không nên có
+  if (interestPaid === INTEREST_PAID.MATURITY) {
+    if (interestPaidTargetId || interestPaidTargetType) {
+      return helpers.message('Thông tin tài khoản nhận lãi là không cần thiết')
+    }
+  }
+
+  return value
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
@@ -51,6 +76,23 @@ const INVALID_UPDATE_FIELDS = ['_id', 'ownerType', 'moneySourceId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
   return await SAVINGS_ACCOUNT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
+}
+
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdAccount = GET_DB().collection(SAVINGS_ACCOUNT_COLLECTION_NAME).insertOne({
+      ...validData,
+      ownerId: new ObjectId(validData.ownerId),
+      moneySourceId: new ObjectId(validData.moneySourceId),
+      bankId: new ObjectId(validData.bankId),
+      moneyFromId: new ObjectId(validData.moneyFromId),
+      ...(validData.interestPaidTargetId && { interestPaidTargetId: new ObjectId(validData.interestPaidTargetId) }),
+      ...(validData.parentSavingId && { parentSavingId: new ObjectId(validData.parentSavingId) })
+    }, options)
+
+    return createdAccount
+  } catch (error) { throw new Error(error) }
 }
 
 const decreaseBalance = async (accountId, amount, options = {}) => {
@@ -97,6 +139,7 @@ const findOneById = async (savingsId, options = {}) => {
 export const savingsAccountModel = {
   SAVINGS_ACCOUNT_COLLECTION_NAME,
   SAVINGS_ACCOUNT_COLLECTION_SCHEMA,
+  createNew,
   decreaseBalance,
   increaseBalance,
   findOneById

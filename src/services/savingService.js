@@ -1,11 +1,11 @@
 /* eslint-disable no-useless-catch */
 import { ObjectId } from 'mongodb'
 import { MongoClientInstance } from '~/config/mongodb'
-import { accountModel } from '~/models/accountModel'
 import { moneySourceModel } from '~/models/moneySourceModel'
+import { savingsAccountModel } from '~/models/savingsAccountModel'
 import { OWNER_TYPE } from '~/utils/constants'
 
-const createIndividualAccount = async (userId, reqBody) => {
+const createIndividualSaving = async (userId, reqBody) => {
   const session = MongoClientInstance.startSession()
   try {
     const filter = {
@@ -30,14 +30,16 @@ const createIndividualAccount = async (userId, reqBody) => {
       ...reqBody
     }
 
-    const createdAccount = await accountModel.createNew(data, { session })
-    const getNewAccount = await accountModel.findOneById(createdAccount.insertedId, { session })
+    const createdSaving = await savingsAccountModel.createNew(data, { session })
+    const getNewSaving = await savingsAccountModel.findOneById(createdSaving.insertedId, { session })
 
-    if (getNewAccount) {
-      await moneySourceModel.pushAccountIds(getNewAccount, { session })
+    if (getNewSaving) {
+      await moneySourceModel.pushSavingIds(getNewSaving, { session })
+
+      //TODO: Tính toán, lên lịch các tác vụ tự động
     }
 
-    return getNewAccount
+    return getNewSaving
   } catch (error) {
     if (session.inTransaction()) { await session.abortTransaction().catch(() => {}) }
     throw error
@@ -46,7 +48,7 @@ const createIndividualAccount = async (userId, reqBody) => {
   }
 }
 
-const createFamilyAccount = async (familyId, reqBody) => {
+const createFamilySaving = async (familyId, reqBody) => {
   const session = MongoClientInstance.startSession()
   try {
     const filter = {
@@ -72,14 +74,16 @@ const createFamilyAccount = async (familyId, reqBody) => {
       ...reqBody
     }
 
-    const createdAccount = await accountModel.createNew(data, { session })
-    const getNewAccount = await accountModel.findOneById(createdAccount.insertedId, { session })
+    const createdSaving = await savingsAccountModel.createNew(data, { session })
+    const getNewSaving = await savingsAccountModel.findOneById(createdSaving.insertedId, { session })
 
-    if (getNewAccount) {
-      await moneySourceModel.pushAccountIds(getNewAccount, { session })
+    if (getNewSaving) {
+      await moneySourceModel.pushSavingIds(getNewSaving, { session })
+
+      //TODO: Tính toán, lên lịch các tác vụ tự động
     }
 
-    return getNewAccount
+    return getNewSaving
   } catch (error) {
     if (session.inTransaction()) { await session.abortTransaction().catch(() => {}) }
     throw error
@@ -88,7 +92,7 @@ const createFamilyAccount = async (familyId, reqBody) => {
   }
 }
 
-export const accountService = {
-  createIndividualAccount,
-  createFamilyAccount
+export const savingService = {
+  createIndividualSaving,
+  createFamilySaving
 }
