@@ -67,7 +67,7 @@ const getIndividualTransactions = async (filter) => {
 
     const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter).toArray()
 
-    return result
+    return result[0] || null
   } catch (error) { throw new Error(error) }
 }
 
@@ -75,7 +75,7 @@ const getFamilyTransactions = async (filter) => {
   try {
     const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter).toArray()
 
-    return result
+    return result[0] || null
   } catch (error) { throw new Error(error) }
 }
 
