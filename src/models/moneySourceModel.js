@@ -4,6 +4,9 @@ import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
+import { accountModel } from './accountModel'
+import { savingsAccountModel } from './savingsAccountModel'
+import { accumulationModel } from './accumulationModel'
 
 // Định nghĩa Collection (name & schema)
 const MONEY_SOURCE_COLLECTION_NAME = 'money_sources'
@@ -100,6 +103,62 @@ const pushAccumulationIds = async (account, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getIndividualMoneySource = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(MONEY_SOURCE_COLLECTION_NAME).aggregate([
+      { $match: filter },
+      { $lookup: {
+        from: accountModel.ACCOUNT_COLLECTION_NAME,
+        localField: 'accountIds',
+        foreignField: '_id',
+        as: 'accounts'
+      } },
+      { $lookup: {
+        from: savingsAccountModel.SAVINGS_ACCOUNT_COLLECTION_NAME,
+        localField: 'savings_accountIds',
+        foreignField: '_id',
+        as: 'savings_accounts'
+      } },
+      { $lookup: {
+        from: accumulationModel.ACCUMULATION_COLLECTION_NAME,
+        localField: 'accumulationIds',
+        foreignField: '_id',
+        as: 'accumulations'
+      } }
+    ], options).toArray()
+
+    return result[0] || null
+  } catch (error) { throw new Error(error) }
+}
+
+const getFamilyMoneySource = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(MONEY_SOURCE_COLLECTION_NAME).aggregate([
+      { $match: filter },
+      { $lookup: {
+        from: accountModel.ACCOUNT_COLLECTION_NAME,
+        localField: 'accountIds',
+        foreignField: '_id',
+        as: 'accounts'
+      } },
+      { $lookup: {
+        from: savingsAccountModel.SAVINGS_ACCOUNT_COLLECTION_NAME,
+        localField: 'savings_accountIds',
+        foreignField: '_id',
+        as: 'savings_accounts'
+      } },
+      { $lookup: {
+        from: accumulationModel.ACCUMULATION_COLLECTION_NAME,
+        localField: 'accumulationIds',
+        foreignField: '_id',
+        as: 'accumulations'
+      } }
+    ], options).toArray()
+
+    return result[0] || null
+  } catch (error) { throw new Error(error) }
+}
+
 export const moneySourceModel = {
   MONEY_SOURCE_COLLECTION_NAME,
   MONEY_SOURCE_COLLECTION_SCHEMA,
@@ -108,5 +167,7 @@ export const moneySourceModel = {
   findOneRecord,
   pushAccountIds,
   pushSavingIds,
-  pushAccumulationIds
+  pushAccumulationIds,
+  getIndividualMoneySource,
+  getFamilyMoneySource
 }
