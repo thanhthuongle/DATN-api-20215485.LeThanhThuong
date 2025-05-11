@@ -10,14 +10,18 @@ const BUDGET_COLLECTION_SCHEMA = Joi.object({
   ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  amount: Joi.number().integer().min(0).required(),
   startTime: Joi.date().iso().required(),
   endTime: Joi.date().iso().required(),
-  repeat: Joi.boolean().required(),
-  transactionIds: Joi.array().items(
-    Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
-  ).default([]),
+  categories: Joi.array().min(1).items(
+    Joi.object({
+      categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+      amount: Joi.number().integer().min(0).required(),
+      repeat: Joi.boolean().required(),
+      transactionIds: Joi.array().items(
+        Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+      ).default([])
+    })
+  ),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -42,7 +46,11 @@ const createNew = async (data, options = {}) => {
     const createdBudget = GET_DB().collection(BUDGET_COLLECTION_NAME).insertOne({
       ...validData,
       ownerId: new ObjectId(validData.ownerId),
-      categoryId: new ObjectId(validData.categoryId)
+      categories: data.categories.map(cat => ({
+        ...cat,
+        categoryId: new ObjectId(cat.categoryId),
+        transactionIds: cat.transactionIds.map(id => new ObjectId(id))
+      }))
     }, options)
 
     return createdBudget
@@ -56,17 +64,18 @@ const findOneById = async (budgetId, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
-const initTransactionIds = async (budgetId, transactionIds, options = {}) => {
+const findOneByTimeRange = async (filterTimeRange, options = {}) => {
+  try {
+    const result = await GET_DB().collection(BUDGET_COLLECTION_NAME).findOne(filterTimeRange, options)
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const pushCategory = async (budgetId, category, options = {}) => {
   try {
     const result = await GET_DB().collection(BUDGET_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(String(budgetId)) },
-      {
-        $addToSet: {
-          transactionIds: {
-            $each: transactionIds
-          }
-        }
-      },
+      { $push: { categories: category } },
       { returnDocument: 'after', ...options }
     )
 
@@ -79,5 +88,6 @@ export const budgetModel = {
   BUDGET_COLLECTION_SCHEMA,
   createNew,
   findOneById,
-  initTransactionIds
+  findOneByTimeRange,
+  pushCategory
 }
