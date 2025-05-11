@@ -55,27 +55,27 @@ const createNew = async (data, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
-const findOneById = async (transactionId) => {
+const findOneById = async (transactionId, options = {}) => {
   try {
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).findOne({ _id: new ObjectId(String(transactionId)) })
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).findOne({ _id: new ObjectId(String(transactionId)) }, options)
     return result
   } catch (error) { throw new Error(error) }
 }
 
-const getIndividualTransactions = async (filter) => {
+const getIndividualTransactions = async (filter, options = {}) => {
   try {
 
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter).toArray()
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).toArray()
 
-    return result[0] || null
+    return result
   } catch (error) { throw new Error(error) }
 }
 
-const getFamilyTransactions = async (filter) => {
+const getFamilyTransactions = async (filter, options = {}) => {
   try {
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter).toArray()
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).toArray()
 
-    return result[0] || null
+    return result
   } catch (error) { throw new Error(error) }
 }
 

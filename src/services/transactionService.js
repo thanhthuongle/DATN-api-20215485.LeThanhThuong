@@ -287,6 +287,7 @@ const getDetailIndividualTransaction = async (userId, transactionId) => {
     filter._destroy = false
 
     let result = await transactionModel.getIndividualTransactions(filter)
+    result = result[0]
     // console.log('🚀 ~ getDetailIndividualTransaction ~ result:', result)
 
     const transactionTypeModelHandler = transactionTypeModelHandle[result?.type]
@@ -310,6 +311,7 @@ const getDetailFamilyTransaction = async (familyId, transactionId) => {
     filter._destroy = false
 
     let result = await transactionModel.getFamilyTransactions(filter)
+    result = result[0]
 
     const transactionTypeModelHandler = transactionTypeModelHandle[result?.type]
     if (!transactionTypeModelHandler) {
