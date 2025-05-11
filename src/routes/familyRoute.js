@@ -7,7 +7,7 @@ import { familyValidation } from '~/validations/familyValidation'
 const Router = express.Router()
 
 Router.route('/')
-  .get(authMiddleware.isAuthorized ) // Lấy danh sách gia đình
+  .get(authMiddleware.isAuthorized, familyController.getFamilies ) // Lấy danh sách gia đình
   .post(
     authMiddleware.isAuthorized,
     multerUploadMiddleware.upload.single('backgroundImage'),
