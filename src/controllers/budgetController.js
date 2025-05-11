@@ -41,7 +41,7 @@ const getFamilyBudgets = async (req, res, next) => {
 
     const result = await budgetService.getFamilyBudgets(familyId, isFinish)
 
-    res.status(StatusCodes.CREATED).json(result)
+    res.status(StatusCodes.OK).json(result)
   } catch (error) { next(error) }
 }
 

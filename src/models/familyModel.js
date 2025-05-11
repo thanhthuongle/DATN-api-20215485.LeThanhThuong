@@ -30,6 +30,20 @@ const validateBeforeCreate = async (data) => {
   return await FAMILY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const newFamilyData = {
+      ...validData,
+      ownerId: new ObjectId(validData.ownerId),
+      managerIds: [new ObjectId(validData.ownerId)]
+    }
+    const createdFamily = await GET_DB().collection(FAMILY_COLLECTION_NAME).insertOne(newFamilyData, options)
+
+    return createdFamily
+  } catch (error) { throw new Error(error) }
+}
+
 const findOneById = async (familyId, options = {}) => {
   try {
     const result = await GET_DB().collection(FAMILY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(familyId)) }, options)
@@ -44,9 +58,29 @@ const findOne = async (filter, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const update = async (familyId, updateData, options = {}) => {
+  try {
+    // Lọc field mà không cho phép cập nhật
+    Object.keys(updateData).forEach(fieldName => {
+      if (INVALID_UPDATE_FIELDS.includes(fieldName)) {
+        delete updateData[fieldName]
+      }
+    })
+
+    const result = await GET_DB().collection (FAMILY_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(familyId)) },
+      { $set: updateData },
+      { returnDocument: 'after', ...options }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const familyModel = {
   FAMILY_COLLECTION_NAME,
   FAMILY_COLLECTION_SCHEMA,
+  createNew,
   findOneById,
-  findOne
+  findOne,
+  update
 }
