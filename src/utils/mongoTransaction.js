@@ -15,11 +15,11 @@ export const commitWithRetry = async (session) => {
 
 export const runTransactionWithRetry = async (txnFunc, client, session) => {
   try {
-    await txnFunc(session)
+    return await txnFunc(session)
   } catch (error) {
     if (error.hasErrorLabel?.('TransientTransactionError')) {
       console.log('TransientTransactionError, retrying transaction ...')
-      await runTransactionWithRetry(txnFunc, client, session)
+      return await runTransactionWithRetry(txnFunc, client, session)
     } else {
       throw error
     }
