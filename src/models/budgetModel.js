@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
+import { transactionModel } from './transactionModel'
 
 // Định nghĩa Collection (name & schema)
 const BUDGET_COLLECTION_NAME = 'budgets'
@@ -15,6 +16,12 @@ const BUDGET_COLLECTION_SCHEMA = Joi.object({
   categories: Joi.array().min(1).items(
     Joi.object({
       categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+      childrenIds: Joi.array().items(
+        Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+      ).default([]),
+      parentIds: Joi.array().items(
+        Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+      ).default([]),
       amount: Joi.number().integer().min(0).required(),
       repeat: Joi.boolean().required(),
       transactionIds: Joi.array().items(
@@ -49,6 +56,8 @@ const createNew = async (data, options = {}) => {
       categories: data.categories.map(cat => ({
         ...cat,
         categoryId: new ObjectId(cat.categoryId),
+        ...(cat.childrenIds && { childrenIds: cat.childrenIds.map(id => new ObjectId(id)) }),
+        ...(cat.parentIds && { parentIds: cat.parentIds.map(id => new ObjectId(id)) }),
         transactionIds: cat.transactionIds.map(id => new ObjectId(id))
       }))
     }, options)
@@ -83,11 +92,105 @@ const pushCategory = async (budgetId, category, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getIndividualBudgets = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(BUDGET_COLLECTION_NAME).aggregate([
+      { $match: filter },
+      { $unwind: '$categories' },
+      { $lookup: {
+        from: transactionModel.TRANSACTION_COLLECTION_NAME,
+        let: { ids: '$categories.transactionIds' },
+        pipeline: [
+          { $match: { $expr: { $in: ['$_id', '$$ids'] } } } // Match các transaction có _id nằm trong ids
+        ],
+        as: 'transactionDetails'
+      } },
+      // Tính tổng amount trong transactionDetails và gán vào spent
+      {
+        $addFields: {
+          'categories.spent': {
+            $sum: '$transactionDetails.amount'
+          }
+        }
+      },
+      // Bỏ trường transactionDetails
+      {
+        $project: {
+          transactionDetails: 0
+        }
+      },
+      {
+        $group: {
+          _id: '$_id',
+          ownerType: { $first: '$ownerType' },
+          ownerId: { $first: '$ownerId' },
+          categories: { $push: '$categories' },
+          startTime: { $first: '$startTime' },
+          endTime: { $first: '$endTime' },
+          createdAt: { $first: '$createdAt' },
+          updatedAt: { $first: '$updatedAt' },
+          _destroy: { $first: '$_destroy' }
+        }
+      }
+    ], options).toArray()
+
+    return result
+  } catch (error) { throw new Error(error)}
+}
+
+const getFamilyBudgets = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(BUDGET_COLLECTION_NAME).aggregate([
+      { $match: filter },
+      { $unwind: '$categories' },
+      { $lookup: {
+        from: transactionModel.TRANSACTION_COLLECTION_NAME,
+        let: { ids: '$categories.transactionIds' },
+        pipeline: [
+          { $match: { $expr: { $in: ['$_id', '$$ids'] } } } // Match các transaction có _id nằm trong ids
+        ],
+        as: 'transactionDetails'
+      } },
+      // Tính tổng amount trong transactionDetails và gán vào spent
+      {
+        $addFields: {
+          'categories.spent': {
+            $sum: '$transactionDetails.amount'
+          }
+        }
+      },
+      // Bỏ trường transactionDetails
+      {
+        $project: {
+          transactionDetails: 0
+        }
+      },
+      {
+        $group: {
+          _id: '$_id',
+          ownerType: { $first: '$ownerType' },
+          ownerId: { $first: '$ownerId' },
+          categories: { $push: '$categories' },
+          startTime: { $first: '$startTime' },
+          endTime: { $first: '$endTime' },
+          createdAt: { $first: '$createdAt' },
+          updatedAt: { $first: '$updatedAt' },
+          _destroy: { $first: '$_destroy' }
+        }
+      }
+    ], options).toArray()
+
+    return result
+  } catch (error) { throw new Error(error)}
+}
+
 export const budgetModel = {
   BUDGET_COLLECTION_NAME,
   BUDGET_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   findOneByTimeRange,
-  pushCategory
+  pushCategory,
+  getIndividualBudgets,
+  getFamilyBudgets
 }

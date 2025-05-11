@@ -1,4 +1,4 @@
-import Joi from 'joi'
+import Joi, { options } from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
@@ -63,11 +63,20 @@ const getFamilyCategories = async (filter) => {
   } catch (error) { throw new Error(error) }
 }
 
+const findOneCategory = async(filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).findOne(filter, options)
+
+    return result
+  } catch (error) { throw new Error(error)}
+}
+
 export const categoryModel = {
   CATEGORY_COLLECTION_NAME,
   CATEGORY_COLLECTION_SCHEMA,
   findOneById,
   insertMany,
   getIndividualCategories,
-  getFamilyCategories
+  getFamilyCategories,
+  findOneCategory
 }

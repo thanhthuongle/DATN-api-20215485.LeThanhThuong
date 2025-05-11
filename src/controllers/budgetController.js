@@ -21,7 +21,33 @@ const createFamilyBudget = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getIndividualBudgets = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const q = req.query
+    const isFinish = q.isFinish === 'true'
+
+    const result = await budgetService.getIndividualBudgets(userId, isFinish)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
+const getFamilyBudgets = async (req, res, next) => {
+  try {
+    const familyId = req.params.familyId
+    const q = req.query
+    const isFinish = q.isFinish === 'true'
+
+    const result = await budgetService.getFamilyBudgets(familyId, isFinish)
+
+    res.status(StatusCodes.CREATED).json(result)
+  } catch (error) { next(error) }
+}
+
 export const budgetController = {
   createIndividualBudget,
-  createFamilyBudget
+  createFamilyBudget,
+  getIndividualBudgets,
+  getFamilyBudgets
 }
