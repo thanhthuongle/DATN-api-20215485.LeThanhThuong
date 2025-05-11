@@ -66,6 +66,15 @@ const createNew = async (userId, reqBody, familyBackgroundImage) => {
   }
 }
 
+const getFamilies = async (userId) => {
+  try {
+    const result = await familyModel.getFamilies(userId)
+
+    return result
+  } catch (error) { throw error }
+}
+
 export const familyService = {
-  createNew
+  createNew,
+  getFamilies
 }

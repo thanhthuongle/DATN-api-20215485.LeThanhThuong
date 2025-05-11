@@ -76,11 +76,20 @@ const update = async (familyId, updateData, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getFamilies = async (userId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(FAMILY_COLLECTION_NAME).find( { ownerId: new ObjectId(userId) }, options).toArray()
+
+    return result
+  } catch (error) { throw new Error(error)}
+}
+
 export const familyModel = {
   FAMILY_COLLECTION_NAME,
   FAMILY_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   findOne,
-  update
+  update,
+  getFamilies
 }
