@@ -88,7 +88,35 @@ const createFamilyAccount = async (familyId, reqBody) => {
   }
 }
 
+const getIndividualAccounts = async (userId) => {
+  try {
+    const filter = {}
+    filter.ownerType = OWNER_TYPE.INDIVIDUAL
+    filter.ownerId = new ObjectId(userId)
+    filter._destroy = false
+
+    const result = await accountModel.getAccounts(filter)
+
+    return result
+  } catch (error) { throw error }
+}
+
+const getFamilyAccounts = async (familyId) => {
+  try {
+    const filter = {}
+    filter.ownerType = OWNER_TYPE.FAMILY
+    filter.ownerId = new ObjectId(familyId)
+    filter._destroy = false
+
+    const result = await accountModel.getAccounts(filter)
+
+    return result
+  } catch (error) { throw error }
+}
+
 export const accountService = {
   createIndividualAccount,
-  createFamilyAccount
+  createFamilyAccount,
+  getIndividualAccounts,
+  getFamilyAccounts
 }

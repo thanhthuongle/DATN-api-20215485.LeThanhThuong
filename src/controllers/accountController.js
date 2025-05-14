@@ -21,7 +21,29 @@ const createFamilyAccount = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getIndividualAccounts = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+
+    const result = await accountService.getIndividualAccounts(userId)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
+const getFamilyAccounts = async (req, res, next) => {
+  try {
+    const familyId = req.params.familyId
+
+    const result = await accountService.getFamilyAccounts(familyId)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 export const accountController = {
   createIndividualAccount,
-  createFamilyAccount
+  createFamilyAccount,
+  getIndividualAccounts,
+  getFamilyAccounts
 }
