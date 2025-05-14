@@ -87,11 +87,17 @@ const findOneById = async (accountId, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getAccounts = async (filter, options = {}) => {
+  const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).find(filter, options).toArray()
+  return result
+}
+
 export const accountModel = {
   ACCOUNT_COLLECTION_NAME,
   ACCOUNT_COLLECTION_SCHEMA,
   createNew,
   decreaseBalance,
   increaseBalance,
-  findOneById
+  findOneById,
+  getAccounts
 }
