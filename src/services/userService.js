@@ -12,6 +12,7 @@ import { env } from '~/config/environment'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { cloneCategories } from '~/utils/cloneCategory'
 import { categoryModel } from '~/models/categoryModel'
+import { moneySourceModel } from '~/models/moneySourceModel'
 
 const createNew = async (reqBody) => {
   try {
@@ -38,9 +39,15 @@ const createNew = async (reqBody) => {
     const createdUser = await userModel.createNew(newUser)
     const getNewUser = await userModel.findOneById(createdUser.insertedId)
 
-    // clone category cho ng dùng
+    // clone category, init moneySource cho ng dùng
     const dataCategory = cloneCategories(createdUser.insertedId, OWNER_TYPE.INDIVIDUAL)
     await categoryModel.insertMany(dataCategory)
+    const newMoneySource = {
+      ownerType: OWNER_TYPE.INDIVIDUAL,
+      ownerId:createdUser.insertedId.toString()
+    }
+    await moneySourceModel.createNew(newMoneySource)
+
 
     // Gửi email cho người dùng xác thực tài khoản
     const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getNewUser.email}&token=${getNewUser.verifyToken}`
