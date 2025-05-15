@@ -12,7 +12,7 @@ const GROUP_PAYOUT_COLLECTION_SCHEMA = Joi.object({
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  image: Joi.array().items(
+  images: Joi.array().items(
     Joi.string()
   ).default([]),
 

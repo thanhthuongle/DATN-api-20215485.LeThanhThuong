@@ -98,7 +98,7 @@ const createNew = async (reqBody) => {
   }
 }
 
-const createIndividualTransaction = async (userId, reqBody) => {
+const createIndividualTransaction = async (userId, reqBody, images) => {
   const session = MongoClientInstance.startSession()
 
   const { detailInfo, ...commonData } = reqBody
@@ -137,7 +137,7 @@ const createIndividualTransaction = async (userId, reqBody) => {
       transactionTypeServiceHandler = transactionTypeServiceHandle[commonData.type]
       const dataDetail = { transactionId: transactionInsertedId.toString(), ...detailInfo }
       const amount = commonData.amount
-      await transactionTypeServiceHandler.createNew(amount, dataDetail, { session })
+      await transactionTypeServiceHandler.createNew(amount, dataDetail, images, { session })
 
       await commitWithRetry(session)
     }, MongoClientInstance, session)
