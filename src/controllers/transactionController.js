@@ -36,7 +36,7 @@ const createFamilyTransaction = async (req, res, next) => {
 const getIndividualTransactions = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
-    const query = req.query
+    const query = req.query?.q
     const result = await transactionService.getIndividualTransactions(userId, query)
 
     res.status(StatusCodes.OK).json(result)
@@ -45,7 +45,7 @@ const getIndividualTransactions = async (req, res, next) => {
 
 const getFamilyTransactions = async (req, res, next) => {
   try {
-    const query = req.query
+    const query = req.query?.q
     const familyId = req.params.familyId
     const result = await transactionService.getFamilyTransactions(familyId, query)
 

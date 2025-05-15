@@ -230,7 +230,10 @@ const getIndividualTransactions = async (userId, query) => {
     filter.ownerId = new ObjectId(userId)
     filter._destroy = false
 
-    if (query.type) filter.type = query.type
+    if (query.type) {
+      if (Array.isArray(query.type)) { filter.type = { $in: query.type } }
+      else { filter.type = query.type }
+    }
     if (query.categoryId) filter.categoryId = new ObjectId(query.categoryId)
     if (query.fromDate || query.toDate) {
       filter.transactionTime = {}

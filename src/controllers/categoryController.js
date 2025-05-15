@@ -4,7 +4,7 @@ import { categoryService } from '~/services/categoryService'
 const getIndividualCategories = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
-    const query = req.query
+    const query = req.query?.q
 
     const result = await categoryService.getIndividualCategories(userId, query)
 
@@ -14,7 +14,7 @@ const getIndividualCategories = async (req, res, next) => {
 
 const getFamilyCategories = async (req, res, next) => {
   try {
-    const query = req.query
+    const query = req.query?.q
     const familyId = req.params.familyId
 
     const result = await categoryService.getFamilyCategories(familyId, query)

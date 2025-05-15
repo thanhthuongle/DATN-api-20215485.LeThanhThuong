@@ -11,7 +11,7 @@ const getIndividualCategories = async (userId, query) => {
     filter.ownerId = new ObjectId(userId)
     filter._destroy = false
 
-    if (query.q.type) filter.type = query.q.type
+    if (query.type) filter.type = query.type
 
 
     const result = await categoryModel.getIndividualCategories(filter)
@@ -28,7 +28,7 @@ const getFamilyCategories = async (familyId, query) => {
     filter.ownerId = new ObjectId(familyId)
     filter._destroy = false
 
-    if (query.q.type) filter.type = query.q.type
+    if (query.type) filter.type = query.type
 
 
     const result = await categoryModel.getFamilyCategories(filter)
