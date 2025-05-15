@@ -42,7 +42,7 @@ const createNew = async (req, res, next) => {
     moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     borrowerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    collectTime: Joi.date().timestamp('javascript').optional(),
+    collectTime: Joi.date().iso().optional(),
     images: Joi.array().items(
       Joi.string()
     ).optional()
@@ -52,7 +52,7 @@ const createNew = async (req, res, next) => {
     moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     lenderId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    repaymentTime: Joi.date().timestamp('javascript').optional(),
+    repaymentTime: Joi.date().iso().optional(),
     images: Joi.array().items(
       Joi.string()
     ).optional()
