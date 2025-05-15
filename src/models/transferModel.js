@@ -14,7 +14,7 @@ const TRANSFER_COLLECTION_SCHEMA = Joi.object({
   moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   fee: Joi.number().integer().min(0).optional(),
-  image: Joi.array().items(
+  images: Joi.array().items(
     Joi.string()
   ).default([]),
 

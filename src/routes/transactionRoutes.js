@@ -3,6 +3,7 @@ import { transactionValidation } from '~/validations/transactionValidation'
 import { transactionController } from '~/controllers/transactionController'
 import { authMiddleware } from '~/middlewares/authMiddleware'
 import { familyMiddleware } from '~/middlewares/familyMiddleware'
+import { multerUploadMiddleware } from '~/middlewares/multerUploadMiddleware'
 
 const Router = express.Router()
 
@@ -11,7 +12,7 @@ Router.route('/')
 
 Router.route('/individual')
   .get(authMiddleware.isAuthorized, transactionController.getIndividualTransactions)
-  .post(authMiddleware.isAuthorized, transactionValidation.createNew, transactionController.createIndividualTransaction)
+  .post(authMiddleware.isAuthorized, multerUploadMiddleware.upload.array('images', 5), transactionValidation.createNew, transactionController.createIndividualTransaction)
 
 Router.route('/individual/:transactionId')
   .get(authMiddleware.isAuthorized, transactionController.getDetailIndividualTransaction)

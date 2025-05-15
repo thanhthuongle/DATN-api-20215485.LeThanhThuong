@@ -14,8 +14,8 @@ const createNew = async (req, res, next) => {
 
     type: Joi.string().valid(...Object.values(TRANSACTION_TYPES)).required(),
     categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    name: Joi.string().required().min(3).max(256).trim().strict(),
-    description: Joi.string().min(3).max(256).trim().strict().optional(),
+    name: Joi.string().required().max(256).trim().strict(),
+    description: Joi.string().max(256).trim().strict().optional(),
     amount: Joi.number().integer().min(0).required(),
     transactionTime: Joi.date().iso().required(),
 
@@ -25,7 +25,7 @@ const createNew = async (req, res, next) => {
   const CorrectExpenseCondition = Joi.object({
     moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    image: Joi.array().items(
+    images: Joi.array().items(
       Joi.string()
     ).optional()
   }).unknown(false)
@@ -33,7 +33,7 @@ const createNew = async (req, res, next) => {
   const CorrectIncomeCondition = Joi.object({
     moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    image: Joi.array().items(
+    images: Joi.array().items(
       Joi.string()
     ).optional()
   }).unknown(false)
@@ -43,7 +43,7 @@ const createNew = async (req, res, next) => {
     moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     borrowerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     collectTime: Joi.date().timestamp('javascript').optional(),
-    image: Joi.array().items(
+    images: Joi.array().items(
       Joi.string()
     ).optional()
   }).unknown(false)
@@ -53,7 +53,7 @@ const createNew = async (req, res, next) => {
     moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     lenderId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     repaymentTime: Joi.date().timestamp('javascript').optional(),
-    image: Joi.array().items(
+    images: Joi.array().items(
       Joi.string()
     ).optional()
   }).unknown(false)
@@ -64,7 +64,7 @@ const createNew = async (req, res, next) => {
     moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     fee: Joi.number().integer().min(0).optional(),
-    image: Joi.array().items(
+    images: Joi.array().items(
       Joi.string()
     ).optional()
   }).unknown(false)
@@ -76,7 +76,7 @@ const createNew = async (req, res, next) => {
     moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     contributionRequestId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
-    image: Joi.array().items(
+    images: Joi.array().items(
       Joi.string()
     ).optional()
   }).unknown(false)
@@ -91,7 +91,9 @@ const createNew = async (req, res, next) => {
   }
 
   try {
-    // console.log('req:', req.body)
+    if (typeof req.body.detailInfo === 'string') req.body.detailInfo = JSON.parse(req.body.detailInfo)
+    console.log('req:', req.body)
+
     await CorrectCommonCondition.validateAsync(req.body, { abortEarly: false })
 
     await CorrectTransactionDetailCondition[req.body.type].validateAsync(req.body.detailInfo, { abortEarly: false })

@@ -15,7 +15,9 @@ const createNew = async (req, res, next) => {
 const createIndividualTransaction = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
-    const createdTransaction = await transactionService.createIndividualTransaction(userId, req.body)
+    const images = req.files
+    // console.log('🚀 ~ createIndividualTransaction ~ images:', images)
+    const createdTransaction = await transactionService.createIndividualTransaction(userId, req.body, images)
 
     res.status(StatusCodes.CREATED).json(createdTransaction)
   } catch (error) { next(error) }

@@ -14,7 +14,7 @@ const PROPOSAL_EXPENSE_COLLECTION_SCHEMA = Joi.object({
   categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   description: Joi.string().min(3).max(256).trim().strict().optional(),
   status: Joi.string().valid(...Object.values(PROPOSAL_EXPENSE_STATUS)).required(),
-  image: Joi.array().items(
+  images: Joi.array().items(
     Joi.string()
   ).default([]),
   reviewerId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
