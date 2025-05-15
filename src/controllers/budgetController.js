@@ -24,8 +24,8 @@ const createFamilyBudget = async (req, res, next) => {
 const getIndividualBudgets = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
-    const q = req.query
-    const isFinish = q.isFinish === 'true'
+    const q = req.query?.q
+    const isFinish = q?.isFinish === 'true'
 
     const result = await budgetService.getIndividualBudgets(userId, isFinish)
 
@@ -36,8 +36,8 @@ const getIndividualBudgets = async (req, res, next) => {
 const getFamilyBudgets = async (req, res, next) => {
   try {
     const familyId = req.params.familyId
-    const q = req.query
-    const isFinish = q.isFinish === 'true'
+    const q = req.query?.q
+    const isFinish = q?.isFinish === 'true'
 
     const result = await budgetService.getFamilyBudgets(familyId, isFinish)
 
