@@ -24,6 +24,18 @@ const validateBeforeCreate = async (data) => {
   return await CONTACT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdContact = GET_DB().collection(CONTACT_COLLECTION_NAME).insertOne({
+      ...validData,
+      ownerId: new ObjectId(validData.ownerId)
+    }, options)
+
+    return createdContact
+  } catch (error) {throw new Error(error)}
+}
+
 const findOneById = async (contactId, options = {}) => {
   try {
     const result = await GET_DB().collection(CONTACT_COLLECTION_NAME).findOne({ _id: new ObjectId(String(contactId)) }, options)
@@ -41,6 +53,7 @@ const getContacts = async (filter, options = {}) => {
 export const contactModel = {
   CONTACT_COLLECTION_NAME,
   CONTACT_COLLECTION_SCHEMA,
+  createNew,
   findOneById,
   getContacts
 }
