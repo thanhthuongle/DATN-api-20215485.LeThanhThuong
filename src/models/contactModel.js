@@ -1,4 +1,4 @@
-import Joi from 'joi'
+import Joi, { options } from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE } from '~/utils/constants'
@@ -31,8 +31,16 @@ const findOneById = async (contactId, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getContacts = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(CONTACT_COLLECTION_NAME).find(filter, options).toArray()
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const contactModel = {
   CONTACT_COLLECTION_NAME,
   CONTACT_COLLECTION_SCHEMA,
-  findOneById
+  findOneById,
+  getContacts
 }
