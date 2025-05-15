@@ -3,6 +3,36 @@ import { ObjectId } from 'mongodb'
 import { contactModel } from '~/models/contactModel'
 import { OWNER_TYPE } from '~/utils/constants'
 
+const createIndividualContact = async (userId, reqBody) => {
+  try {
+    const newContactData = {
+      ownerType: OWNER_TYPE.INDIVIDUAL,
+      ownerId: userId,
+      ...reqBody
+    }
+
+    const createdContact = await contactModel.createNew(newContactData)
+    const getNewContact = await contactModel.findOneById(createdContact.insertedId)
+
+    return getNewContact
+  } catch (error) { throw error }
+}
+
+const createFamilyContact = async (familyId, reqBody) => {
+  try {
+    const newContactData = {
+      ownerType: OWNER_TYPE.FAMILY,
+      ownerId: familyId,
+      ...reqBody
+    }
+
+    const createdContact = await contactModel.createNew(newContactData)
+    const getNewContact = await contactModel.findOneById(createdContact.insertedId)
+
+    return getNewContact
+  } catch (error) { throw error }
+}
+
 const getIndividualContacts = async (userId) => {
   try {
     const filter = {}
@@ -32,6 +62,8 @@ const getFamilyContacts = async (familyId) => {
 }
 
 export const contactService = {
+  createIndividualContact,
+  createFamilyContact,
   getIndividualContacts,
   getFamilyContacts
 }
