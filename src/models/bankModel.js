@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import Joi from 'joi'
+import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 
 // Định nghĩa Collection (name & schema)
@@ -39,8 +40,35 @@ const seedBanksIfEmpty = async (data) => {
   }
 }
 
+const findOneById = async (bankId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(BANK_COLLECTION_NAME).findOne({ _id: new ObjectId(bankId) }, options)
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const getBanks = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(BANK_COLLECTION_NAME).find(filter, options).toArray()
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const getDetail = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(BANK_COLLECTION_NAME).findOne(filter, options)
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const bankModel = {
   BANK_COLLECTION_NAME,
   BANK_COLLECTION_SCHEMA,
-  seedBanksIfEmpty
+  seedBanksIfEmpty,
+  findOneById,
+  getBanks,
+  getDetail
 }
