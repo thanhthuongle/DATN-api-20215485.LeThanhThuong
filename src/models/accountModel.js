@@ -19,6 +19,9 @@ const ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   description: Joi.string().optional(),
   icon: Joi.string().default(null),
   isBlock: Joi.boolean().default(false),
+  transactionIds: Joi.array().items(
+    Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+  ).default([]),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -88,8 +91,22 @@ const findOneById = async (accountId, options = {}) => {
 }
 
 const getAccounts = async (filter, options = {}) => {
-  const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).find(filter, options).toArray()
-  return result
+  try {
+    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).find(filter, options).toArray()
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const pushTransactionIds = async (accountId, transactionId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(accountId)) },
+      { $push: { transactionIds: new ObjectId(String(transactionId)) } },
+      { returnDocument: 'after', ...options }
+    )
+
+    return result
+  } catch (error) { throw new Error(error) }
 }
 
 export const accountModel = {
@@ -99,5 +116,6 @@ export const accountModel = {
   decreaseBalance,
   increaseBalance,
   findOneById,
-  getAccounts
+  getAccounts,
+  pushTransactionIds
 }

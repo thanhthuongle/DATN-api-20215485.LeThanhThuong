@@ -93,11 +93,24 @@ const findOneById = async (accumulationId, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const pushTransactionIds = async (accumulationId, transactionId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(ACCUMULATION_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(accumulationId)) },
+      { $push: { transactionIds: new ObjectId(String(transactionId)) } },
+      { returnDocument: 'after', ...options }
+    )
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const accumulationModel = {
   ACCUMULATION_COLLECTION_NAME,
   ACCUMULATION_COLLECTION_SCHEMA,
   createNew,
   decreaseBalance,
   increaseBalance,
-  findOneById
+  findOneById,
+  pushTransactionIds
 }

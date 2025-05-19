@@ -13,9 +13,10 @@ const createIndividualSaving = async (req, res, next) => {
 
 const createFamilySaving = async (req, res, next) => {
   try {
+    const userId = req.jwtDecoded._id
     const familyId = req.params.familyId
 
-    const createdSaving = await savingService.createFamilySaving(familyId, req.body)
+    const createdSaving = await savingService.createFamilySaving(userId, familyId, req.body)
 
     res.status(StatusCodes.CREATED).json(createdSaving)
   } catch (error) { next(error) }

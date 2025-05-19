@@ -1,4 +1,4 @@
-import Joi from 'joi'
+import Joi, { optional } from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE } from '~/utils/constants'
@@ -185,6 +185,33 @@ const getFamilyBudgets = async (filter, options = {}) => {
   } catch (error) { throw new Error(error)}
 }
 
+const pushTransactionToBudgets = async (transaction, options = {}) => {
+  try {
+    const result = await GET_DB().collection(BUDGET_COLLECTION_NAME).updateMany(
+      {
+        startTime: { $lte: new Date(transaction.transactionTime) },
+        endTime: { $gte: new Date(transaction.transactionTime) },
+        'categories.categoryId': transaction.categoryId
+      },
+      {
+        $push: {
+          'categories.$[category].transactionIds': transaction._id
+        },
+        $set: {
+          updatedAt: Date.now()
+        }
+      },
+      {
+        arrayFilters: [
+          { 'category.categoryId': transaction.categoryId }
+        ],
+        ...options
+      }
+    )
+    return result
+  } catch (error) { throw new Error(error)}
+}
+
 export const budgetModel = {
   BUDGET_COLLECTION_NAME,
   BUDGET_COLLECTION_SCHEMA,
@@ -193,5 +220,6 @@ export const budgetModel = {
   findOneByTimeRange,
   pushCategory,
   getIndividualBudgets,
-  getFamilyBudgets
+  getFamilyBudgets,
+  pushTransactionToBudgets
 }

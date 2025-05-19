@@ -40,9 +40,9 @@ const createNew = async (data, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
-const findOneByTransactionId = async (transactionId) => {
+const findOneByTransactionId = async (transactionId, options = {}) => {
   try {
-    const result = await GET_DB().collection(EXPENSE_COLLECTION_NAME).findOne({ transactionId: new ObjectId(String(transactionId)) })
+    const result = await GET_DB().collection(EXPENSE_COLLECTION_NAME).findOne({ transactionId: new ObjectId(String(transactionId)) }, options)
     return result
   } catch (error) { throw new Error(error) }
 }

@@ -136,11 +136,24 @@ const findOneById = async (savingsId, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const pushTransactionIds = async (savingsId, transactionId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(SAVINGS_ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(savingsId)) },
+      { $push: { transactionIds: new ObjectId(String(transactionId)) } },
+      { returnDocument: 'after', ...options }
+    )
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const savingsAccountModel = {
   SAVINGS_ACCOUNT_COLLECTION_NAME,
   SAVINGS_ACCOUNT_COLLECTION_SCHEMA,
   createNew,
   decreaseBalance,
   increaseBalance,
-  findOneById
+  findOneById,
+  pushTransactionIds
 }

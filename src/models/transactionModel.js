@@ -22,11 +22,6 @@ const TRANSACTION_COLLECTION_SCHEMA = Joi.object({
   amount: Joi.number().integer().min(0).required(),
   transactionTime: Joi.date().iso().required(),
 
-  moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).optional(),
-  moneyFromId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).optional(),
-  moneyTargetId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
@@ -48,9 +43,7 @@ const createNew = async (data, options = {}) => {
       proposalId: validData.proposalId ? new ObjectId(validData.proposalId) : null,
       responsiblePersonId: new ObjectId(validData.responsiblePersonId),
       categoryId: new ObjectId(String(validData.categoryId)),
-      transactionTime: new Date(validData.transactionTime),
-      ...(validData.moneyFromId && { moneyFromId: new ObjectId(validData.moneyFromId) }),
-      ...(validData.moneyTargetId && { moneyTargetId: new ObjectId(validData.moneyTargetId) })
+      transactionTime: new Date(validData.transactionTime)
     }, options)
 
     return createdTransaction
@@ -67,7 +60,7 @@ const findOneById = async (transactionId, options = {}) => {
 const getIndividualTransactions = async (filter, options = {}) => {
   try {
 
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).toArray()
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ transactionTime: 1 }).toArray()
 
     return result
   } catch (error) { throw new Error(error) }
@@ -75,7 +68,7 @@ const getIndividualTransactions = async (filter, options = {}) => {
 
 const getFamilyTransactions = async (filter, options = {}) => {
   try {
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).toArray()
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ transactionTime: 1 }).toArray()
 
     return result
   } catch (error) { throw new Error(error) }
@@ -84,7 +77,7 @@ const getFamilyTransactions = async (filter, options = {}) => {
 const getRecentTransactions = async (filter, options = {}) => {
   try {
 
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ createdAt: -1 }).limit(RECENT_RECORD_LIMIT).toArray()
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ transactionTime: -1 }).limit(RECENT_RECORD_LIMIT).toArray()
 
     return result
   } catch (error) { throw new Error(error) }
