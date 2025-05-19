@@ -7,6 +7,7 @@ import { accumulationValidation } from '~/validations/accumulationValidation'
 const Router = express.Router()
 
 Router.route('/individual')
+  .get(authMiddleware.isAuthorized, accumulationController.getIndividualAccumulations)
   .post(authMiddleware.isAuthorized, accumulationValidation.createNew, accumulationController.createIndividualAccumulation)
 
 Router.route('/family/:familyId')

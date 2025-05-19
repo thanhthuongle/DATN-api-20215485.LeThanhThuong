@@ -174,7 +174,21 @@ const createFamilySaving = async (userId, familyId, reqBody) => {
   }
 }
 
+const getIndividualSavings = async (userId) => {
+  try {
+    const filter = {}
+    filter.ownerType = OWNER_TYPE.INDIVIDUAL
+    filter.ownerId = new ObjectId(userId)
+    filter._destroy = false
+
+    const result = await savingsAccountModel.getSavings(filter)
+
+    return result
+  } catch (error) { throw error }
+}
+
 export const savingService = {
   createIndividualSaving,
-  createFamilySaving
+  createFamilySaving,
+  getIndividualSavings
 }

@@ -148,6 +148,13 @@ const pushTransactionIds = async (savingsId, transactionId, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getSavings = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(SAVINGS_ACCOUNT_COLLECTION_NAME).find(filter, options).toArray()
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const savingsAccountModel = {
   SAVINGS_ACCOUNT_COLLECTION_NAME,
   SAVINGS_ACCOUNT_COLLECTION_SCHEMA,
@@ -155,5 +162,6 @@ export const savingsAccountModel = {
   decreaseBalance,
   increaseBalance,
   findOneById,
-  pushTransactionIds
+  pushTransactionIds,
+  getSavings
 }

@@ -21,7 +21,18 @@ const createFamilyAccumulation = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getIndividualAccumulations = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+
+    const result = await accumulationService.getIndividualAccumulations(userId)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 export const accumulationController = {
   createIndividualAccumulation,
-  createFamilyAccumulation
+  createFamilyAccumulation,
+  getIndividualAccumulations
 }
