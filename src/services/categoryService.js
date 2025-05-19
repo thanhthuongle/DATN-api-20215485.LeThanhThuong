@@ -11,7 +11,10 @@ const getIndividualCategories = async (userId, query) => {
     filter.ownerId = new ObjectId(userId)
     filter._destroy = false
 
-    if (query.type) filter.type = query.type
+    if (query.type) {
+      if (Array.isArray(query.type)) { filter.type = { $in: query.type } }
+      else { filter.type = query.type }
+    }
 
 
     const result = await categoryModel.getIndividualCategories(filter)
@@ -28,7 +31,10 @@ const getFamilyCategories = async (familyId, query) => {
     filter.ownerId = new ObjectId(familyId)
     filter._destroy = false
 
-    if (query.type) filter.type = query.type
+    if (query.type) {
+      if (Array.isArray(query.type)) { filter.type = { $in: query.type } }
+      else { filter.type = query.type }
+    }
 
 
     const result = await categoryModel.getFamilyCategories(filter)

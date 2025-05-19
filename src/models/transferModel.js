@@ -51,9 +51,17 @@ const findOneByTransactionId = async (transactionId) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getManyDetailTransactions = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(TRANSFER_COLLECTION_NAME).find(filter, options).toArray()
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const transferModel = {
   TRANSFER_COLLECTION_NAME,
   TRANSFER_COLLECTION_SCHEMA,
   createNew,
-  findOneByTransactionId
+  findOneByTransactionId,
+  getManyDetailTransactions
 }

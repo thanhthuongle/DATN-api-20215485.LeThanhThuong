@@ -36,7 +36,7 @@ const createFamilyTransaction = async (req, res, next) => {
 const getIndividualTransactions = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
-    const query = req.query?.q
+    const query = req?.query?.q
     const result = await transactionService.getIndividualTransactions(userId, query)
 
     res.status(StatusCodes.OK).json(result)
@@ -75,6 +75,36 @@ const getDetailFamilyTransaction = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getIndividualRecentTransactions = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const result = await transactionService.getIndividualRecentTransactions(userId)
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
+const getFamilyRecentTransactions = async (req, res, next) => {
+  try {
+    const familyId = req.params.familyId
+    const result = await transactionService.getIndividualRecentTransactions(familyId)
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
+const getManyIndividualDetailTransaction = async (req, res, next) => {
+  try {
+    const result = await transactionService.getManyIndividualDetailTransaction(req.body)
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
+const getManyFamilyDetailTransaction = async (req, res, next) => {
+  try {
+    const result = await transactionService.getManyFamilyDetailTransaction(req.body)
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 export const transactionController = {
   createNew,
   createIndividualTransaction,
@@ -82,5 +112,9 @@ export const transactionController = {
   getIndividualTransactions,
   getFamilyTransactions,
   getDetailIndividualTransaction,
-  getDetailFamilyTransaction
+  getDetailFamilyTransaction,
+  getIndividualRecentTransactions,
+  getFamilyRecentTransactions,
+  getManyIndividualDetailTransaction,
+  getManyFamilyDetailTransaction
 }
