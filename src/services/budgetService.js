@@ -9,53 +9,6 @@ import { transactionModel } from '~/models/transactionModel'
 import ApiError from '~/utils/ApiError'
 import { OWNER_TYPE } from '~/utils/constants'
 
-function transformCategories(categories) {
-  const categoryMap = new Map()
-  const result = []
-
-  // B1: Tạo Map từ categoryId → category
-  categories.forEach(cat => {
-    categoryMap.set(cat.categoryId.toString(), { ...cat }) // clone tránh ảnh hưởng gốc
-  })
-
-  const processed = new Set()
-
-  // B2: Duyệt tất cả categories
-  for (const cat of categories) {
-    // Nếu là parent
-    if (cat.childrenIds && cat.childrenIds.length > 0) {
-      const subCategories = []
-
-      for (const childId of cat.childrenIds) {
-        if (categoryMap.has(childId.toString())) {
-          subCategories.push(categoryMap.get(childId.toString()))
-          processed.add(childId.toString()) // đánh dấu đã xử lý (xoá khỏi root sau)
-        }
-      }
-
-      const newCat = {
-        ...cat,
-        subCategories
-      }
-
-      // Xoá fields không cần
-      delete newCat.childrenIds
-      delete newCat.parentIds
-
-      result.push(newCat)
-      processed.add(cat.categoryId.toString())
-    } else if (!processed.has(cat.categoryId.toString())) {
-      // Nếu không là con & chưa bị xử lý thì giữ lại
-      const newCat = { ...cat }
-      delete newCat.childrenIds
-      delete newCat.parentIds
-      result.push(newCat)
-    }
-  }
-
-  return result
-}
-
 const createIndividualBudget = async (userId, reqBody) => {
   const session = MongoClientInstance.startSession()
   try {
@@ -102,6 +55,7 @@ const createIndividualBudget = async (userId, reqBody) => {
         categories: [
           {
             categoryId: reqBody.categoryId,
+            categoryName: category.name,
             childrenIds: category.childrenIds.map(id => id.toString()),
             parentIds: category.parentIds.map(id => id.toString()),
             amount: reqBody.amount,
@@ -128,6 +82,7 @@ const createIndividualBudget = async (userId, reqBody) => {
 
       const dataPushCaregory = {
         categoryId: new ObjectId(reqBody.categoryId),
+        categoryName: category.name,
         childrenIds: category.childrenIds,
         parentIds: category.parentIds,
         amount: reqBody.amount,
@@ -195,6 +150,7 @@ const createFamilyBudget = async (familyId, reqBody) => {
         categories: [
           {
             categoryId: reqBody.categoryId,
+            categoryName: category.name,
             childrenIds: category.childrenIds.map(id => id.toString()),
             parentIds: category.parentIds.map(id => id.toString()),
             amount: reqBody.amount,
@@ -221,6 +177,7 @@ const createFamilyBudget = async (familyId, reqBody) => {
 
       const dataPushCaregory = {
         categoryId: reqBody.categoryId,
+        categoryName: category.name,
         childrenIds: category.childrenIds,
         parentIds: category.parentIds,
         amount: reqBody.amount,
@@ -255,12 +212,7 @@ const getIndividualBudgets = async (userId, isFinish) => {
 
     const budgets = await budgetModel.getIndividualBudgets(filter)
 
-    const transformedBudgets = _.map(budgets, (budget) => ({
-      ...budget,
-      categories: transformCategories(budget.categories)
-    }))
-
-    return transformedBudgets
+    return budgets
   } catch (error) { throw error}
 }
 
@@ -278,12 +230,7 @@ const getFamilyBudgets = async (familyId, isFinish) => {
 
     const budgets = await budgetModel.getFamilyBudgets(filter)
 
-    const transformedBudgets = _.map(budgets, (budget) => ({
-      ...budget,
-      categories: transformCategories(budget.categories)
-    }))
-
-    return transformedBudgets
+    return budgets
   } catch (error) { throw error}
 }
 

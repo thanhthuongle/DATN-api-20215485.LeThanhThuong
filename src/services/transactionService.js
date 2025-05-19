@@ -301,6 +301,12 @@ const getDetailIndividualTransaction = async (userId, transactionId) => {
       throw new ApiError(StatusCodes.BAD_REQUEST, `Transaction type ${result?.type} is not supported.`)
     }
     result.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(transactionId)
+    result.category = await categoryModel.findOneCategory({
+      ownerType: OWNER_TYPE.INDIVIDUAL,
+      ownerId: new ObjectId(userId),
+      _destroy: false,
+      _id: new ObjectId(result.categoryId)
+    })
 
     return result
   } catch (error) { throw error }
