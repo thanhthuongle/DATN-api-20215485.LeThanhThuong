@@ -92,7 +92,7 @@ const createNew = async (req, res, next) => {
 
   try {
     if (typeof req.body.detailInfo === 'string') req.body.detailInfo = JSON.parse(req.body.detailInfo)
-    console.log('req:', req.body)
+    // console.log('req:', req.body)
 
     await CorrectCommonCondition.validateAsync(req.body, { abortEarly: false })
 

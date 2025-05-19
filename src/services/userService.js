@@ -164,7 +164,6 @@ const update = async (userId, reqBody, userAvatarFile) => {
   } catch (error) { throw error }
 }
 
-
 export const userService = {
   createNew,
   verifyAccount,

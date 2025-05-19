@@ -8,93 +8,105 @@ import { categoryModel } from '~/models/categoryModel'
 import { transactionModel } from '~/models/transactionModel'
 import ApiError from '~/utils/ApiError'
 import { OWNER_TYPE } from '~/utils/constants'
+import { commitWithRetry, runTransactionWithRetry } from '~/utils/mongoTransaction'
 
 const createIndividualBudget = async (userId, reqBody) => {
   const session = MongoClientInstance.startSession()
   try {
-    const filterTimeRange = {
-      ownerType: OWNER_TYPE.INDIVIDUAL,
-      ownerId: new ObjectId(userId),
-      startTime: new Date(reqBody.startTime),
-      endTime: new Date(reqBody.endTime),
-      _destroy: false
-    }
-    const budget = await budgetModel.findOneByTimeRange(filterTimeRange, { session })
-
-    const filterCategory = {
-      ownerType: OWNER_TYPE.INDIVIDUAL,
-      ownerId: new ObjectId(userId),
-      _id: new ObjectId(reqBody.categoryId),
-      _destroy: false
-    }
-    const category = await categoryModel.findOneCategory(filterCategory, { session })
-    if (!category) throw new ApiError(StatusCodes.BAD_REQUEST, 'Hạng mục tạo ngân sách không tồn tại')
-
-    const filterTransaction = {
-      ownerType: OWNER_TYPE.INDIVIDUAL,
-      ownerId: new ObjectId(userId),
-      categoryId: new ObjectId(reqBody.categoryId),
-      transactionTime: {
-        $gte: new Date(reqBody.startTime),
-        $lte: new Date(reqBody.endTime)
-      },
-      _destroy: false
-    }
-    if (!budget) {
-      const transactions = await transactionModel.getIndividualTransactions(filterTransaction, { session })
-      const transactionIds = []
-      _.forEach(transactions, (transaction) => {
-        transactionIds.push(transaction._id.toString())
+    const result = await runTransactionWithRetry(async (session) => {
+      session.startTransaction({
+        readConcern: { level: 'snapshot' },
+        writeConcern: { w: 'majority' },
+        readPreference: 'primary'
       })
-
-      const dataCreateNew = {
+      const filterTimeRange = {
         ownerType: OWNER_TYPE.INDIVIDUAL,
-        ownerId: userId,
-        startTime: reqBody.startTime,
-        endTime: reqBody.endTime,
-        categories: [
-          {
-            categoryId: reqBody.categoryId,
-            categoryName: category.name,
-            childrenIds: category.childrenIds.map(id => id.toString()),
-            parentIds: category.parentIds.map(id => id.toString()),
-            amount: reqBody.amount,
-            repeat: reqBody.repeat,
-            transactionIds
-          }
-        ]
+        ownerId: new ObjectId(userId),
+        startTime: new Date(reqBody.startTime),
+        endTime: new Date(reqBody.endTime),
+        _destroy: false
       }
+      const budget = await budgetModel.findOneByTimeRange(filterTimeRange, { session })
 
-      const createdBudget = await budgetModel.createNew(dataCreateNew, { session })
-      const getNewBudget = await budgetModel.findOneById(createdBudget.insertedId, { session })
+      const filterCategory = {
+        ownerType: OWNER_TYPE.INDIVIDUAL,
+        ownerId: new ObjectId(userId),
+        _id: new ObjectId(reqBody.categoryId),
+        _destroy: false
+      }
+      const category = await categoryModel.findOneCategory(filterCategory, { session })
+      if (!category) throw new ApiError(StatusCodes.BAD_REQUEST, 'Hạng mục tạo ngân sách không tồn tại')
 
-      return getNewBudget
-    } else {
-      _.forEach(budget.categories, (category) => {
-        if (category.categoryId == reqBody.categoryId) throw new ApiError(StatusCodes.CONFLICT, 'Ngân sách muốn tạo đã tồn tại!')
-      })
-
-      const transactions = await transactionModel.getIndividualTransactions(filterTransaction, { session })
-      const transactionIds = []
-      _.forEach(transactions, (transaction) => {
-        transactionIds.push(transaction._id.toString())
-      })
-
-      const dataPushCaregory = {
+      const filterTransaction = {
+        ownerType: OWNER_TYPE.INDIVIDUAL,
+        ownerId: new ObjectId(userId),
         categoryId: new ObjectId(reqBody.categoryId),
-        categoryName: category.name,
-        childrenIds: category.childrenIds,
-        parentIds: category.parentIds,
-        amount: reqBody.amount,
-        repeat: reqBody.repeat,
-        transactionIds
+        transactionTime: {
+          $gte: new Date(reqBody.startTime),
+          $lte: new Date(reqBody.endTime)
+        },
+        _destroy: false
       }
+      if (!budget) {
+        const transactions = await transactionModel.getIndividualTransactions(filterTransaction, { session })
+        const transactionIds = []
+        _.forEach(transactions, (transaction) => {
+          transactionIds.push(transaction._id.toString())
+        })
 
-      await budgetModel.pushCategory(budget._id, dataPushCaregory, { session })
-      budget.categories.push(dataPushCaregory)
+        const dataCreateNew = {
+          ownerType: OWNER_TYPE.INDIVIDUAL,
+          ownerId: userId,
+          startTime: reqBody.startTime,
+          endTime: reqBody.endTime,
+          categories: [
+            {
+              categoryId: reqBody.categoryId,
+              categoryName: category.name,
+              childrenIds: category.childrenIds.map(id => id.toString()),
+              parentIds: category.parentIds.map(id => id.toString()),
+              amount: reqBody.amount,
+              repeat: reqBody.repeat,
+              transactionIds
+            }
+          ]
+        }
 
-      return budget
-    }
+        const createdBudget = await budgetModel.createNew(dataCreateNew, { session })
+        const getNewBudget = await budgetModel.findOneById(createdBudget.insertedId, { session })
+
+        await commitWithRetry(session)
+        return getNewBudget
+      } else {
+        _.forEach(budget.categories, (category) => {
+          if (category.categoryId == reqBody.categoryId) throw new ApiError(StatusCodes.CONFLICT, 'Ngân sách muốn tạo đã tồn tại!')
+        })
+
+        const transactions = await transactionModel.getIndividualTransactions(filterTransaction, { session })
+        const transactionIds = []
+        _.forEach(transactions, (transaction) => {
+          transactionIds.push(transaction._id.toString())
+        })
+
+        const dataPushCaregory = {
+          categoryId: new ObjectId(reqBody.categoryId),
+          categoryName: category.name,
+          childrenIds: category.childrenIds,
+          parentIds: category.parentIds,
+          amount: reqBody.amount,
+          repeat: reqBody.repeat,
+          transactionIds
+        }
+
+        await budgetModel.pushCategory(budget._id, dataPushCaregory, { session })
+        budget.categories.push(dataPushCaregory)
+
+        await commitWithRetry(session)
+        return budget
+      }
+    }, MongoClientInstance, session)
+
+    return result
   } catch (error) {
     if (session.inTransaction()) { await session.abortTransaction().catch(() => {}) }
     throw error
@@ -106,90 +118,101 @@ const createIndividualBudget = async (userId, reqBody) => {
 const createFamilyBudget = async (familyId, reqBody) => {
   const session = MongoClientInstance.startSession()
   try {
-    const filterTimeRange = {
-      ownerType: OWNER_TYPE.FAMILY,
-      ownerId: new ObjectId(familyId),
-      startTime: new Date(reqBody.startTime),
-      endTime: new Date(reqBody.endTime),
-      _destroy: false
-    }
-    const budget = await budgetModel.findOneByTimeRange(filterTimeRange, { session })
-
-    const filterCategory = {
-      ownerType: OWNER_TYPE.FAMILY,
-      ownerId: new ObjectId(familyId),
-      _id: new ObjectId(reqBody.categoryId),
-      _destroy: false
-    }
-    const category = await categoryModel.findOneCategory(filterCategory, { session })
-    if (!category) throw new ApiError(StatusCodes.BAD_REQUEST, 'Hạng mục tạo ngân sách không tồn tại')
-
-    const filterTransaction = {
-      ownerType: OWNER_TYPE.FAMILY,
-      ownerId: new ObjectId(familyId),
-      categoryId: new ObjectId(reqBody.categoryId),
-      transactionTime: {
-        $gte: new Date(reqBody.startTime),
-        $lte: new Date(reqBody.endTime)
-      },
-      _destroy: false
-    }
-
-    if (!budget) {
-      const transactions = await transactionModel.getFamilyTransactions(filterTransaction, { session })
-      const transactionIds = []
-      _.forEach(transactions, (transaction) => {
-        transactionIds.push(transaction._id.toString())
+    const result = await runTransactionWithRetry(async (session) => {
+      session.startTransaction({
+        readConcern: { level: 'snapshot' },
+        writeConcern: { w: 'majority' },
+        readPreference: 'primary'
       })
-
-      const dataCreateNew = {
+      const filterTimeRange = {
         ownerType: OWNER_TYPE.FAMILY,
-        ownerId: familyId,
-        startTime: reqBody.startTime,
-        endTime: reqBody.endTime,
-        categories: [
-          {
-            categoryId: reqBody.categoryId,
-            categoryName: category.name,
-            childrenIds: category.childrenIds.map(id => id.toString()),
-            parentIds: category.parentIds.map(id => id.toString()),
-            amount: reqBody.amount,
-            repeat: reqBody.repeat,
-            transactionIds
-          }
-        ]
+        ownerId: new ObjectId(familyId),
+        startTime: new Date(reqBody.startTime),
+        endTime: new Date(reqBody.endTime),
+        _destroy: false
+      }
+      const budget = await budgetModel.findOneByTimeRange(filterTimeRange, { session })
+
+      const filterCategory = {
+        ownerType: OWNER_TYPE.FAMILY,
+        ownerId: new ObjectId(familyId),
+        _id: new ObjectId(reqBody.categoryId),
+        _destroy: false
+      }
+      const category = await categoryModel.findOneCategory(filterCategory, { session })
+      if (!category) throw new ApiError(StatusCodes.BAD_REQUEST, 'Hạng mục tạo ngân sách không tồn tại')
+
+      const filterTransaction = {
+        ownerType: OWNER_TYPE.FAMILY,
+        ownerId: new ObjectId(familyId),
+        categoryId: new ObjectId(reqBody.categoryId),
+        transactionTime: {
+          $gte: new Date(reqBody.startTime),
+          $lte: new Date(reqBody.endTime)
+        },
+        _destroy: false
       }
 
-      const createdBudget = await budgetModel.createNew(dataCreateNew, { session })
-      const getNewBudget = await budgetModel.findOneById(createdBudget.insertedId, { session })
+      if (!budget) {
+        const transactions = await transactionModel.getFamilyTransactions(filterTransaction, { session })
+        const transactionIds = []
+        _.forEach(transactions, (transaction) => {
+          transactionIds.push(transaction._id.toString())
+        })
 
-      return getNewBudget
-    } else {
-      _.forEach(budget.categories, (category) => {
-        if (category.categoryId == reqBody.categoryId) throw new ApiError(StatusCodes.CONFLICT, 'Ngân sách muốn tạo đã tồn tại!')
-      })
+        const dataCreateNew = {
+          ownerType: OWNER_TYPE.FAMILY,
+          ownerId: familyId,
+          startTime: reqBody.startTime,
+          endTime: reqBody.endTime,
+          categories: [
+            {
+              categoryId: reqBody.categoryId,
+              categoryName: category.name,
+              childrenIds: category.childrenIds.map(id => id.toString()),
+              parentIds: category.parentIds.map(id => id.toString()),
+              amount: reqBody.amount,
+              repeat: reqBody.repeat,
+              transactionIds
+            }
+          ]
+        }
 
-      const transactions = await transactionModel.getFamilyTransactions(filterTransaction, { session })
-      const transactionIds = []
-      _.forEach(transactions, (transaction) => {
-        transactionIds.push(transaction._id.toString())
-      })
+        const createdBudget = await budgetModel.createNew(dataCreateNew, { session })
+        const getNewBudget = await budgetModel.findOneById(createdBudget.insertedId, { session })
 
-      const dataPushCaregory = {
-        categoryId: reqBody.categoryId,
-        categoryName: category.name,
-        childrenIds: category.childrenIds,
-        parentIds: category.parentIds,
-        amount: reqBody.amount,
-        repeat: reqBody.repeat,
-        transactionIds
+        await commitWithRetry(session)
+        return getNewBudget
+      } else {
+        _.forEach(budget.categories, (category) => {
+          if (category.categoryId == reqBody.categoryId) throw new ApiError(StatusCodes.CONFLICT, 'Ngân sách muốn tạo đã tồn tại!')
+        })
+
+        const transactions = await transactionModel.getFamilyTransactions(filterTransaction, { session })
+        const transactionIds = []
+        _.forEach(transactions, (transaction) => {
+          transactionIds.push(transaction._id.toString())
+        })
+
+        const dataPushCaregory = {
+          categoryId: reqBody.categoryId,
+          categoryName: category.name,
+          childrenIds: category.childrenIds,
+          parentIds: category.parentIds,
+          amount: reqBody.amount,
+          repeat: reqBody.repeat,
+          transactionIds
+        }
+
+        await budgetModel.pushCategory(budget._id, dataPushCaregory, { session })
+        budget.categories.push(dataPushCaregory)
+
+        await commitWithRetry(session)
+        return budget
       }
+    }, MongoClientInstance, session)
 
-      await budgetModel.pushCategory(budget._id, dataPushCaregory, { session })
-      budget.categories.push(dataPushCaregory)
-
-      return budget
-    }
+    return result
   } catch (error) {
     if (session.inTransaction()) { await session.abortTransaction().catch(() => {}) }
     throw error

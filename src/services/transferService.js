@@ -27,8 +27,6 @@ const createNew = async (amount, dataDetail, images, { session }) => {
       // thêm url vào data
       dataDetail.images = imageUrls
     }
-    const createdTransfer = await transferModel.createNew(dataDetail, { session })
-
     const moneyFromModelHandler = accountModelHandle[dataDetail.moneyFromType]
     const accountFromId = dataDetail.moneyFromId
     const moneyTargetModelHandler = accountModelHandle[dataDetail.moneyTargetType]
@@ -40,6 +38,7 @@ const createNew = async (amount, dataDetail, images, { session }) => {
     const moneyTarget = await moneyTargetModelHandler.findOneById(accountTargetId, { session })
     if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
 
+    const createdTransfer = await transferModel.createNew(dataDetail, { session })
     await moneyFromModelHandler.decreaseBalance(accountFromId, Number(amount), { session })
     await moneyTargetModelHandler.increaseBalance(accountTargetId, Number(amount), { session })
 

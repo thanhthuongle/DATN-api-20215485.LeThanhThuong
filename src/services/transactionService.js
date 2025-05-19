@@ -2,7 +2,7 @@
 import { transactionModel } from '~/models/transactionModel'
 import { MongoClientInstance } from '~/config/mongodb'
 import { commitWithRetry, runTransactionWithRetry } from '~/utils/mongoTransaction'
-import { OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
+import { MONEY_SOURCE_TYPE, OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
 import { expenseModel } from '~/models/expenseModel'
 import { incomeModel } from '~/models/incomeModel'
 import { loanModel } from '~/models/loanModel'
@@ -21,6 +21,10 @@ import { userModel } from '~/models/userModel'
 import { familyModel } from '~/models/familyModel'
 import { transferService } from './transferService'
 import { ObjectId } from 'mongodb'
+import { accountModel } from '~/models/accountModel'
+import { accumulationModel } from '~/models/accumulationModel'
+import { savingsAccountModel } from '~/models/savingsAccountModel'
+import { budgetModel } from '~/models/budgetModel'
 
 const transactionTypeModelHandle = {
   [TRANSACTION_TYPES.EXPENSE]: expenseModel,
@@ -38,6 +42,12 @@ const transactionTypeServiceHandle = {
   [TRANSACTION_TYPES.BORROWING]: borrowingService,
   [TRANSACTION_TYPES.TRANSFER]: transferService,
   [TRANSACTION_TYPES.CONTRIBUTION]: contributionService
+}
+
+const moneySourceModelHandle = {
+  [MONEY_SOURCE_TYPE.ACCOUNT]: accountModel,
+  [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel,
+  [MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT]: savingsAccountModel
 }
 
 const createNew = async (reqBody) => {
@@ -105,16 +115,7 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
   commonData.ownerType = OWNER_TYPE.INDIVIDUAL
   commonData.ownerId = userId
   commonData.responsiblePersonId = userId
-  if (detailInfo.moneyFromType && detailInfo.moneyFromId) {
-    commonData.moneyFromType = detailInfo.moneyFromType
-    commonData.moneyFromId = detailInfo.moneyFromId
-  }
-  if (detailInfo.moneyTargetType && detailInfo.moneyTargetId) {
-    commonData.moneyTargetType = detailInfo.moneyTargetType
-    commonData.moneyTargetId = detailInfo.moneyTargetId
-  }
 
-  let transactionInsertedId
   let transactionTypeModelHandler
   let transactionTypeServiceHandler
 
@@ -122,7 +123,7 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
     const category = await categoryModel.findOneById(reqBody?.categoryId)
     if (!category) throw new ApiError (StatusCodes.NOT_FOUND, 'category of transaction not found')
 
-    await runTransactionWithRetry(async (session) => {
+    const result = await runTransactionWithRetry(async (session) => {
       session.startTransaction({
         readConcern: { level: 'snapshot' },
         writeConcern: { w: 'majority' },
@@ -130,17 +131,59 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
       })
 
       const createdTransaction = await transactionModel.createNew(commonData, { session })
-      transactionInsertedId = createdTransaction.insertedId
 
       transactionTypeModelHandler = transactionTypeModelHandle[commonData.type]
 
       transactionTypeServiceHandler = transactionTypeServiceHandle[commonData.type]
-      const dataDetail = { transactionId: transactionInsertedId.toString(), ...detailInfo }
+      const dataDetail = { transactionId: createdTransaction.insertedId.toString(), ...detailInfo }
       const amount = commonData.amount
       await transactionTypeServiceHandler.createNew(amount, dataDetail, images, { session })
 
+      const getNewTransaction = await transactionModel.findOneById(createdTransaction.insertedId, { session })
+      if (getNewTransaction) {
+        getNewTransaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(createdTransaction.insertedId, { session })
+        switch (getNewTransaction.type) {
+        case TRANSACTION_TYPES.EXPENSE: {
+          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
+          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          await budgetModel.pushTransactionToBudgets(getNewTransaction, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.INCOME: {
+          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
+          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.LOAN: {
+          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
+          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.BORROWING: {
+          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
+          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.TRANSFER: {
+          const moneySourceModelHandler1 = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
+          await moneySourceModelHandler1.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          const moneySourceModelHandler2 = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
+          await moneySourceModelHandler2.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        }
+      }
+
       await commitWithRetry(session)
+      return getNewTransaction
     }, MongoClientInstance, session)
+
+    return result
   } catch (error) {
     if (session.inTransaction()) {
       await session.abortTransaction().catch(() => {})
@@ -148,15 +191,6 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
     throw error
   } finally {
     await session.endSession()
-  }
-
-  try {
-    const getNewTransaction = await transactionModel.findOneById(transactionInsertedId)
-    getNewTransaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(transactionInsertedId)
-
-    return getNewTransaction
-  } catch (error) {
-    throw error
   }
 }
 
@@ -167,16 +201,7 @@ const createFamilyTransaction = async (userId, familyId, reqBody) => {
   commonData.ownerType = OWNER_TYPE.FAMILY
   commonData.ownerId = familyId
   commonData.responsiblePersonId = userId
-  if (detailInfo.moneyFromType && detailInfo.moneyFromId) {
-    commonData.moneyFromType = detailInfo.moneyFromType
-    commonData.moneyFromId = detailInfo.moneyFromId
-  }
-  if (detailInfo.moneyTargetType && detailInfo.moneyTargetId) {
-    commonData.moneyTargetType = detailInfo.moneyTargetType
-    commonData.moneyTargetId = detailInfo.moneyTargetId
-  }
 
-  let transactionInsertedId
   let transactionTypeModelHandler
   let transactionTypeServiceHandler
 
@@ -184,7 +209,7 @@ const createFamilyTransaction = async (userId, familyId, reqBody) => {
     const category = await categoryModel.findOneById(reqBody?.categoryId)
     if (!category) throw new ApiError (StatusCodes.NOT_FOUND, 'category of transaction not found')
 
-    await runTransactionWithRetry(async (session) => {
+    const result = await runTransactionWithRetry(async (session) => {
       session.startTransaction({
         readConcern: { level: 'snapshot' },
         writeConcern: { w: 'majority' },
@@ -192,17 +217,61 @@ const createFamilyTransaction = async (userId, familyId, reqBody) => {
       })
 
       const createdTransaction = await transactionModel.createNew(commonData, { session })
-      transactionInsertedId = createdTransaction.insertedId
 
       transactionTypeModelHandler = transactionTypeModelHandle[commonData.type]
 
       transactionTypeServiceHandler = transactionTypeServiceHandle[commonData.type]
-      const dataDetail = { transactionId: transactionInsertedId.toString(), ...detailInfo }
+      const dataDetail = { transactionId: createdTransaction.insertedId.toString(), ...detailInfo }
       const amount = commonData.amount
       await transactionTypeServiceHandler.createNew(amount, dataDetail, { session })
 
+      const getNewTransaction = await transactionModel.findOneById(createdTransaction.insertedId, { session })
+      getNewTransaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(createdTransaction.insertedId, { session })
+
+      if (getNewTransaction) {
+        getNewTransaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(createdTransaction.insertedId, { session })
+        switch (getNewTransaction.type) {
+        case TRANSACTION_TYPES.EXPENSE: {
+          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
+          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          await budgetModel.pushTransactionToBudgets(getNewTransaction, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.INCOME: {
+          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
+          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.LOAN: {
+          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
+          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.BORROWING: {
+          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
+          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.TRANSFER: {
+          const moneySourceModelHandler1 = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
+          await moneySourceModelHandler1.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          const moneySourceModelHandler2 = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
+          await moneySourceModelHandler2.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        }
+      }
+
       await commitWithRetry(session)
+      return getNewTransaction
     }, MongoClientInstance, session)
+
+    return result
   } catch (error) {
     if (session.inTransaction()) {
       await session.abortTransaction().catch(() => {})
@@ -210,15 +279,6 @@ const createFamilyTransaction = async (userId, familyId, reqBody) => {
     throw error
   } finally {
     await session.endSession()
-  }
-
-  try {
-    const getNewTransaction = await transactionModel.findOneById(transactionInsertedId)
-    getNewTransaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(transactionInsertedId)
-
-    return getNewTransaction
-  } catch (error) {
-    throw error
   }
 }
 
