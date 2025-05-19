@@ -109,20 +109,29 @@ const getIndividualMoneySource = async (filter, options = {}) => {
       { $match: filter },
       { $lookup: {
         from: accountModel.ACCOUNT_COLLECTION_NAME,
-        localField: 'accountIds',
-        foreignField: '_id',
+        let: { accountIds: '$accountIds' },
+        pipeline: [
+          { $match: { $expr: { $in: ['$_id', '$$accountIds'] } } },
+          { $sort: { createdAt: 1 } }
+        ],
         as: 'accounts'
       } },
       { $lookup: {
         from: savingsAccountModel.SAVINGS_ACCOUNT_COLLECTION_NAME,
-        localField: 'savings_accountIds',
-        foreignField: '_id',
+        let: { savingsIds: '$savings_accountIds' },
+        pipeline: [
+          { $match: { $expr: { $in: ['$_id', '$$savingsIds'] } } },
+          { $sort: { createdAt: 1 } }
+        ],
         as: 'savings_accounts'
       } },
       { $lookup: {
         from: accumulationModel.ACCUMULATION_COLLECTION_NAME,
-        localField: 'accumulationIds',
-        foreignField: '_id',
+        let: { accumulationIds: '$accumulationIds' },
+        pipeline: [
+          { $match: { $expr: { $in: ['$_id', '$$accumulationIds'] } } },
+          { $sort: { createdAt: 1 } }
+        ],
         as: 'accumulations'
       } }
     ], options).toArray()

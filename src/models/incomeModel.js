@@ -47,9 +47,17 @@ const findOneByTransactionId = async (transactionId) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getManyDetailTransactions = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(INCOME_COLLECTION_NAME).find(filter, options).toArray()
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const incomeModel = {
   INCOME_COLLECTION_NAME,
   INCOME_COLLECTION_SCHEMA,
   createNew,
-  findOneByTransactionId
+  findOneByTransactionId,
+  getManyDetailTransactions
 }

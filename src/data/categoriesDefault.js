@@ -3,7 +3,7 @@ const expense = [
     tempId: '001',
     categoryName: 'Ăn uống',
     icon: null,
-    childrenIds: [ '002', '003', '004', '005', '006', '007' ],
+    childrenIds: ['002', '003', '004', '005', '006', '007'],
     parentId: null
   },
   {
@@ -162,7 +162,7 @@ const expense = [
     tempId: '023',
     categoryName: 'Đi lại',
     icon: null,
-    childrenIds: [ '024', '025', '026', '027', '028', '029' ],
+    childrenIds: ['024', '025', '026', '027', '028', '029'],
     parentId: null
   },
   {
@@ -211,7 +211,7 @@ const expense = [
     tempId: '030',
     categoryName: 'Hiếu hỉ',
     icon: null,
-    childrenIds: [ '031', '032', '033', '034' ],
+    childrenIds: ['031', '032', '033', '034'],
     parentId: null
   },
   {
@@ -246,7 +246,7 @@ const expense = [
     tempId: '035',
     categoryName: 'Hưởng thụ',
     icon: null,
-    childrenIds: [ '036', '037', '038', '039', '040' ],
+    childrenIds: ['036', '037', '038', '039', '040'],
     parentId: null
   },
   {
@@ -288,7 +288,7 @@ const expense = [
     tempId: '041',
     categoryName: 'Ngân hàng',
     icon: null,
-    childrenIds: [ '042' ],
+    childrenIds: ['042'],
     parentId: null
   },
   {
@@ -302,7 +302,7 @@ const expense = [
     tempId: '043',
     categoryName: 'Nhà cửa',
     icon: null,
-    childrenIds: [ '044', '045', '046' ],
+    childrenIds: ['044', '045', '046'],
     parentId: null
   },
   {
@@ -330,7 +330,7 @@ const expense = [
     tempId: '047',
     categoryName: 'Phát triển bản thân',
     icon: null,
-    childrenIds: [ '048', '049' ],
+    childrenIds: ['048', '049'],
     parentId: null
   },
   {
@@ -351,7 +351,7 @@ const expense = [
     tempId: '050',
     categoryName: 'Sức khỏe',
     icon: null,
-    childrenIds: [ '051', '052', '053' ],
+    childrenIds: ['051', '052', '053'],
     parentId: null
   },
   {
@@ -379,7 +379,7 @@ const expense = [
     tempId: '054',
     categoryName: 'Trang phục',
     icon: null,
-    childrenIds: [ '055', '056', '057' ],
+    childrenIds: ['055', '056', '057'],
     parentId: null
   },
   {

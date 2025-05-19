@@ -14,12 +14,25 @@ Router.route('/individual')
   .get(authMiddleware.isAuthorized, transactionController.getIndividualTransactions)
   .post(authMiddleware.isAuthorized, multerUploadMiddleware.upload.array('images', 5), transactionValidation.createNew, transactionController.createIndividualTransaction)
 
+Router.route('/individual/recentTransactions')
+  .get(authMiddleware.isAuthorized, transactionController.getIndividualRecentTransactions)
+
+Router.route('/individual/detailTransactions')
+  .post(authMiddleware.isAuthorized, transactionController.getManyIndividualDetailTransaction)
+
 Router.route('/individual/:transactionId')
   .get(authMiddleware.isAuthorized, transactionController.getDetailIndividualTransaction)
+
 
 Router.route('/family/:familyId')
   .get(authMiddleware.isAuthorized, familyMiddleware.isFamilyMember, transactionController.getFamilyTransactions)
   .post(authMiddleware.isAuthorized, familyMiddleware.isFamilyManager, transactionValidation.createNew, transactionController.createFamilyTransaction)
+
+Router.route('/family/:familyId/recentTransactions')
+  .get(authMiddleware.isAuthorized, familyMiddleware.isFamilyMember, transactionController.getFamilyRecentTransactions)
+
+Router.route('/family/:familyId/detailTransactions')
+  .post(authMiddleware.isAuthorized, familyMiddleware.isFamilyMember, transactionController.getManyFamilyDetailTransaction)
 
 Router.route('/family/:familyId/:transactionId')
   .get(authMiddleware.isAuthorized, familyMiddleware.isFamilyMember, transactionController.getDetailFamilyTransaction)

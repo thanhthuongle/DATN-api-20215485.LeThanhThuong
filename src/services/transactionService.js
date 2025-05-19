@@ -229,22 +229,23 @@ const getIndividualTransactions = async (userId, query) => {
     filter.ownerType = OWNER_TYPE.INDIVIDUAL
     filter.ownerId = new ObjectId(userId)
     filter._destroy = false
-
-    if (query.type) {
-      if (Array.isArray(query.type)) { filter.type = { $in: query.type } }
-      else { filter.type = query.type }
-    }
-    if (query.categoryId) filter.categoryId = new ObjectId(query.categoryId)
-    if (query.fromDate || query.toDate) {
-      filter.transactionTime = {}
-      if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)
-      if (query.toDate) filter.transactionTime.$lte = new Date(query.toDate)
-    }
-    if (query.moneySourceId && query.moneySourceType) { // account, savings, accumulation
-      filter.$or = [
-        { moneyFromType : query.moneySourceType, moneyFromId : new ObjectId(query.moneySourceId) },
-        { moneyTargetType: query.moneySourceType, moneyTargetId : new ObjectId(query.moneySourceId) }
-      ]
+    if (query) {
+      if (query.type) {
+        if (Array.isArray(query.type)) { filter.type = { $in: query.type } }
+        else { filter.type = query.type }
+      }
+      if (query.categoryId) filter.categoryId = new ObjectId(query.categoryId)
+      if (query.fromDate || query.toDate) {
+        filter.transactionTime = {}
+        if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)
+        if (query.toDate) filter.transactionTime.$lte = new Date(query.toDate)
+      }
+      if (query.moneySourceId && query.moneySourceType) { // account, savings, accumulation
+        filter.$or = [
+          { moneyFromType : query.moneySourceType, moneyFromId : new ObjectId(query.moneySourceId) },
+          { moneyTargetType: query.moneySourceType, moneyTargetId : new ObjectId(query.moneySourceId) }
+        ]
+      }
     }
     const result = await transactionModel.getIndividualTransactions(filter)
 
@@ -260,18 +261,20 @@ const getFamilyTransactions = async (familyId, query) => {
     filter.ownerId = new ObjectId(familyId)
     filter._destroy = false
 
-    if (query.type) filter.type = query.type
-    if (query.categoryId) filter.categoryId = new ObjectId(query.categoryId)
-    if (query.fromDate || query.toDate) {
-      filter.transactionTime = {}
-      if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)
-      if (query.toDate) filter.transactionTime.$lte = new Date(query.toDate)
-    }
-    if (query.moneySourceId && query.moneySourceType) { // account, savings, accumulation
-      filter.$or = [
-        { moneyFromType : query.moneySourceType, moneyFromId : new ObjectId(query.moneySourceId) },
-        { moneyTargetType: query.moneySourceType, moneyTargetId : new ObjectId(query.moneySourceId) }
-      ]
+    if (query) {
+      if (query.type) filter.type = query.type
+      if (query.categoryId) filter.categoryId = new ObjectId(query.categoryId)
+      if (query.fromDate || query.toDate) {
+        filter.transactionTime = {}
+        if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)
+        if (query.toDate) filter.transactionTime.$lte = new Date(query.toDate)
+      }
+      if (query.moneySourceId && query.moneySourceType) { // account, savings, accumulation
+        filter.$or = [
+          { moneyFromType : query.moneySourceType, moneyFromId : new ObjectId(query.moneySourceId) },
+          { moneyTargetType: query.moneySourceType, moneyTargetId : new ObjectId(query.moneySourceId) }
+        ]
+      }
     }
 
     const result = await transactionModel.getFamilyTransactions(filter)
@@ -298,6 +301,12 @@ const getDetailIndividualTransaction = async (userId, transactionId) => {
       throw new ApiError(StatusCodes.BAD_REQUEST, `Transaction type ${result?.type} is not supported.`)
     }
     result.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(transactionId)
+    result.category = await categoryModel.findOneCategory({
+      ownerType: OWNER_TYPE.INDIVIDUAL,
+      ownerId: new ObjectId(userId),
+      _destroy: false,
+      _id: new ObjectId(result.categoryId)
+    })
 
     return result
   } catch (error) { throw error }
@@ -326,6 +335,66 @@ const getDetailFamilyTransaction = async (familyId, transactionId) => {
   } catch (error) { throw error }
 }
 
+const getIndividualRecentTransactions = async (userId) => {
+  try {
+    const filter = {
+      ownerType: OWNER_TYPE.INDIVIDUAL,
+      ownerId: new ObjectId(userId),
+      _destroy: false
+    }
+
+    const result = await transactionModel.getRecentTransactions(filter)
+    return result
+  } catch (error) { throw error }
+}
+
+const getFamilyRecentTransactions = async (familyId) => {
+  try {
+    const filter = {
+      ownerType: OWNER_TYPE.FAMILY,
+      ownerId: new ObjectId(familyId),
+      _destroy: false
+    }
+
+    const result = await transactionModel.getRecentTransactions(filter)
+    return result
+  } catch (error) { throw error }
+}
+
+const getManyIndividualDetailTransaction = async (reqBody) => {
+  try {
+    const type = reqBody?.type
+    const transactionIds = reqBody?.transactionIds.map(item => new ObjectId(item))
+    const transactionTypeModelHandler = transactionTypeModelHandle[type]
+
+    const filter = {
+      _destroy: false,
+      transactionId: { $in: transactionIds }
+    }
+
+    const result = await transactionTypeModelHandler.getManyDetailTransactions(filter)
+
+    return result
+  } catch (error) { throw error }
+}
+
+const getManyFamilyDetailTransaction = async (reqBody) => {
+  try {
+    const type = reqBody?.type
+    const transactionsIds = reqBody?.transactionIds.map(item => new ObjectId(item))
+    const transactionTypeModelHandler = transactionTypeModelHandle[type]
+
+    const filter = {
+      _destroy: false,
+      transactionId: { $in: transactionsIds }
+    }
+
+    const result = await transactionTypeModelHandler.getManyDetailTransactions(filter)
+
+    return result
+  } catch (error) { throw error }
+}
+
 export const transactionService = {
   createNew,
   createIndividualTransaction,
@@ -333,5 +402,9 @@ export const transactionService = {
   getIndividualTransactions,
   getFamilyTransactions,
   getDetailIndividualTransaction,
-  getDetailFamilyTransaction
+  getDetailFamilyTransaction,
+  getIndividualRecentTransactions,
+  getFamilyRecentTransactions,
+  getManyIndividualDetailTransaction,
+  getManyFamilyDetailTransaction
 }

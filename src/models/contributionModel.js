@@ -54,9 +54,17 @@ const findOneByTransactionId = async (transactionId) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getManyDetailTransactions = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(CONTRIBUTION_COLLECTION_NAME).find(filter, options).toArray()
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const contributionModel = {
   CONTRIBUTION_COLLECTION_NAME,
   CONTRIBUTION_COLLECTION_SCHEMA,
   createNew,
-  findOneByTransactionId
+  findOneByTransactionId,
+  getManyDetailTransactions
 }

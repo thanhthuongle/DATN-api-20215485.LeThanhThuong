@@ -4,6 +4,8 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { ObjectId } from 'mongodb'
 
+const RECENT_RECORD_LIMIT = 20
+
 // Định nghĩa Collection (name & schema)
 const TRANSACTION_COLLECTION_NAME = 'transactions'
 const TRANSACTION_COLLECTION_SCHEMA = Joi.object({
@@ -79,11 +81,21 @@ const getFamilyTransactions = async (filter, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getRecentTransactions = async (filter, options = {}) => {
+  try {
+
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ createdAt: -1 }).limit(RECENT_RECORD_LIMIT).toArray()
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const transactionModel = {
   TRANSACTION_COLLECTION_NAME,
   TRANSACTION_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   getIndividualTransactions,
-  getFamilyTransactions
+  getFamilyTransactions,
+  getRecentTransactions
 }
