@@ -22,7 +22,18 @@ const createFamilySaving = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getIndividualSavings = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+
+    const result = await savingService.getIndividualSavings(userId)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 export const savingController = {
   createIndividualSaving,
-  createFamilySaving
+  createFamilySaving,
+  getIndividualSavings
 }

@@ -105,6 +105,13 @@ const pushTransactionIds = async (accumulationId, transactionId, options = {}) =
   } catch (error) { throw new Error(error) }
 }
 
+const getAccumulations = async (filter, options = {}) => {
+  try {
+    const result = await GET_DB().collection(ACCUMULATION_COLLECTION_NAME).find(filter, options).toArray()
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const accumulationModel = {
   ACCUMULATION_COLLECTION_NAME,
   ACCUMULATION_COLLECTION_SCHEMA,
@@ -112,5 +119,6 @@ export const accumulationModel = {
   decreaseBalance,
   increaseBalance,
   findOneById,
-  pushTransactionIds
+  pushTransactionIds,
+  getAccumulations
 }

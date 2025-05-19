@@ -7,6 +7,7 @@ import { savingValidation } from '~/validations/savingValidation'
 const Router = express.Router()
 
 Router.route('/individual')
+  .get(authMiddleware.isAuthorized, savingController.getIndividualSavings)
   .post(authMiddleware.isAuthorized, savingValidation.createNew, savingController.createIndividualSaving)
 
 Router.route('/family/:familyId')

@@ -108,7 +108,21 @@ const createFamilyAccumulation = async (familyId, reqBody) => {
   }
 }
 
+const getIndividualAccumulations = async (userId) => {
+  try {
+    const filter = {}
+    filter.ownerType = OWNER_TYPE.INDIVIDUAL
+    filter.ownerId = new ObjectId(userId)
+    filter._destroy = false
+
+    const result = await accumulationModel.getAccumulations(filter)
+
+    return result
+  } catch (error) { throw error }
+}
+
 export const accumulationService = {
   createIndividualAccumulation,
-  createFamilyAccumulation
+  createFamilyAccumulation,
+  getIndividualAccumulations
 }
