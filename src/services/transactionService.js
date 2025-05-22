@@ -144,35 +144,35 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
         getNewTransaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(createdTransaction.insertedId, { session })
         switch (getNewTransaction.type) {
         case TRANSACTION_TYPES.EXPENSE: {
-          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
-          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          const moneySourceModelHandler = moneySourceModelHandle[detailInfo.moneyFromType]
+          await moneySourceModelHandler.pushTransactionIds(detailInfo.moneyFromId, createdTransaction.insertedId, { session })
           await budgetModel.pushTransactionToBudgets(getNewTransaction, { session })
           break
         }
 
         case TRANSACTION_TYPES.INCOME: {
-          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
-          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          const moneySourceModelHandler = moneySourceModelHandle[detailInfo.moneyTargetType]
+          await moneySourceModelHandler.pushTransactionIds(detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
           break
         }
 
         case TRANSACTION_TYPES.LOAN: {
-          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
-          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          const moneySourceModelHandler = moneySourceModelHandle[detailInfo.moneyFromType]
+          await moneySourceModelHandler.pushTransactionIds(detailInfo.moneyFromId, createdTransaction.insertedId, { session })
           break
         }
 
         case TRANSACTION_TYPES.BORROWING: {
-          const moneySourceModelHandler = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
-          await moneySourceModelHandler.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          const moneySourceModelHandler = moneySourceModelHandle[detailInfo.moneyTargetType]
+          await moneySourceModelHandler.pushTransactionIds(detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
           break
         }
 
         case TRANSACTION_TYPES.TRANSFER: {
-          const moneySourceModelHandler1 = moneySourceModelHandle[getNewTransaction.detailInfo.moneyFromType]
-          await moneySourceModelHandler1.pushTransactionIds(getNewTransaction.detailInfo.moneyFromId, createdTransaction.insertedId, { session })
-          const moneySourceModelHandler2 = moneySourceModelHandle[getNewTransaction.detailInfo.moneyTargetType]
-          await moneySourceModelHandler2.pushTransactionIds(getNewTransaction.detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          const moneySourceModelHandler1 = moneySourceModelHandle[detailInfo.moneyFromType]
+          await moneySourceModelHandler1.pushTransactionIds(detailInfo.moneyFromId, createdTransaction.insertedId, { session })
+          const moneySourceModelHandler2 = moneySourceModelHandle[detailInfo.moneyTargetType]
+          await moneySourceModelHandler2.pushTransactionIds(detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
           break
         }
 
@@ -295,6 +295,13 @@ const getIndividualTransactions = async (userId, query) => {
         else { filter.type = query.type }
       }
       if (query.categoryId) filter.categoryId = new ObjectId(query.categoryId)
+      if (query.transactionIds) {
+        if (Array.isArray(query.transactionIds)) {
+          const processedTransactionIds = query.transactionIds.map(transactionId => new ObjectId(transactionId))
+          filter._id = { $in: processedTransactionIds }
+        }
+        else { filter._id = new ObjectId(query.transactionIds) }
+      }
       if (query.fromDate || query.toDate) {
         filter.transactionTime = {}
         if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)
@@ -324,6 +331,13 @@ const getFamilyTransactions = async (familyId, query) => {
     if (query) {
       if (query.type) filter.type = query.type
       if (query.categoryId) filter.categoryId = new ObjectId(query.categoryId)
+      if (query.transactionIds) {
+        if (Array.isArray(query.transactionIds)) {
+          const processedTransactionIds = query.transactionIds.map(transactionId => new ObjectId(transactionId))
+          filter._id = { $in: processedTransactionIds }
+        }
+        else { filter._id = new ObjectId(query.transactionIds) }
+      }
       if (query.fromDate || query.toDate) {
         filter.transactionTime = {}
         if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)

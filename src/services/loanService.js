@@ -16,6 +16,13 @@ const createNew = async (amount, dataDetail, images, { session }) => {
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }
   try {
+    const accountId = dataDetail.moneyFromId
+    const account = await accountModel.findOneById(accountId, { session })
+    console.log(account)
+    if (account.balance < amount) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, `Số dư trong tài khoản ${account.accountName} không đủ!`)
+    }
+    
     if (Array.isArray(images) && images.length > 0) {
       const uploadPromises = images.map(image =>
         CloudinaryProvider.streamUpload(image.buffer, 'transactionImages')
@@ -31,7 +38,7 @@ const createNew = async (amount, dataDetail, images, { session }) => {
     const createdLoan = await loanModel.createNew(dataDetail, { session })
 
     const moneySourceModelHandler = moneySourceModelHandle[dataDetail.moneyFromType]
-    const accountId = dataDetail.moneyFromId
+    // const accountId = dataDetail.moneyFromId
     const borrowerId = dataDetail.borrowerId
 
     // kiểm tra các id có tồn tại ko

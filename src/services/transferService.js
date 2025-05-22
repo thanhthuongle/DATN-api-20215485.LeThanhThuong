@@ -37,6 +37,9 @@ const createNew = async (amount, dataDetail, images, { session }) => {
     if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
     const moneyTarget = await moneyTargetModelHandler.findOneById(accountTargetId, { session })
     if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
+    if (moneySource.balance < amount) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, `Số dư trong tài khoản ${moneySource.accountName} không đủ!`)
+    }
 
     const createdTransfer = await transferModel.createNew(dataDetail, { session })
     await moneyFromModelHandler.decreaseBalance(accountFromId, Number(amount), { session })
