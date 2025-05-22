@@ -60,7 +60,7 @@ const findOneById = async (transactionId, options = {}) => {
 const getIndividualTransactions = async (filter, options = {}) => {
   try {
 
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ transactionTime: 1 }).toArray()
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ transactionTime: -1 }).toArray()
 
     return result
   } catch (error) { throw new Error(error) }
@@ -68,7 +68,7 @@ const getIndividualTransactions = async (filter, options = {}) => {
 
 const getFamilyTransactions = async (filter, options = {}) => {
   try {
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ transactionTime: 1 }).toArray()
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ transactionTime: -1 }).toArray()
 
     return result
   } catch (error) { throw new Error(error) }
