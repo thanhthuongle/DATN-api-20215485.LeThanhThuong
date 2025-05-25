@@ -13,6 +13,7 @@ const LOAN_COLLECTION_SCHEMA = Joi.object({
   moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   borrowerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  rate: Joi.number().min(0).max(20).required(),
   collectTime: Joi.date().iso().optional().default(null),
   images: Joi.array().items(
     Joi.string()
