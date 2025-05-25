@@ -49,6 +49,14 @@ const createNew = async (req, res, next) => {
     ).optional()
   }).unknown(false)
 
+  const CorrectCollectionCondition = Joi.object({
+    loanTransactionId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    borrowerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
+    moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    realCollectTime: Joi.date().iso().required()
+  })
+
   const CorrectBorrowingCondition = Joi.object({
     moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
@@ -59,6 +67,14 @@ const createNew = async (req, res, next) => {
       Joi.string()
     ).optional()
   }).unknown(false)
+
+  const CorrectRepaymentCondition = Joi.object({
+    borrowingTransactionId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    lenderId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
+    moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    realRepaymentTime: Joi.date().iso().required()
+  })
 
   const CorrectTransferCondition = Joi.object({
     moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
@@ -87,14 +103,16 @@ const createNew = async (req, res, next) => {
     [TRANSACTION_TYPES.EXPENSE]: CorrectExpenseCondition,
     [TRANSACTION_TYPES.INCOME]: CorrectIncomeCondition,
     [TRANSACTION_TYPES.LOAN]: CorrectLoanCondition,
+    [TRANSACTION_TYPES.COLLECT]: CorrectCollectionCondition,
     [TRANSACTION_TYPES.BORROWING]: CorrectBorrowingCondition,
+    [TRANSACTION_TYPES.REPAYMENT]: CorrectRepaymentCondition,
     [TRANSACTION_TYPES.TRANSFER]: CorrectTransferCondition,
     [TRANSACTION_TYPES.CONTRIBUTION]: CorrectContributionCondition
   }
 
   try {
     if (typeof req.body.detailInfo === 'string') req.body.detailInfo = JSON.parse(req.body.detailInfo)
-    console.log('req:', req.body)
+    // console.log('req:', req.body)
 
     await CorrectCommonCondition.validateAsync(req.body, { abortEarly: false })
 

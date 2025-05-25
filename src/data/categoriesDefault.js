@@ -453,10 +453,30 @@ const loan = [
   }
 ]
 
+const collect = [
+  {
+    tempId: '001',
+    categoryName: 'Thu nợ',
+    icon: null,
+    childrenIds: [],
+    parentId: null
+  }
+]
+
 const borrowing = [
   {
     tempId: '001',
     categoryName: 'Đi vay',
+    icon: null,
+    childrenIds: [],
+    parentId: null
+  }
+]
+
+const repayment = [
+  {
+    tempId: '001',
+    categoryName: 'Trả nợ',
     icon: null,
     childrenIds: [],
     parentId: null
@@ -487,7 +507,9 @@ export const categoriesDefault = {
   expense,
   income,
   loan,
+  collect,
   borrowing,
+  repayment,
   transfer,
   contribution
 }

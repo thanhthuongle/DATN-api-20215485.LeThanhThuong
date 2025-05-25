@@ -8,7 +8,7 @@ import ApiError from '~/utils/ApiError'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 
-const createNew = async (amount, dataDetail, images, { session }) => {
+const createNew = async (userId, amount, dataDetail, images, { session }) => {
   const moneyTargetModelHandle = {
     [MONEY_SOURCE_TYPE.ACCOUNT]: accountModel,
     [MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT]: savingsAccountModel,

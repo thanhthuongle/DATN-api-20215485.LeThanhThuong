@@ -8,7 +8,7 @@ import ApiError from '~/utils/ApiError'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 
-const createNew = async (amount, dataDetail, images, { session }) => {
+const createNew = async (userId, amount, dataDetail, images, { session }) => {
   const moneySourceModelHandle = {
     [MONEY_SOURCE_TYPE.ACCOUNT]: accountModel,
     [MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT]: savingsAccountModel,
@@ -21,7 +21,6 @@ const createNew = async (amount, dataDetail, images, { session }) => {
     if (account.balance < amount) {
       throw new ApiError(StatusCodes.BAD_REQUEST, `Số dư trong tài khoản ${account.accountName} không đủ!`)
     }
-
 
     if (Array.isArray(images) && images.length > 0) {
       const uploadPromises = images.map(image =>

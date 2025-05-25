@@ -31,7 +31,9 @@ export const TRANSACTION_TYPES = {
   EXPENSE: 'expense',
   INCOME: 'income',
   LOAN: 'loan',
+  COLLECT: 'collect',
   BORROWING: 'borrowing',
+  REPAYMENT: 'repayment',
   TRANSFER: 'transfer',
   CONTRIBUTION: 'contribution'
 }

@@ -25,6 +25,10 @@ import { accountModel } from '~/models/accountModel'
 import { accumulationModel } from '~/models/accumulationModel'
 import { savingsAccountModel } from '~/models/savingsAccountModel'
 import { budgetModel } from '~/models/budgetModel'
+import { collectionModel } from '~/models/collectionModel'
+import { repaymentModel } from '~/models/repaymentModel'
+import { collectionService } from './collectionSevice'
+import { repaymentService } from './repaymentService'
 
 const transactionTypeModelHandle = {
   [TRANSACTION_TYPES.EXPENSE]: expenseModel,
@@ -32,7 +36,9 @@ const transactionTypeModelHandle = {
   [TRANSACTION_TYPES.LOAN]: loanModel,
   [TRANSACTION_TYPES.BORROWING]: borrowingModel,
   [TRANSACTION_TYPES.TRANSFER]: transferModel,
-  [TRANSACTION_TYPES.CONTRIBUTION]: contributionModel
+  [TRANSACTION_TYPES.CONTRIBUTION]: contributionModel,
+  [TRANSACTION_TYPES.COLLECT]: collectionModel,
+  [TRANSACTION_TYPES.REPAYMENT]: repaymentModel
 }
 
 const transactionTypeServiceHandle = {
@@ -41,7 +47,9 @@ const transactionTypeServiceHandle = {
   [TRANSACTION_TYPES.LOAN]: loanService,
   [TRANSACTION_TYPES.BORROWING]: borrowingService,
   [TRANSACTION_TYPES.TRANSFER]: transferService,
-  [TRANSACTION_TYPES.CONTRIBUTION]: contributionService
+  [TRANSACTION_TYPES.CONTRIBUTION]: contributionService,
+  [TRANSACTION_TYPES.COLLECT]: collectionService,
+  [TRANSACTION_TYPES.REPAYMENT]: repaymentService
 }
 
 const moneySourceModelHandle = {
@@ -137,7 +145,7 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
       transactionTypeServiceHandler = transactionTypeServiceHandle[commonData.type]
       const dataDetail = { transactionId: createdTransaction.insertedId.toString(), ...detailInfo }
       const amount = commonData.amount
-      await transactionTypeServiceHandler.createNew(amount, dataDetail, images, { session })
+      await transactionTypeServiceHandler.createNew(userId, amount, dataDetail, images, { session })
 
       const getNewTransaction = await transactionModel.findOneById(createdTransaction.insertedId, { session })
       if (getNewTransaction) {
@@ -173,6 +181,18 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
           await moneySourceModelHandler1.pushTransactionIds(detailInfo.moneyFromId, createdTransaction.insertedId, { session })
           const moneySourceModelHandler2 = moneySourceModelHandle[detailInfo.moneyTargetType]
           await moneySourceModelHandler2.pushTransactionIds(detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.COLLECT: {
+          const moneySourceModelHandler = moneySourceModelHandle[detailInfo.moneyTargetType]
+          await moneySourceModelHandler.pushTransactionIds(detailInfo.moneyTargetId, createdTransaction.insertedId, { session })
+          break
+        }
+
+        case TRANSACTION_TYPES.REPAYMENT: {
+          const moneySourceModelHandler = moneySourceModelHandle[detailInfo.moneyFromType]
+          await moneySourceModelHandler.pushTransactionIds(detailInfo.moneyFromId, createdTransaction.insertedId, { session })
           break
         }
 
