@@ -1,20 +1,19 @@
 import Joi from 'joi'
-import { ObjectId } from 'mongodb'
-import { GET_DB } from '~/config/mongodb'
 import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
-import { contactModel } from './contactModel'
+import { GET_DB } from '~/config/mongodb'
+import { ObjectId } from 'mongodb'
 
 // Định nghĩa Collection (name & schema)
-const LOAN_COLLECTION_NAME = 'loans'
-const LOAN_COLLECTION_SCHEMA = Joi.object({
+const REPAYMENT_COLLECTION_NAME = 'repayments'
+const REPAYMENT_COLLECTION_SCHEMA = Joi.object({
   transactionId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
+  borrowingTransactionId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  lenderId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  borrowerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  rate: Joi.number().min(0).max(20).required(),
-  collectTime: Joi.date().iso().optional().default(null),
+  realRepaymentTime: Joi.date().iso().required(),
   images: Joi.array().items(
     Joi.string()
   ).default([]),
@@ -28,17 +27,17 @@ const LOAN_COLLECTION_SCHEMA = Joi.object({
 const INVALID_UPDATE_FIELDS = ['_id', 'transactionId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
-  return await LOAN_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
+  return await REPAYMENT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
 const createNew = async (data, options = {}) => {
   try {
     const validData = await validateBeforeCreate(data)
-    const createdTransaction = await GET_DB().collection(LOAN_COLLECTION_NAME).insertOne({
+    const createdTransaction = await GET_DB().collection(REPAYMENT_COLLECTION_NAME).insertOne({
       ...validData,
       transactionId: new ObjectId(validData.transactionId),
       moneyFromId: new ObjectId(validData.moneyFromId),
-      borrowerId: new ObjectId(validData.borrowerId)
+      borrowingTransactionId: new ObjectId(validData.borrowingTransactionId)
     }, options)
 
     return createdTransaction
@@ -47,31 +46,30 @@ const createNew = async (data, options = {}) => {
 
 const findOneByTransactionId = async (transactionId, options = {}) => {
   try {
-    const result = await GET_DB().collection(LOAN_COLLECTION_NAME).findOne({ transactionId: new ObjectId(String(transactionId)) }, options)
+    const result = await GET_DB().collection(REPAYMENT_COLLECTION_NAME).findOne({ transactionId: new ObjectId(String(transactionId)) }, options)
     return result
   } catch (error) { throw new Error(error) }
 }
 
 const getManyDetailTransactions = async (filter, options = {}) => {
   try {
-    const result = await GET_DB().collection(LOAN_COLLECTION_NAME).aggregate([
-      { $match: filter },
-      { $lookup: {
-        from: contactModel.CONTACT_COLLECTION_NAME,
-        localField: 'borrowerId',
-        foreignField: '_id',
-        as: 'borrower'
-      } },
-      { $unwind: { path: '$borrower', preserveNullAndEmptyArrays: true } }
-    ], options).toArray()
+    const result = await GET_DB().collection(REPAYMENT_COLLECTION_NAME).find(filter, options).toArray()
     return result
   } catch (error) { throw new Error(error) }
 }
 
-export const loanModel = {
-  LOAN_COLLECTION_NAME,
-  LOAN_COLLECTION_SCHEMA,
+const findOneByBorrowingTransactionId = async (borrowingTransactionId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(REPAYMENT_COLLECTION_NAME).findOne({ borrowingTransactionId: new ObjectId(String(borrowingTransactionId)) }, options)
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+export const repaymentModel = {
+  REPAYMENT_COLLECTION_NAME,
+  REPAYMENT_COLLECTION_SCHEMA,
   createNew,
   findOneByTransactionId,
-  getManyDetailTransactions
+  getManyDetailTransactions,
+  findOneByBorrowingTransactionId
 }
