@@ -42,6 +42,7 @@ const createNew = async (req, res, next) => {
     moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     borrowerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    rate: Joi.number().min(0).max(20).required(),
     collectTime: Joi.date().iso().optional(),
     images: Joi.array().items(
       Joi.string()
@@ -52,6 +53,7 @@ const createNew = async (req, res, next) => {
     moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
     moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     lenderId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    rate: Joi.number().min(0).max(20).required(),
     repaymentTime: Joi.date().iso().optional(),
     images: Joi.array().items(
       Joi.string()
@@ -92,7 +94,7 @@ const createNew = async (req, res, next) => {
 
   try {
     if (typeof req.body.detailInfo === 'string') req.body.detailInfo = JSON.parse(req.body.detailInfo)
-    // console.log('req:', req.body)
+    console.log('req:', req.body)
 
     await CorrectCommonCondition.validateAsync(req.body, { abortEarly: false })
 

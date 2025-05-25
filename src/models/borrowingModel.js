@@ -13,6 +13,7 @@ const BORROWING_COLLECTION_SCHEMA = Joi.object({
   moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   lenderId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  rate: Joi.number().min(0).max(20).required(),
   repaymentTime: Joi.date().iso().optional().default(null),
   images: Joi.array().items(
     Joi.string()
