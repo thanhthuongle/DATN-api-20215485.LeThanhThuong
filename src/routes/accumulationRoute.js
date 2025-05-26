@@ -10,6 +10,9 @@ Router.route('/individual')
   .get(authMiddleware.isAuthorized, accumulationController.getIndividualAccumulations)
   .post(authMiddleware.isAuthorized, accumulationValidation.createNew, accumulationController.createIndividualAccumulation)
 
+Router.route('/individual/:accumulationId')
+  .patch(authMiddleware.isAuthorized, accumulationController.finishIndividualAccumulation)
+
 Router.route('/family/:familyId')
   .post(authMiddleware.isAuthorized, familyMiddleware.isFamilyManager, accumulationValidation.createNew, accumulationController.createFamilyAccumulation)
 

@@ -113,7 +113,7 @@ const blockAccount = async (accountId, options = {}) => {
   try {
     const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(String(accountId)) },
-      { $set: { isBlock: true } },
+      { $set: { isBlock: true, updatedAt: Date.now() } },
       { returnDocument: 'after', ...options }
     )
 
@@ -125,7 +125,7 @@ const unblockAccount = async (accountId, options = {}) => {
   try {
     const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(String(accountId)) },
-      { $set: { isBlock: false } },
+      { $set: { isBlock: false, updatedAt: Date.now() } },
       { returnDocument: 'after', ...options }
     )
 

@@ -1,10 +1,16 @@
 /* eslint-disable no-useless-catch */
+import { StatusCodes } from 'http-status-codes'
 import { ObjectId } from 'mongodb'
 import { MongoClientInstance } from '~/config/mongodb'
+import { accountModel } from '~/models/accountModel'
 import { accumulationModel } from '~/models/accumulationModel'
+import { categoryModel } from '~/models/categoryModel'
 import { moneySourceModel } from '~/models/moneySourceModel'
-import { OWNER_TYPE } from '~/utils/constants'
+import { savingsAccountModel } from '~/models/savingsAccountModel'
+import ApiError from '~/utils/ApiError'
+import { MONEY_SOURCE_TYPE, OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
 import { commitWithRetry, runTransactionWithRetry } from '~/utils/mongoTransaction'
+import { transactionService } from './transactionService'
 
 const createIndividualAccumulation = async (userId, reqBody) => {
   const session = MongoClientInstance.startSession()
@@ -121,8 +127,67 @@ const getIndividualAccumulations = async (userId) => {
   } catch (error) { throw error }
 }
 
+const finishIndividualAccumulation = async (userId, accumulationId, reqBody) => {
+  const moneyTargetModelHandle = {
+    [MONEY_SOURCE_TYPE.ACCOUNT]: accountModel,
+    [MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT]: savingsAccountModel,
+    [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
+  }
+  try {
+    // Kiểm tra khoản tích lũy tồn tại hay ko
+    const accumulation = await accumulationModel.findOneById(accumulationId)
+    if (!accumulation) throw new ApiError(StatusCodes.NOT_FOUND, 'Khoản tích lũy không tồn tại')
+
+    // kiểm tra quyền truy cập
+    if (!(new ObjectId(userId).equals(new ObjectId(accumulation?.ownerId)))) throw new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền truy cập khoản tích lũy này!')
+
+    // kiểm tra trạng thái cảu khoản tích lũy
+    if (accumulation?.isFinish == true) throw new ApiError(StatusCodes.CONFLICT, 'Khoản tích lũy đã kết thúc!')
+
+    // Thực hiện kết thúc khoản tích lũy theo điều kiện số dư
+    if (Number(accumulation?.balance) > 0) {
+      if (!reqBody?.moneyTargetId || !reqBody?.moneyTargetType) throw new ApiError(StatusCodes.BAD_REQUEST, 'Cần thông tin nơi nhận tiền thừa khi đóng khoản tích lũy!')
+
+      // Kiểm tra nơi nhận tiền thừa từ khoản tích lũy
+      const moneyTargetModelHandler = moneyTargetModelHandle[reqBody?.moneyTargetType]
+      const moneyTargetId = reqBody?.moneyTargetId
+      const moneyTarget = await moneyTargetModelHandler.findOneById(moneyTargetId)
+      if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'Tài khoản nhận tiền không tồn tại!')
+
+      const transferCategoryFilter = {
+        ownerType: OWNER_TYPE.INDIVIDUAL,
+        ownerId: new ObjectId(userId),
+        _destroy: false,
+        type: TRANSACTION_TYPES.TRANSFER
+      }
+      const transferCategory = await categoryModel.findOneCategory(transferCategoryFilter)
+
+      const newTransferTransaction = {
+        type: TRANSACTION_TYPES.TRANSFER,
+        categoryId: (transferCategory._id).toString(),
+        name: transferCategory.name,
+        description: `Chuyển khoản từ khoản tích lũy: ${accumulation.accumulationName}`,
+        amount: accumulation.balance,
+        transactionTime: new Date().toISOString(),
+        detailInfo: {
+          moneyFromType: MONEY_SOURCE_TYPE.ACCUMULATION,
+          moneyFromId: accumulationId,
+          moneyTargetType: MONEY_SOURCE_TYPE.ACCOUNT,
+          moneyTargetId: moneyTargetId
+        }
+      }
+      await transactionService.createIndividualTransaction(userId, newTransferTransaction, [])
+    }
+
+    const result = await accumulationModel.finishAccumulation(new ObjectId(accumulation._id))
+
+    return result
+  } catch (error) { throw error }
+}
+
 export const accumulationService = {
   createIndividualAccumulation,
   createFamilyAccumulation,
-  getIndividualAccumulations
+  getIndividualAccumulations,
+  finishIndividualAccumulation
 }
