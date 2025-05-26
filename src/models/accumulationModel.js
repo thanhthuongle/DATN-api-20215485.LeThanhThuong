@@ -112,6 +112,22 @@ const getAccumulations = async (filter, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const finishAccumulation = async (accumulationId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(ACCUMULATION_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(accumulationId)) },
+      { $set: {
+        isFinish: true,
+        balance: 0,
+        updatedAt: Date.now()
+      } },
+      { returnDocument: 'after', ...options }
+    )
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const accumulationModel = {
   ACCUMULATION_COLLECTION_NAME,
   ACCUMULATION_COLLECTION_SCHEMA,
@@ -120,5 +136,6 @@ export const accumulationModel = {
   increaseBalance,
   findOneById,
   pushTransactionIds,
-  getAccumulations
+  getAccumulations,
+  finishAccumulation
 }
