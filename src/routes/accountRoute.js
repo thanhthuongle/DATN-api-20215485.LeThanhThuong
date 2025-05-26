@@ -10,6 +10,12 @@ Router.route('/individual')
   .get(authMiddleware.isAuthorized, accountController.getIndividualAccounts)
   .post(authMiddleware.isAuthorized, accountValidation.createNew, accountController.createIndividualAccount)
 
+Router.route('/individual/:accountId/block')
+  .patch(authMiddleware.isAuthorized, accountController.blockAccount)
+
+Router.route('/individual/:accountId/unblock')
+  .patch(authMiddleware.isAuthorized, accountController.unblockAccount)
+
 Router.route('/family/:familyId')
   .get(authMiddleware.isAuthorized, familyMiddleware.isFamilyMember, accountController.getFamilyAccounts)
   .post(authMiddleware.isAuthorized, familyMiddleware.isFamilyManager, accountValidation.createNew, accountController.createFamilyAccount)
