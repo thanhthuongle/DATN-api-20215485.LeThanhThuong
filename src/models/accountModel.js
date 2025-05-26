@@ -109,6 +109,30 @@ const pushTransactionIds = async (accountId, transactionId, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const blockAccount = async (accountId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(accountId)) },
+      { $set: { isBlock: true } },
+      { returnDocument: 'after', ...options }
+    )
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const unblockAccount = async (accountId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(accountId)) },
+      { $set: { isBlock: false } },
+      { returnDocument: 'after', ...options }
+    )
+
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const accountModel = {
   ACCOUNT_COLLECTION_NAME,
   ACCOUNT_COLLECTION_SCHEMA,
@@ -117,5 +141,7 @@ export const accountModel = {
   increaseBalance,
   findOneById,
   getAccounts,
-  pushTransactionIds
+  pushTransactionIds,
+  blockAccount,
+  unblockAccount
 }

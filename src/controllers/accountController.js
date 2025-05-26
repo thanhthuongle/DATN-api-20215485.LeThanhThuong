@@ -41,9 +41,33 @@ const getFamilyAccounts = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const blockAccount = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const accountId = req.params.accountId
+
+    const result = await accountService.blockAccount(userId, accountId)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
+const unblockAccount = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const accountId = req.params.accountId
+
+    const result = await accountService.unblockAccount(userId, accountId)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 export const accountController = {
   createIndividualAccount,
   createFamilyAccount,
   getIndividualAccounts,
-  getFamilyAccounts
+  getFamilyAccounts,
+  blockAccount,
+  unblockAccount
 }

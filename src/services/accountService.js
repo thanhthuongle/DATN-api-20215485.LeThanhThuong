@@ -1,8 +1,10 @@
 /* eslint-disable no-useless-catch */
+import { StatusCodes } from 'http-status-codes'
 import { ObjectId } from 'mongodb'
 import { MongoClientInstance } from '~/config/mongodb'
 import { accountModel } from '~/models/accountModel'
 import { moneySourceModel } from '~/models/moneySourceModel'
+import ApiError from '~/utils/ApiError'
 import { OWNER_TYPE } from '~/utils/constants'
 import { commitWithRetry, runTransactionWithRetry } from '~/utils/mongoTransaction'
 
@@ -135,9 +137,47 @@ const getFamilyAccounts = async (familyId) => {
   } catch (error) { throw error }
 }
 
+const blockAccount = async(userId, accountId) => {
+  try {
+    // kiểm tra ví có tồn tại ko
+    const account = await accountModel.findOneById(new ObjectId(accountId))
+    if (!account) throw new ApiError(StatusCodes.NOT_FOUND, 'Tài khoản không tồn tại!')
+
+    // Kiểm tra quyền truy cập
+    if (!(new ObjectId(userId).equals(new ObjectId(account?.ownerId)))) throw new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền truy cập tài khoản này!')
+
+    // Kiểm tra ví đã khóa chưa
+    if (account?.isBlock == true) throw new ApiError(StatusCodes.CONFLICT, 'Tài khoản này đã được khóa!')
+
+    const result = await accountModel.blockAccount(accountId)
+
+    return result
+  } catch (error) { throw error }
+}
+
+const unblockAccount = async(userId, accountId) => {
+  try {
+    // kiểm tra ví có tồn tại ko
+    const account = await accountModel.findOneById(new ObjectId(accountId))
+    if (!account) throw new ApiError(StatusCodes.NOT_FOUND, 'Tài khoản không tồn tại!')
+
+    // Kiểm tra quyền truy cập
+    if (!(new ObjectId(userId).equals(new ObjectId(account?.ownerId)))) throw new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền truy cập tài khoản này!')
+
+    // Kiểm tra ví đã khóa chưa
+    if (account?.isBlock == false) throw new ApiError(StatusCodes.CONFLICT, 'Tài khoản này không bị khóa!')
+
+    const result = await accountModel.unblockAccount(accountId)
+
+    return result
+  } catch (error) { throw error }
+}
+
 export const accountService = {
   createIndividualAccount,
   createFamilyAccount,
   getIndividualAccounts,
-  getFamilyAccounts
+  getFamilyAccounts,
+  blockAccount,
+  unblockAccount
 }
