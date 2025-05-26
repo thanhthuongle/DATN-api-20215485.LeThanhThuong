@@ -15,11 +15,14 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }
   try {
-    const accountId = dataDetail.moneyFromId
-    const account = await accountModel.findOneById(accountId, { session })
-    console.log(account)
-    if (account.balance < amount) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, `Số dư trong tài khoản ${account.accountName} không đủ!`)
+    const moneySourceModelHandler = moneySourceModelHandle[dataDetail.moneyFromType]
+    // kiểm tra các id có tồn tại ko
+    const moneyFromId = dataDetail.moneyFromId
+    const moneySource = await moneySourceModelHandler.findOneById(moneyFromId, { session })
+    if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
+
+    if (moneySource?.balance < amount) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Số dư nguồn tiền không đủ!')
     }
 
     if (Array.isArray(images) && images.length > 0) {
@@ -34,15 +37,10 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
       // thêm url vào data
       dataDetail.images = imageUrls
     }
+
     const createdExpense = await expenseModel.createNew(dataDetail, { session })
 
-    const moneySourceModelHandler = moneySourceModelHandle[dataDetail.moneyFromType]
-
-    // kiểm tra các id có tồn tại ko
-    const moneySource = await moneySourceModelHandler.findOneById(accountId, { session })
-    if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
-
-    await moneySourceModelHandler.decreaseBalance(accountId, Number(amount), { session })
+    await moneySourceModelHandler.decreaseBalance(moneyFromId, Number(amount), { session })
 
     return createdExpense
   } catch (error) {
