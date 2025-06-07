@@ -18,7 +18,7 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
   try {
     const accountId = dataDetail.moneyFromId
     const account = await accountModel.findOneById(accountId, { session })
-    console.log(account)
+    // console.log(account)
     if (account.balance < amount) {
       throw new ApiError(StatusCodes.BAD_REQUEST, `Số dư trong tài khoản ${account.accountName} không đủ!`)
     }
