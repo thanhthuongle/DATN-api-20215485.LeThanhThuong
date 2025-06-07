@@ -33,10 +33,18 @@ const START_SERVER = () => {
 
   seedBanksIfEmpty()
 
-  app.listen(env.APP_PORT, env.APP_HOST, async () => {
-    // eslint-disable-next-line no-console
-    console.log(`3. Hello ${env.AUTHOR}, Server is running at http://${ env.APP_HOST }:${ env.APP_PORT }/`)
-  })
+  if (env.BUILD_MODE === 'production') {
+    app.listen(process.env.PORT, async () => {
+      // eslint-disable-next-line no-console
+      console.log(`3. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT }/`)
+    })
+  } else {
+    // Môi trường local dev
+    app.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, async () => {
+      // eslint-disable-next-line no-console
+      console.log(`3. Hello ${env.AUTHOR}, Server is running at http://${ env.LOCAL_DEV_APP_HOST }:${ env.LOCAL_DEV_APP_PORT }/`)
+    })
+  }
 
   exitHook(() => {
     // eslint-disable-next-line no-console
