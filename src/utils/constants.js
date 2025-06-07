@@ -1,7 +1,9 @@
 import { env } from '~/config/environment'
 
 export const WHITELIST_DOMAINS = [
-
+  'hey-money.vercel.app',
+  'hey-money-git-master-su-gia-hoa-binhs-projects-a8f56a9c.vercel.app',
+  'hey-money-gyt380h97-su-gia-hoa-binhs-projects-a8f56a9c.vercel.app'
 ]
 
 export const OWNER_TYPE = {
