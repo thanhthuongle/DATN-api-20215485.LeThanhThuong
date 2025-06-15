@@ -11,6 +11,7 @@ import { budgetRoutes } from './budgetRoute'
 import { familyRoutes } from './familyRoute'
 import { contactRoutes } from './contactRoute'
 import { bankRoutes } from './bankRoute'
+import { notificationRoutes } from './notificationRoute'
 
 const Router = express.Router()
 
@@ -45,5 +46,7 @@ Router.use('/families', familyRoutes)
 Router.use('/contacts', contactRoutes)
 
 Router.use('/banks', bankRoutes)
+
+Router.use('/notifications', notificationRoutes)
 
 export const APIs = Router
