@@ -42,7 +42,6 @@ const finishIndividualAccumulation = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
-
 export const accumulationController = {
   createIndividualAccumulation,
   createFamilyAccumulation,

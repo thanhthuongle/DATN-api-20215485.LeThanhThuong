@@ -1,4 +1,4 @@
-import Joi from 'joi'
+import Joi, { optional } from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE, INTEREST_PAID, TERM_ENDED, MONEY_SOURCE_TYPE } from '~/utils/constants'
@@ -155,6 +155,23 @@ const getSavings = async (filter, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const update = async (savingId, updateData, optionals = {}) => {
+  try {
+    Object.keys(updateData).forEach(fieldName => {
+      if (INVALID_UPDATE_FIELDS.includes (fieldName)) {
+        delete updateData [fieldName]
+      }
+    })
+
+    const result = await GET_DB().collection(SAVINGS_ACCOUNT_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(savingId)) },
+      { $set: updateData },
+      { returnDocument: 'after', ...optionals }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const savingsAccountModel = {
   SAVINGS_ACCOUNT_COLLECTION_NAME,
   SAVINGS_ACCOUNT_COLLECTION_SCHEMA,
@@ -163,5 +180,6 @@ export const savingsAccountModel = {
   increaseBalance,
   findOneById,
   pushTransactionIds,
-  getSavings
+  getSavings,
+  update
 }

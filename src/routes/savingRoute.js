@@ -10,6 +10,9 @@ Router.route('/individual')
   .get(authMiddleware.isAuthorized, savingController.getIndividualSavings)
   .post(authMiddleware.isAuthorized, savingValidation.createNew, savingController.createIndividualSaving)
 
+Router.route('/individual/:savingId/close')
+  .post(authMiddleware.isAuthorized, savingController.closeSaving)
+
 Router.route('/family/:familyId')
   .post(authMiddleware.isAuthorized, familyMiddleware.isFamilyManager, savingValidation.createNew, savingController.createFamilySaving)
 
