@@ -116,8 +116,9 @@ const createNew = async (reqBody) => {
   }
 }
 
-const createIndividualTransaction = async (userId, reqBody, images) => {
-  const session = MongoClientInstance.startSession()
+const createIndividualTransaction = async (userId, reqBody, images, options = {}) => {
+  const externalSession = options.session
+  const session = externalSession || MongoClientInstance.startSession()
 
   const { detailInfo, ...commonData } = reqBody
   commonData.ownerType = OWNER_TYPE.INDIVIDUAL
@@ -132,11 +133,14 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
     if (!category) throw new ApiError (StatusCodes.NOT_FOUND, 'category of transaction not found')
 
     const result = await runTransactionWithRetry(async (session) => {
-      session.startTransaction({
-        readConcern: { level: 'snapshot' },
-        writeConcern: { w: 'majority' },
-        readPreference: 'primary'
-      })
+      // Nếu dùng session bên ngoài thì không nên gọi startTransaction nữa!
+      if (!externalSession) {
+        session.startTransaction({
+          readConcern: { level: 'snapshot' },
+          writeConcern: { w: 'majority' },
+          readPreference: 'primary'
+        })
+      }
 
       const createdTransaction = await transactionModel.createNew(commonData, { session })
 
@@ -199,18 +203,20 @@ const createIndividualTransaction = async (userId, reqBody, images) => {
         }
       }
 
-      await commitWithRetry(session)
+      if (!externalSession) await commitWithRetry(session)
       return getNewTransaction
     }, MongoClientInstance, session)
 
     return result
   } catch (error) {
-    if (session.inTransaction()) {
+    if (!externalSession && session.inTransaction()) {
       await session.abortTransaction().catch(() => {})
     }
     throw error
   } finally {
-    await session.endSession()
+    if (!externalSession) {
+      await session.endSession()
+    }
   }
 }
 
