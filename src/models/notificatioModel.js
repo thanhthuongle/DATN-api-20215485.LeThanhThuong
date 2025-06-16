@@ -1,4 +1,6 @@
-import Joi from 'joi'
+import Joi, { options } from 'joi'
+import { ObjectId } from 'mongodb'
+import { GET_DB } from '~/config/mongodb'
 import { NOTIFICATION_TYPES } from '~/utils/constants'
 
 // Định nghĩa Collection (name & schema)
@@ -21,7 +23,24 @@ const validateBeforeCreate = async (data) => {
   return await NOTIFICATION_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdUser = await GET_DB().collection(NOTIFICATION_COLLECTION_NAME).insertOne(validData, options)
+    return createdUser
+  } catch (error) { throw new Error(error) }
+}
+
+const findOneById = async (notificationId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(NOTIFICATION_COLLECTION_NAME).findOne({ _id: new ObjectId(String(notificationId)) }, options)
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const notificationModel = {
   NOTIFICATION_COLLECTION_NAME,
-  NOTIFICATION_COLLECTION_SCHEMA
+  NOTIFICATION_COLLECTION_SCHEMA,
+  createNew,
+  findOneById
 }

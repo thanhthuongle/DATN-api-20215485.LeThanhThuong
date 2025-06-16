@@ -12,7 +12,7 @@ const USER_NOTIFICATION_COLLECTION_SCHEMA = Joi.object({
 
   isRead: Joi.boolean().default(false),
   readAt: Joi.date().timestamp('javascript').default(null),
-  receiveAt: Joi.date().timestamp('javascript').default(() => Date.now)
+  receiveAt: Joi.date().timestamp('javascript').default(Date.now)
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
@@ -20,6 +20,18 @@ const INVALID_UPDATE_FIELDS = ['_id', 'userId', 'notificationId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
   return await USER_NOTIFICATION_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
+}
+
+const createNew = async (data, options = {}) => {
+  try {
+    const validData = await validateBeforeCreate(data)
+    const createdUser = await GET_DB().collection(USER_NOTIFICATION_COLLECTION_NAME).insertOne({
+      ...validData,
+      userId: new ObjectId(validData.userId),
+      notificationId: new ObjectId(validData.notificationId)
+    }, options)
+    return createdUser
+  } catch (error) { throw new Error(error) }
 }
 
 const findOneById = async (userNotificationId, options = {}) => {
@@ -79,6 +91,7 @@ const markReaded = async (userId, userNotificationId, options = {}) => {
 export const userNotificationModel = {
   USER_NOTIFICATION_COLLECTION_NAME,
   USER_NOTIFICATION_COLLECTION_SCHEMA,
+  createNew,
   findOneById,
   findByUserId,
   markReaded

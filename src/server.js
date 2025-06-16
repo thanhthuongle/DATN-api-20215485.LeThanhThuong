@@ -6,8 +6,10 @@ import { APIs } from './routes'
 import { errorHandlingMiddleware } from './middlewares/errorHandlingMiddleware'
 import cors from 'cors'
 import { corsOptions } from './config/cors'
-import { seedBanksIfEmpty } from './utils/seedBanks'
+import { seedBanksIfEmpty } from '~/utils/seedBanks'
 import cookieParser from 'cookie-parser'
+import { agenda } from '~/agenda/agenda'
+import { loadSystemTasks } from '~/agenda/loadSystemTasks'
 
 const START_SERVER = () => {
   const app = express()
@@ -31,37 +33,54 @@ const START_SERVER = () => {
 
   app.use(errorHandlingMiddleware)
 
-  seedBanksIfEmpty()
-
   if (env.BUILD_MODE === 'production') {
     app.listen(process.env.PORT, async () => {
       // eslint-disable-next-line no-console
-      console.log(`3. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT }/`)
+      console.log(`5. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT }/`)
     })
   } else {
     // Môi trường local dev
     app.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, async () => {
       // eslint-disable-next-line no-console
-      console.log(`3. Hello ${env.AUTHOR}, Server is running at http://${ env.LOCAL_DEV_APP_HOST }:${ env.LOCAL_DEV_APP_PORT }/`)
+      console.log(`5. Hello ${env.AUTHOR}, Server is running at http://${ env.LOCAL_DEV_APP_HOST }:${ env.LOCAL_DEV_APP_PORT }/`)
     })
   }
 
-  exitHook(() => {
+  // (async function () {
+
+  //   await agenda.now('send remider', { userId: '684ff408188164f20cece9b6', title: 'Test thông báo tự động', message: 'Tin nhắn thông báo tự động' })
+  //   // await agenda.every('1 minutes', 'send remider', { userId: '684ff408188164f20cece9b6', title: 'Test thông báo tự động', message: 'Tin nhắn thông báo tụ động mỗi 1 phút này' })
+
+  // })()
+
+  exitHook(async () => {
     // eslint-disable-next-line no-console
-    console.log('4. Server is shutting down...')
+    console.log('6. Server is shutting down...')
+    await agenda.stop()
     CLOSE_DB()
     // eslint-disable-next-line no-console
-    console.log('5. DisConnected from MongoDB Cloud Atlas...')
+    console.log('7. DisConnected from MongoDB Cloud Atlas...')
   })
 }
 
 (async () => {
   try {
     // eslint-disable-next-line no-console
-    console.log('1. Connecting to MongoDB Cloud Atlas...')
+    console.log('1. Connecting to MongoDB...')
     await CONNECT_DB()
     // eslint-disable-next-line no-console
-    console.log('2. Connected to MongoDB Cloud Atlas')
+    console.log('2. Connected to MongoDB')
+
+    // ✅ seedbank
+    seedBanksIfEmpty()
+
+    // ✅ init agenda
+    console.log('3. Initializing Agenda...')
+    // await agenda.mongo(GET_DB(), 'system_tasks')
+    loadSystemTasks(agenda)
+    await agenda.start()
+    console.log('4. Agenda started.')
+
     START_SERVER()
   } catch (error) {
     // eslint-disable-next-line no-console

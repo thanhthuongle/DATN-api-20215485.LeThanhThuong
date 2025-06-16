@@ -16,7 +16,6 @@ export const MongoClientInstance = new MongoClient(env.MONGODB_URI, {
 // Kết nối đến db
 export const CONNECT_DB = async () => {
   await MongoClientInstance.connect()
-
   DatabaseInstance = MongoClientInstance.db(env.DATABASE_NAME)
 }
 
