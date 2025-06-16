@@ -1,7 +1,7 @@
 import 'dotenv/config'
 
 export const env = {
-  MONGODB_URI: process.env.MONGODB_URI,
+  MONGODB_URI: process.env.BUILD_MODE == 'production' ? process.env.MONGODB_URI_PRODUCTION : process.env.MONGODB_URI_DEVELOPMENT,
   DATABASE_NAME: process.env.DATABASE_NAME,
   LOCAL_DEV_APP_HOST: process.env.LOCAL_DEV_APP_HOST,
   LOCAL_DEV_APP_PORT: process.env.LOCAL_DEV_APP_PORT,
