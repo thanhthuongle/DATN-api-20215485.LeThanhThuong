@@ -17,8 +17,8 @@ const TRANSACTION_COLLECTION_SCHEMA = Joi.object({
 
   type: Joi.string().valid(...Object.values(TRANSACTION_TYPES)).required(),
   categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  name: Joi.string().required().max(256).trim().strict(),
-  description: Joi.string().max(256).trim().strict().optional(),
+  name: Joi.string().required().max(256).trim(),
+  description: Joi.string().max(256).trim().optional(),
   amount: Joi.number().integer().min(0).required(),
   transactionTime: Joi.date().iso().required(),
 

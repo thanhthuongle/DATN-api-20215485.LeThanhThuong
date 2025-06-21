@@ -6,8 +6,8 @@ import { GET_DB } from '~/config/mongodb'
 // Định nghĩa Collection (name & schema)
 const BANK_COLLECTION_NAME = 'banks'
 const BANK_COLLECTION_SCHEMA = Joi.object({
-  code: Joi.string().required().min(3).max(60).trim().strict(),
-  name: Joi.string().required().min(3).max(60).trim().strict(),
+  code: Joi.string().required().min(3).max(60).trim(),
+  name: Joi.string().required().min(3).max(60).trim(),
   logo: Joi.string().default(null),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),

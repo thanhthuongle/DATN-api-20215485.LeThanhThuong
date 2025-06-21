@@ -5,7 +5,7 @@ import { StatusCodes } from 'http-status-codes'
 import bcryptjs from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 import { pickUser } from '~/utils/formatter'
-import { OWNER_TYPE, WEBSITE_DOMAIN } from '~/utils/constants'
+import { AGENDA_NOTIFICATION_TYPES, OWNER_TYPE, WEBSITE_DOMAIN } from '~/utils/constants'
 import { BrevoProvider } from '~/providers/BrevoProvider'
 import { JwtProvider } from '~/providers/JwtProvider'
 import { env } from '~/config/environment'
@@ -13,6 +13,17 @@ import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { cloneCategories } from '~/utils/cloneCategory'
 import { categoryModel } from '~/models/categoryModel'
 import { moneySourceModel } from '~/models/moneySourceModel'
+import { agenda } from '~/agenda/agenda'
+import { generateAgendaJobName } from '~/utils/agendaJobNameHelper'
+import { ObjectId } from 'mongodb'
+
+const toCronTime = (inputTime) => {
+  const [hourStr, minuteStr] = inputTime.split(':')
+  const hour = parseInt(hourStr, 10)
+  const minute = parseInt(minuteStr, 10)
+
+  return `${minute} ${hour} * * *` // cron: phút giờ * * *
+}
 
 const createNew = async (reqBody) => {
   try {
@@ -81,6 +92,18 @@ const verifyAccount = async (reqBody) => {
       verifyToken: null
     }
     const updateUser = await userModel.update(existUser._id, updateData)
+
+    // Tạo agenda job để nhắc nhở người dùng ghi chép hàng ngày
+    const cronTime = toCronTime(existUser?.remindTime)
+    const jobName = generateAgendaJobName('send_reminder', AGENDA_NOTIFICATION_TYPES.NOTE, existUser._id)
+    const remindData = {
+      jobName,
+      userId: new ObjectId(existUser._id),
+      title: 'Nhắc nhở ghi chép',
+      message: 'Cùng tạo thói quen tốt bằng cách ghi chép thu chi hằng ngày nào!',
+      link: '/new-transaction'
+    }
+    await agenda.every(cronTime, 'send_reminder', remindData)
 
     return pickUser(updateUser)
   } catch (error) { throw error }

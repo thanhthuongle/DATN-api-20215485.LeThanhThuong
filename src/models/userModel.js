@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { EMAIL_RULE, EMAIL_RULE_MESSAGE } from '~/utils/validators'
+import { EMAIL_RULE, EMAIL_RULE_MESSAGE, REMIND_NOTE_TIME_MESSAGE, REMIND_NOTE_TIME_RULE,} from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { ObjectId } from 'mongodb'
 
@@ -9,8 +9,8 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   email: Joi.string().required().pattern (EMAIL_RULE).message(EMAIL_RULE_MESSAGE),
   password: Joi.string().required(),
 
-  username: Joi.string().required().trim().strict(),
-  displayName: Joi.string().required().trim().strict(),
+  username: Joi.string().required().trim(),
+  displayName: Joi.string().required().trim(),
   avatar: Joi.string().default(null),
 
   isActive: Joi.boolean().default(false),
@@ -19,8 +19,8 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   language: Joi.string().default('VN'),
   currency: Joi.string().default('VND'),
 
-  remindToInput: Joi.boolean().default(false),
-  remindTime: Joi.date().iso().default(null),
+  remindToInput: Joi.boolean().default(true),
+  remindTime: Joi.string().pattern(REMIND_NOTE_TIME_RULE).message(REMIND_NOTE_TIME_MESSAGE).default('20:00'),
 
   startDayOfWeek: Joi.string().default('MONDAY'),
   startDayOfMonth: Joi.number().integer().min(1).default(1),
@@ -45,9 +45,9 @@ const createNew = async (data) => {
   } catch (error) { throw new Error(error) }
 }
 
-const findOneById = async (userId) => {
+const findOneById = async (userId, options = {}) => {
   try {
-    const result = await GET_DB().collection(USER_COLLECTION_NAME).findOne({ _id: new ObjectId(String(userId)) })
+    const result = await GET_DB().collection(USER_COLLECTION_NAME).findOne({ _id: new ObjectId(String(userId)) }, options)
     return result
   } catch (error) { throw new Error(error) }
 }

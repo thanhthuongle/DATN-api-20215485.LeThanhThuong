@@ -11,7 +11,7 @@ const ACCUMULATION_COLLECTION_SCHEMA = Joi.object({
   ownerId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   moneySourceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  accumulationName: Joi.string().required().min(3).max(256).trim().strict(),
+  accumulationName: Joi.string().required().min(3).max(256).trim(),
   balance: Joi.number().integer().min(0).default(0),
   targetBalance: Joi.number().integer().min(0).required(),
   startDate: Joi.date().iso().required(),

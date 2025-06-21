@@ -64,7 +64,7 @@ const findByUserId = async (userId, options = {}) => {
           $unwind: '$notificationData'
         },
         {
-          $sort: { _id: -1, readAt: -1 } // sort theo thời gian đọc hoặc tạo mới nhất
+          $sort: { _id: 1, readAt: -1 } // sort theo thời gian đọc hoặc tạo mới nhất
         }
       ], options).toArray()
     return result

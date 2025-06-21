@@ -45,6 +45,13 @@ const createNew = async (data, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const findOneById = async (loanId, options = {}) => {
+  try {
+    const result = await GET_DB().collection(LOAN_COLLECTION_NAME).findOne({ _id: new ObjectId(String(loanId)) }, options)
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 const findOneByTransactionId = async (transactionId, options = {}) => {
   try {
     const result = await GET_DB().collection(LOAN_COLLECTION_NAME).findOne({ transactionId: new ObjectId(String(transactionId)) }, options)
@@ -72,6 +79,7 @@ export const loanModel = {
   LOAN_COLLECTION_NAME,
   LOAN_COLLECTION_SCHEMA,
   createNew,
+  findOneById,
   findOneByTransactionId,
   getManyDetailTransactions
 }

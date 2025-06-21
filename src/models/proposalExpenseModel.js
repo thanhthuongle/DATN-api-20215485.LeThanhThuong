@@ -9,10 +9,10 @@ const PROPOSAL_EXPENSE_COLLECTION_SCHEMA = Joi.object({
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   targetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE), // familyId
-  name: Joi.string().required().min(3).max(256).trim().strict(),
+  name: Joi.string().required().min(3).max(256).trim(),
   amount: Joi.number().integer().min(0).required(),
   categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  description: Joi.string().min(3).max(256).trim().strict().optional(),
+  description: Joi.string().min(3).max(256).trim().optional(),
   status: Joi.string().valid(...Object.values(PROPOSAL_EXPENSE_STATUS)).required(),
   images: Joi.array().items(
     Joi.string()

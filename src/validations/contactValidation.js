@@ -4,7 +4,7 @@ import ApiError from '~/utils/ApiError'
 
 const createNew = async (req, res, next) => {
   const CorrectCondition = Joi.object({
-    name: Joi.string().required().min(3).max(60).trim().strict()
+    name: Joi.string().required().min(3).max(60).trim(),
   })
 
   try {

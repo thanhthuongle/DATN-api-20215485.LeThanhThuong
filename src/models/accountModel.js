@@ -12,7 +12,7 @@ const ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   moneySourceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   type: Joi.string().valid(...Object.values(ACCOUNT_TYPES)).required(),
-  accountName: Joi.string().required().min(3).max(256).trim().strict(),
+  accountName: Joi.string().required().min(3).max(256).trim(),
   initBalance: Joi.number().integer().required(),
   balance: Joi.number().integer().required(),
   bankId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),

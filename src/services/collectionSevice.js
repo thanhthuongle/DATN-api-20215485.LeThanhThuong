@@ -9,6 +9,7 @@ import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { ObjectId } from 'mongodb'
 import { collectionModel } from '~/models/collectionModel'
 import { transactionModel } from '~/models/transactionModel'
+import { agenda } from '~/agenda/agenda'
 
 const createNew = async (userId, amount, dataDetail, images, { session }) => {
   const moneyTargetModelHandle = {
@@ -52,8 +53,16 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     }
 
     const createdCollection = await collectionModel.createNew(dataDetail, { session })
+    const getNewCollection = await collectionModel.findOneById(createdCollection.insertedId, { session })
 
-    await moneyTargetModelHandler.increaseBalance(accountId, Number(amount), { session })
+    if (getNewCollection) {
+      await moneyTargetModelHandler.increaseBalance(accountId, Number(amount), { session })
+
+      // Hủy lời nhắc nhở
+      await agenda.cancel({
+        loanTransactionId: new ObjectId(getNewCollection?.loanTransactionId)
+      })
+    }
 
     return createdCollection
   } catch (error) {

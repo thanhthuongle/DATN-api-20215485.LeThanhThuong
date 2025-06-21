@@ -6,10 +6,10 @@ import { NOTIFICATION_TYPES } from '~/utils/constants'
 // Định nghĩa Collection (name & schema)
 const NOTIFICATION_COLLECTION_NAME = 'notifications'
 const NOTIFICATION_COLLECTION_SCHEMA = Joi.object({
-  title: Joi.string().required().min(3).max(256).trim().strict(),
-  message: Joi.string().required().min(3).trim().strict(),
+  title: Joi.string().required().min(3).max(256).trim(),
+  message: Joi.string().required().min(3).trim(),
   type: Joi.string().valid(...Object.values(NOTIFICATION_TYPES)).required(),
-  link: Joi.string().trim().strict().optional(),
+  link: Joi.string().trim().optional(),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),

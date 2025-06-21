@@ -8,9 +8,11 @@ import { categoryModel } from '~/models/categoryModel'
 import { moneySourceModel } from '~/models/moneySourceModel'
 import { savingsAccountModel } from '~/models/savingsAccountModel'
 import ApiError from '~/utils/ApiError'
-import { MONEY_SOURCE_TYPE, OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
+import { AGENDA_NOTIFICATION_TYPES, MONEY_SOURCE_TYPE, OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
 import { commitWithRetry, runTransactionWithRetry } from '~/utils/mongoTransaction'
 import { transactionService } from './transactionService'
+import { agenda } from '~/agenda/agenda'
+import moment from 'moment'
 
 const createIndividualAccumulation = async (userId, reqBody) => {
   const session = MongoClientInstance.startSession()
@@ -48,6 +50,15 @@ const createIndividualAccumulation = async (userId, reqBody) => {
 
       if (getNewAccumulation) {
         await moneySourceModel.pushAccumulationIds(getNewAccumulation, { session })
+
+        // tạo lịch nhắc nhở người dùng khi đến hạn kết thúc tích lũy
+        await agenda.schedule(moment(getNewAccumulation?.endDate).set({ hour: 10, minute: 0, second: 0, millisecond: 0 }).toISOString(), 'send_reminder', {
+          jobType: AGENDA_NOTIFICATION_TYPES.NOTICE,
+          userId: new ObjectId(userId),
+          accumulationId: getNewAccumulation._id,
+          title: 'Kết thúc tích lũy',
+          message: `Khoản tích lũy <strong>${getNewAccumulation?.accumulationName}</strong> đã đến thời điểm kết thúc dự kiến.`
+        })
       }
 
       await commitWithRetry(session)
@@ -180,6 +191,11 @@ const finishIndividualAccumulation = async (userId, accumulationId, reqBody) => 
     }
 
     const result = await accumulationModel.finishAccumulation(new ObjectId(accumulation._id))
+    if (result?.isFinish == true) {
+      await agenda.cancel({
+        'data.accumulationId': result._id
+      })
+    }
 
     return result
   } catch (error) { throw error }
