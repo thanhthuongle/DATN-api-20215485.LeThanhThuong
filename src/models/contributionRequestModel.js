@@ -11,8 +11,8 @@ const CONTRIBUTION_REQUEST_COLLECTION_SCHEMA = Joi.object({
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   familyId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  name: Joi.string().required().min(3).max(256).trim().strict(),
-  description: Joi.string().min(3).max(256).trim().strict().optional(),
+  name: Joi.string().required().min(3).max(256).trim(),
+  description: Joi.string().min(3).max(256).trim().optional(),
   amount: Joi.number().integer().min(0).required(),
   moneyTargetType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyTargetId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),

@@ -10,7 +10,7 @@ const CATEGORY_COLLECTION_SCHEMA = Joi.object({
   ownerType: Joi.string().valid(...Object.values(OWNER_TYPE)).required(),
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  name: Joi.string().required().min(3).max(256).trim().strict(),
+  name: Joi.string().required().min(3).max(256).trim(),
   type: Joi.string().valid(...Object.values(TRANSACTION_TYPES)).required(),
   allowDelete: Joi.boolean().default(false),
   icon: Joi.string().default(null),

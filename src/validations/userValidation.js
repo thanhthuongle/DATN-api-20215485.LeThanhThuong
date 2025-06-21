@@ -52,7 +52,7 @@ const login = async (req, res, next) => {
 
 const update = async (req, res, next) => {
   const correctCondition = Joi.object({
-    displayName: Joi.string().trim().strict(),
+    displayName: Joi.string().trim(),
     current_password: Joi.string().pattern(PASSWORD_RULE).message(`current_password: ${PASSWORD_RULE_MESSAGE}`),
     new_password: Joi.string().pattern(PASSWORD_RULE).message(`new_password: ${PASSWORD_RULE_MESSAGE}`),
     language: Joi.string(),

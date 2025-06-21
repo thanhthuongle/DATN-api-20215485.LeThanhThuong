@@ -8,6 +8,8 @@ export const EMAIL_RULE_MESSAGE = 'Email is invalid. (example@domain.com)'
 export const PASSWORD_RULE = /^(?=.*[a-zA-Z])(?=.*\d)[A-Za-z\d\W]{8,256}$/
 export const PASSWORD_RULE_MESSAGE = 'Password must include at least 1 letter, a number, and at least 8 characters.'
 export const PASSWORD_CONFIRMATION_MESSAGE = 'Password Confirmation does not match!'
+export const REMIND_NOTE_TIME_RULE = /^([01]\d|2[0-3]):([0-5]\d)$/
+export const REMIND_NOTE_TIME_MESSAGE = 'Thời gian nhắc nhở ghi chép phải thuộc 00:00-23:59'
 
 export const LIMIT_COMMON_FILE_SIZE = 10485760 // byte = 10 MB
 export const ALLOW_COMMON_FILE_TYPES = ['image/jpg', 'image/jpeg', 'image/png']

@@ -5,9 +5,12 @@ import { contactModel } from '~/models/contactModel'
 import { savingsAccountModel } from '~/models/savingsAccountModel'
 import { accountModel } from '~/models/accountModel'
 import ApiError from '~/utils/ApiError'
-import { MONEY_SOURCE_TYPE } from '~/utils/constants'
+import { AGENDA_NOTIFICATION_TYPES, MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { borrowingModel } from '~/models/borrowingModel'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
+import { generateAgendaJobName } from '~/utils/agendaJobNameHelper'
+import { ObjectId } from 'mongodb'
+import { agenda } from '~/agenda/agenda'
 
 const createNew = async (userId, amount, dataDetail, images, { session }) => {
   const moneyTargetModelHandle = {
@@ -28,21 +31,35 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
       // thêm url vào data
       dataDetail.images = imageUrls
     }
-    const createdIncome = await borrowingModel.createNew(dataDetail, { session })
+    const createdBorrowing = await borrowingModel.createNew(dataDetail, { session })
 
     const moneyTargetModelHandler = moneyTargetModelHandle[dataDetail.moneyTargetType]
     const accountId = dataDetail.moneyTargetId
     const lenderId = dataDetail.lenderId
 
     // kiểm tra các id có tồn tại ko
-    const moneyTarget = await moneyTargetModelHandler.findOneById(accountId)
+    const moneyTarget = await moneyTargetModelHandler.findOneById(accountId, { session })
     if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
     const lender = await contactModel.findOneById(lenderId, { session })
     if (!lender) throw new ApiError(StatusCodes.NOT_FOUND, 'Người cho vay không tồn tại!')
 
     await moneyTargetModelHandler.increaseBalance(accountId, Number(amount), { session })
 
-    return createdIncome
+    // Tạo lịch nhắc nhở trả nợ nếu có thời gian trả nợ dự kiến
+    const getNewBorrowing = await borrowingModel.findOneById(createdBorrowing?.insertedId, { session })
+    if (getNewBorrowing?.repaymentTime) {
+      const jobName = generateAgendaJobName('send_reminder', AGENDA_NOTIFICATION_TYPES.REPAYMENT, userId)
+      const remindData = {
+        jobName,
+        userId: new ObjectId(userId),
+        borrowingTransactionId: new ObjectId(getNewBorrowing),
+        title: 'Nhắc trả nợ',
+        message: `Bạn có khoản <strong>${amount}&nbsp;₫</strong> vay của <strong>${lender?.name}</strong> đến ngày trả nợ!`
+      }
+      await agenda.schedule(getNewBorrowing.repaymentTime, 'send_reminder', remindData)
+    }
+
+    return getNewBorrowing
   } catch (error) {
     throw error
   }

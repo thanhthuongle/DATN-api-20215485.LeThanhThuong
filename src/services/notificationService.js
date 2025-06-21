@@ -1,15 +1,19 @@
 /* eslint-disable no-useless-catch */
 import { notificationModel } from '~/models/notificatioModel'
 import { userNotificationModel } from '~/models/userNotificationModel'
+import { NOTIFICATION_TYPES } from '~/utils/constants'
 
 const createNew = async (userId, notificationData) => {
   try {
     const newNotification = {
       title: notificationData?.title,
       message: notificationData?.message,
-      type: notificationData?.type,
+      type: notificationData?.type
     }
-    if (notificationData?.link) newNotification.link = notificationData.link
+    if (notificationData?.link) {
+      newNotification.type = NOTIFICATION_TYPES.LINK,
+      newNotification.link = notificationData.link
+    } else newNotification.type = NOTIFICATION_TYPES.TEXT
 
     const createdNotification = await notificationModel.createNew(newNotification)
     const getNewNotification = await notificationModel.findOneById(createdNotification.insertedId)

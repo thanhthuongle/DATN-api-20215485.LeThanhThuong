@@ -1,4 +1,5 @@
-import Joi, { optional } from 'joi'
+import Joi from 'joi'
+import moment from 'moment'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE, INTEREST_PAID, TERM_ENDED, MONEY_SOURCE_TYPE } from '~/utils/constants'
@@ -11,7 +12,7 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   ownerId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   moneySourceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
-  savingsAccountName: Joi.string().required().min(3).max(256).trim().strict(),
+  savingsAccountName: Joi.string().required().min(3).max(256).trim(),
   bankId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   initBalance: Joi.number().integer().min(0).required(),
   balance: Joi.number().integer().min(0).required(),
@@ -23,7 +24,7 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
   termEnded: Joi.string().valid(...Object.values(TERM_ENDED)).required(), // hành động khi hết kỳ hạn: ROLL_OVER_PRINCIPAL_AND_INTEREST chỉ tồn tại khi trả lãi vào cuối kỳ
   interestPaidTargetId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   interestPaidTargetType: Joi.string().valid(MONEY_SOURCE_TYPE.ACCOUNT).optional(),
-  description: Joi.string().trim().strict().optional(),
+  description: Joi.string().trim().optional(),
   isClosed: Joi.boolean().default(false),
   isRolledOver: Joi.boolean().default(false),
   parentSavingId: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
@@ -31,7 +32,7 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
 
-  moneyFromType: Joi.string().valid(MONEY_SOURCE_TYPE.ACCOUNT).required(),
+  moneyFromType: Joi.string().valid(...Object.values(MONEY_SOURCE_TYPE)).required(),
   moneyFromId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
@@ -61,10 +62,13 @@ const SAVINGS_ACCOUNT_COLLECTION_SCHEMA = Joi.object({
     }
   }
 
-  // 3. Nếu interestPaid === "maturity", thì 2 field kia không nên có
-  if (interestPaid === INTEREST_PAID.MATURITY) {
-    if (interestPaidTargetId || interestPaidTargetType) {
-      return helpers.message('Thông tin tài khoản nhận lãi là không cần thiết')
+  // 3. Nếu interestPaid === "maturity" và teramEnded === "roll_over_principal", thì bắt buộc phải có interestPaidTargetId + Type
+  if (interestPaid == INTEREST_PAID.MATURITY && termEnded == TERM_ENDED.ROLL_OVER_PRINCIPAL) {
+    if (!interestPaidTargetId) {
+      return helpers.message('Thông tin tài khoản nhận lãi là bắt buộc')
+    }
+    if (!interestPaidTargetType) {
+      return helpers.message('Thông tin tài khoản nhận lãi là bắt buộc')
     }
   }
 
@@ -88,7 +92,8 @@ const createNew = async (data, options = {}) => {
       bankId: new ObjectId(validData.bankId),
       moneyFromId: new ObjectId(validData.moneyFromId),
       ...(validData.interestPaidTargetId && { interestPaidTargetId: new ObjectId(validData.interestPaidTargetId) }),
-      ...(validData.parentSavingId && { parentSavingId: new ObjectId(validData.parentSavingId) })
+      ...(validData.parentSavingId && { parentSavingId: new ObjectId(validData.parentSavingId) }),
+      startDate: moment(validData?.startDate).startOf('day').toISOString()
     }, options)
 
     return createdAccount

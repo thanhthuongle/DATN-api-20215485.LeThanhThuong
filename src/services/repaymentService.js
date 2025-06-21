@@ -9,6 +9,7 @@ import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { transactionModel } from '~/models/transactionModel'
 import { ObjectId } from 'mongodb'
 import { repaymentModel } from '~/models/repaymentModel'
+import { agenda } from '~/agenda/agenda'
 
 const createNew = async (userId, amount, dataDetail, images, { session }) => {
   const moneySourceModelHandle = {
@@ -54,8 +55,16 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     }
 
     const createdRepayment = await repaymentModel.createNew(dataDetail, { session })
+    const getNewRepayment = await repaymentModel.findOneById(createdRepayment.insertedId, { session })
 
-    await moneySourceModelHandler.decreaseBalance(accountId, Number(amount), { session })
+    if (getNewRepayment) {
+      await moneySourceModelHandler.decreaseBalance(accountId, Number(amount), { session })
+
+      // hủy lịch nhắc trả nợ
+      await agenda.cancel({
+        borrowingTransactionId: new ObjectId(getNewRepayment?.borrowingTransactionId)
+      })
+    }
 
     return createdRepayment
   } catch (error) {

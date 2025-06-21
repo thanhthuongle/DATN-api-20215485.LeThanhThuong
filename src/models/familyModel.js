@@ -6,7 +6,7 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 // Định nghĩa Collection (name & schema)
 const FAMILY_COLLECTION_NAME = 'families'
 const FAMILY_COLLECTION_SCHEMA = Joi.object({
-  familyName: Joi.string().required().min(3).max(256).trim().strict(),
+  familyName: Joi.string().required().min(3).max(256).trim(),
   backgroundImage: Joi.string().default(null),
 
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),

@@ -19,7 +19,7 @@ export const MONEY_SOURCE_TYPE = {
 
 export const INTEREST_PAID = {
   MATURITY: 'maturity',
-  UP_FRONT: 'up_front',
+  // UP_FRONT: 'up_front',
   MONTHLY: 'monthly'
 }
 
@@ -67,6 +67,20 @@ export const ACCOUNT_TYPES = {
   WALLET: 'wallet',
   BANK: 'bank',
   OTHER: 'orther'
+}
+
+export const AGENDA_NOTIFICATION_TYPES = {
+  NOTICE: 'notice', // Thông báo text thông thường
+  NOTE: 'note', // Nhắc nhở ghi chép mỗi ngày
+  COLLECTION: 'collection', // Nhắc nhở đến lịch thu nợ
+  REPAYMENT: 'repayment', // Nhắc nhở đến lịch trả nợ
+  MONTHLY_SAVING_SOLVER: 'monthly_saving_solver', // Tự động xử lý sổ tiết kiệm hàng tháng
+  MATURITY_SAVING_SOLVER: 'maturity_saving_solver', // Tự động xử lý sổ tiết kiệm cuối kỳ
+  AUTO_ROLL_OVER_PRINCIPAL: 'auto_roll_over_principal', // Thông báo tự động tái tục gốc
+  AUTO_ROLL_OVER_PRINCIPAL_AND_INTEREST: 'auto_roll_over_principal_and_interest', // Thông báo tự động tái tục gốc và lãi
+  RECEIVE_INTEREST: 'receive_interest', // Nhận lãi suất sổ tiết kiệm định kỳ
+  CLOSE_SAVING: 'close_saving', // Nhắc nhở tất toán sổ tiết kiệm đến kỳ hạn
+  OVER_BUDGET: 'over_budget' // chi quá ngân sách thiết lập
 }
 
 export const WEBSITE_DOMAIN = env.BUILD_MODE === 'production' ? env.WEBSITE_DOMAIN_PRODUCTION : env.WEBSITE_DOMAIN_DEVELOPMENT
