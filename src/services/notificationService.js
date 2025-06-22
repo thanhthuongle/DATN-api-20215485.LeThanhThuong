@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-catch */
 import { notificationModel } from '~/models/notificatioModel'
 import { userNotificationModel } from '~/models/userNotificationModel'
+import { getIO, getUserSockets } from '~/sockets'
 import { NOTIFICATION_TYPES } from '~/utils/constants'
 
 const createNew = async (userId, notificationData) => {
@@ -27,6 +28,19 @@ const createNew = async (userId, notificationData) => {
     const result = {
       ...getNewUserNotification,
       notificationData: getNewNotification
+    }
+
+    // Gửi thông báo real-time
+    const io = getIO()
+    const userSockets = getUserSockets()
+    const sockets = userSockets.get(userId)
+    if (sockets && sockets.size > 0) {
+      for (const socketId of sockets) {
+        io.to(socketId).emit('notification', result)
+      }
+      // console.log(`📨 Gửi thông báo tới user ${userId} (${sockets.size} thiết bị)`)
+    } else {
+      // console.log(`📭 User ${userId} hiện không online`)
     }
 
     return result

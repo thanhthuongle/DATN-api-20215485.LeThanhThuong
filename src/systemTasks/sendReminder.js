@@ -43,9 +43,9 @@ module.exports = (agenda) => {
       }
 
       // Tạo notification
-      await notificationService.createNew(userId.toString(), notificationData)
+      const createdNotification = await notificationService.createNew(userId.toString(), notificationData)
 
-      // Gửi thông báo real-time sau khi có thông báo mới
+      return createdNotification
     } catch (error) {
       console.error('[send_reminder] Tạo thông báo tự động qua agenda lỗi:', error)
     }
