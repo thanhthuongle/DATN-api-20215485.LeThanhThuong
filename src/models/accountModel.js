@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { ACCOUNT_TYPES, OWNER_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
+import { bankModel } from './bankModel'
 
 // Định nghĩa Collection (name & schema)
 const ACCOUNT_COLLECTION_NAME = 'accounts'
@@ -38,6 +39,7 @@ const validateBeforeCreate = async (data) => {
 const createNew = async (data, options = {}) => {
   try {
     const validData = await validateBeforeCreate(data)
+    if (validData?.type == ACCOUNT_TYPES.WALLET) {validData.icon = 'https://i.pinimg.com/736x/1b/b8/e2/1bb8e2267dfcf1cfdd1c3d9a49964484.jpg'}
     const createdAccount = GET_DB().collection(ACCOUNT_COLLECTION_NAME).insertOne({
       ...validData,
       ownerId: new ObjectId(validData.ownerId),
@@ -92,7 +94,27 @@ const findOneById = async (accountId, options = {}) => {
 
 const getAccounts = async (filter, options = {}) => {
   try {
-    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).find(filter, options).toArray()
+    // const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME).find(filter, options).toArray()
+    const result = await GET_DB().collection(ACCOUNT_COLLECTION_NAME)
+      .aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: bankModel.BANK_COLLECTION_NAME,
+            localField: 'bankId',
+            foreignField: '_id',
+            as: 'bankInfo'
+          }
+        },
+        {
+          $unwind: {
+            path: '$bankInfo',
+            preserveNullAndEmptyArrays: true // Vẫn giữ lại account dù không có bank
+          }
+        },
+        { $sort: { createdAt: 1 } } // cũ đến mới
+      ], options)
+      .toArray()
     return result
   } catch (error) { throw new Error(error) }
 }
