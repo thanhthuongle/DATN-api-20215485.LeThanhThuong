@@ -23,7 +23,7 @@ export const initSocketServer = (server, corsOptions) => {
       socket.userId = jwtDecoded._id
       next()
     } catch (error) {
-      console.error('Socket auth error:', error)
+      // console.error('Socket auth error:', error)
       next(new Error('Socket auth failed'))
     }
   })

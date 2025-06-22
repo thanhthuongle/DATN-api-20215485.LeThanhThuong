@@ -1,5 +1,4 @@
-import Joi, { options } from 'joi'
-import { filter } from 'lodash'
+import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE } from '~/utils/constants'
@@ -7,6 +6,7 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { accountModel } from './accountModel'
 import { savingsAccountModel } from './savingsAccountModel'
 import { accumulationModel } from './accumulationModel'
+import { bankModel } from './bankModel'
 
 // Định nghĩa Collection (name & schema)
 const MONEY_SOURCE_COLLECTION_NAME = 'money_sources'
@@ -112,6 +112,20 @@ const getIndividualMoneySource = async (filter, options = {}) => {
         let: { accountIds: '$accountIds' },
         pipeline: [
           { $match: { $expr: { $in: ['$_id', '$$accountIds'] } } },
+          {
+            $lookup: {
+              from: bankModel.BANK_COLLECTION_NAME,
+              localField: 'bankId',
+              foreignField: '_id',
+              as: 'bankInfo'
+            }
+          },
+          {
+            $unwind: {
+              path: '$bankInfo',
+              preserveNullAndEmptyArrays: true // vẫn giữ account ngay cả khi không có bank
+            }
+          },
           { $sort: { createdAt: 1 } }
         ],
         as: 'accounts'
@@ -121,6 +135,20 @@ const getIndividualMoneySource = async (filter, options = {}) => {
         let: { savingsIds: '$savings_accountIds' },
         pipeline: [
           { $match: { $expr: { $in: ['$_id', '$$savingsIds'] } } },
+          {
+            $lookup: {
+              from: bankModel.BANK_COLLECTION_NAME,
+              localField: 'bankId',
+              foreignField: '_id',
+              as: 'bankInfo'
+            }
+          },
+          {
+            $unwind: {
+              path: '$bankInfo',
+              preserveNullAndEmptyArrays: true // vẫn giữ account ngay cả khi không có bank
+            }
+          },
           { $sort: { createdAt: 1 } }
         ],
         as: 'savings_accounts'
