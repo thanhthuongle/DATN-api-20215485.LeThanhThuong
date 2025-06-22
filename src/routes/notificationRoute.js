@@ -4,6 +4,9 @@ import { authMiddleware } from '~/middlewares/authMiddleware'
 
 const Router = express.Router()
 
+Router.route('/test')
+  .get(authMiddleware.isAuthorized, notificationController.testSocketIO)
+
 Router.route('/')
   .get(authMiddleware.isAuthorized, notificationController.getNotifications)
 

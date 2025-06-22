@@ -1,5 +1,9 @@
 import { StatusCodes } from 'http-status-codes'
+import { ObjectId } from 'mongodb'
+import { agenda } from '~/agenda/agenda'
 import { notificationService } from '~/services/notificationService'
+import { getIO, getUserSockets } from '~/sockets'
+import { AGENDA_NOTIFICATION_TYPES } from '~/utils/constants'
 
 const getNotifications = async (req, res, next) => {
   try {
@@ -22,8 +26,22 @@ const markReaded = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const testSocketIO = async (req, res, next) => {
+  try {
+    const newNotificationDataTest = {
+      userId: new ObjectId(req.jwtDecoded._id),
+      title: 'Test socket',
+      message: 'Test thông báo real-time qua socket',
+      jobType: AGENDA_NOTIFICATION_TYPES.NOTICE
+    }
+    const result = await agenda.now('send_reminder', newNotificationDataTest)
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error)}
+}
+
 
 export const notificationController = {
   getNotifications,
-  markReaded
+  markReaded,
+  testSocketIO
 }

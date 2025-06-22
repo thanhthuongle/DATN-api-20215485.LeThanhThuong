@@ -10,6 +10,8 @@ import { seedBanksIfEmpty } from '~/utils/seedBanks'
 import cookieParser from 'cookie-parser'
 import { agenda } from '~/agenda/agenda'
 import { loadSystemTasks } from '~/agenda/loadSystemTasks'
+import http from 'http'
+import { initSocketServer } from './sockets'
 
 const START_SERVER = () => {
   const app = express()
@@ -33,30 +35,33 @@ const START_SERVER = () => {
 
   app.use(errorHandlingMiddleware)
 
+  const server = http.createServer(app)
+  initSocketServer(server, corsOptions)
+
   if (env.BUILD_MODE === 'production') {
-    app.listen(process.env.PORT, async () => {
+    server.listen(process.env.PORT, async () => {
       // eslint-disable-next-line no-console
       console.log(`5. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT }/`)
     })
   } else {
     // Môi trường local dev
-    app.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, async () => {
+    server.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, async () => {
       // eslint-disable-next-line no-console
       console.log(`5. Hello ${env.AUTHOR}, Server is running at http://${ env.LOCAL_DEV_APP_HOST }:${ env.LOCAL_DEV_APP_PORT }/`)
     })
   }
 
-  (async function () {
-    const userId = '684ff408188164f20cece9b6'
-    const jobName = `remider-note-${userId}`
-    // await agenda.now('send remider', { userId: '684ff408188164f20cece9b6', title: 'Test thông báo tự động', message: 'Tin nhắn thông báo tự động' }, { name: `remider-note-${userId}` })
-    // await agenda.every('1 minutes', 'send remider', { userId: '684ff408188164f20cece9b6', title: 'Test thông báo tự động', message: 'Tin nhắn thông báo tụ động mỗi 1 phút này' }, { name: `remider-note-${userId}` })
-    // await agenda.cancel({ 'data.userId': '684ff408188164f20cece9b6' })
-    // const newJob = agenda.create('send remider', { userId: '684ff408188164f20cece9b6', title: 'Test thông báo tự động', message: 'Tin nhắn thông báo tự động' })
-    // newJob.attrs.name = jobName
-    // newJob.schedule(new Date())
-    // await newJob.save()
-  })()
+  // (async function () {
+  //   const userId = '684ff408188164f20cece9b6'
+  //   const jobName = `remider-note-${userId}`
+  //   await agenda.now('send remider', { userId: '684ff408188164f20cece9b6', title: 'Test thông báo tự động', message: 'Tin nhắn thông báo tự động' }, { name: `remider-note-${userId}` })
+  //   await agenda.every('1 minutes', 'send remider', { userId: '684ff408188164f20cece9b6', title: 'Test thông báo tự động', message: 'Tin nhắn thông báo tụ động mỗi 1 phút này' }, { name: `remider-note-${userId}` })
+  //   await agenda.cancel({ 'data.userId': '684ff408188164f20cece9b6' })
+  //   const newJob = agenda.create('send remider', { userId: '684ff408188164f20cece9b6', title: 'Test thông báo tự động', message: 'Tin nhắn thông báo tự động' })
+  //   newJob.attrs.name = jobName
+  //   newJob.schedule(new Date())
+  //   await newJob.save()
+  // })()
 
   exitHook(async () => {
     // eslint-disable-next-line no-console
