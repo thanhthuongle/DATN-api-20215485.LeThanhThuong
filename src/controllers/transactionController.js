@@ -43,6 +43,16 @@ const getIndividualTransactions = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getFullInfoIndividualTransactions = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const query = req?.query?.q
+    const result = await transactionService.getFullInfoIndividualTransactions(userId, query)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 const getFamilyTransactions = async (req, res, next) => {
   try {
     const query = req.query?.q
@@ -110,6 +120,7 @@ export const transactionController = {
   createIndividualTransaction,
   createFamilyTransaction,
   getIndividualTransactions,
+  getFullInfoIndividualTransactions,
   getFamilyTransactions,
   getDetailIndividualTransaction,
   getDetailFamilyTransaction,

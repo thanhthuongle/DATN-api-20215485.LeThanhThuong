@@ -14,6 +14,9 @@ Router.route('/individual')
   .get(authMiddleware.isAuthorized, transactionController.getIndividualTransactions)
   .post(authMiddleware.isAuthorized, multerUploadMiddleware.upload.array('images', 5), transactionValidation.createNew, transactionController.createIndividualTransaction)
 
+Router.route('/individual/fullInfo')
+  .get(authMiddleware.isAuthorized, transactionController.getFullInfoIndividualTransactions)
+
 Router.route('/individual/recentTransactions')
   .get(authMiddleware.isAuthorized, transactionController.getIndividualRecentTransactions)
 
