@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes'
 import { ObjectId } from 'mongodb'
 import { MongoClientInstance } from '~/config/mongodb'
 import { accountModel } from '~/models/accountModel'
+import { bankModel } from '~/models/bankModel'
 import { moneySourceModel } from '~/models/moneySourceModel'
 import ApiError from '~/utils/ApiError'
 import { OWNER_TYPE } from '~/utils/constants'
@@ -30,6 +31,12 @@ const createIndividualAccount = async (userId, reqBody) => {
         }
         const createdMoneySource = await moneySourceModel.createNew(newMoneySource, { session })
         moneySource = await moneySourceModel.findOneById(createdMoneySource.insertedId, { session })
+      }
+
+      if (reqBody?.bankId) {
+        const bank = await bankModel.findOneById(reqBody?.bankId, { session })
+        if (!bank) throw new ApiError(StatusCodes.NOT_FOUND, 'Ngân hàng không tồn tại!')
+        reqBody.icon = bank?.logo
       }
       const data = {
         ownerType: OWNER_TYPE.INDIVIDUAL,
