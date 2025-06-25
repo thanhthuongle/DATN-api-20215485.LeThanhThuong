@@ -29,6 +29,7 @@ import { collectionModel } from '~/models/collectionModel'
 import { repaymentModel } from '~/models/repaymentModel'
 import { collectionService } from './collectionSevice'
 import { repaymentService } from './repaymentService'
+import { contactModel } from '~/models/contactModel'
 
 const transactionTypeModelHandle = {
   [TRANSACTION_TYPES.EXPENSE]: expenseModel,
@@ -392,21 +393,40 @@ const getDetailIndividualTransaction = async (userId, transactionId) => {
     filter._id = new ObjectId(transactionId)
     filter._destroy = false
 
-    let result = await transactionModel.getIndividualTransactions(filter)
-    result = result[0]
+    let result = await transactionModel.getDetailTransaction(filter)
     // console.log('🚀 ~ getDetailIndividualTransaction ~ result:', result)
+    if (result.type == TRANSACTION_TYPES.LOAN) {
+      result.collectionTransaction = await collectionModel.findOneByLoanTransactionId(result._id)
+    }
+    if (result.type == TRANSACTION_TYPES.BORROWING) {
+      result.repaymentTransaction = await repaymentModel.findOneByBorrowingTransactionId(result._id)
+    }
 
     const transactionTypeModelHandler = transactionTypeModelHandle[result?.type]
     if (!transactionTypeModelHandler) {
       throw new ApiError(StatusCodes.BAD_REQUEST, `Transaction type ${result?.type} is not supported.`)
     }
     result.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(transactionId)
-    result.category = await categoryModel.findOneCategory({
-      ownerType: OWNER_TYPE.INDIVIDUAL,
-      ownerId: new ObjectId(userId),
-      _destroy: false,
-      _id: new ObjectId(result.categoryId)
-    })
+    if (result.detailInfo?.moneyFromId) {
+      const moneySourceModelHandler = moneySourceModelHandle[result.detailInfo?.moneyFromType]
+      result.detailInfo.moneyFrom = await moneySourceModelHandler.findOneById(result.detailInfo.moneyFromId)
+    }
+    if (result.detailInfo?.moneyTargetId) {
+      const moneySourceModelHandler = moneySourceModelHandle[result.detailInfo?.moneyTargetType]
+      result.detailInfo.moneyTarget = await moneySourceModelHandler.findOneById(result.detailInfo.moneyTargetId)
+    }
+    if (result.detailInfo?.borrowerId) {
+      result.detailInfo.borrower = await contactModel.findOneById(result.detailInfo?.borrowerId)
+    }
+    if (result.detailInfo?.lenderId) {
+      result.detailInfo.lender = await contactModel.findOneById(result.detailInfo?.lenderId)
+    }
+    if (result.detailInfo?.loanTransactionId) {
+      result.loanTransaction = await transactionModel.findOneById(result.detailInfo?.loanTransactionId)
+    }
+    if (result.detailInfo?.borrowingTransactionId) {
+      result.borrowingTransaction = await transactionModel.findOneById(result.detailInfo?.borrowingTransactionId)
+    }
 
     return result
   } catch (error) { throw error }

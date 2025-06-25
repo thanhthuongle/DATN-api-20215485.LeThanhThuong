@@ -3,6 +3,7 @@ import { MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { ObjectId } from 'mongodb'
+import { transactionModel } from './transactionModel'
 
 // Định nghĩa Collection (name & schema)
 const REPAYMENT_COLLECTION_NAME = 'repayments'
@@ -65,10 +66,55 @@ const getManyDetailTransactions = async (filter, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+// const findOneByBorrowingTransactionId = async (borrowingTransactionId, options = {}) => {
+//   try {
+//     const result = await GET_DB().collection(REPAYMENT_COLLECTION_NAME).findOne({ borrowingTransactionId: new ObjectId(String(borrowingTransactionId)) }, options)
+//     return result
+//   } catch (error) { throw new Error(error) }
+// }
+
 const findOneByBorrowingTransactionId = async (borrowingTransactionId, options = {}) => {
   try {
-    const result = await GET_DB().collection(REPAYMENT_COLLECTION_NAME).findOne({ borrowingTransactionId: new ObjectId(String(borrowingTransactionId)) }, options)
-    return result
+    const filter = {
+      borrowingTransactionId: new ObjectId(String(borrowingTransactionId)),
+      _destroy: false
+    }
+    const result = await GET_DB().collection(REPAYMENT_COLLECTION_NAME)
+      .aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: transactionModel.TRANSACTION_COLLECTION_NAME,
+            localField: 'transactionId',
+            foreignField: '_id',
+            as: 'transaction'
+          }
+        },
+        {
+          $unwind: {
+            path: '$transaction',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        // Gộp transaction làm root, và nhét bản ghi hiện tại (chi tiết) vào detailInfo
+        {
+          $replaceRoot: {
+            newRoot: {
+              $mergeObjects: [
+                '$transaction',
+                { detailInfo: '$$ROOT' }
+              ]
+            }
+          }
+        },
+        {
+          $project: {
+            'detailInfo.transaction': 0 // bỏ lồng lại tránh lặp
+          }
+        }
+      ], options)
+      .toArray()
+    return result[0] || null
   } catch (error) { throw new Error(error) }
 }
 

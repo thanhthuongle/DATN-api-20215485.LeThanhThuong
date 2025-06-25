@@ -40,6 +40,7 @@ const createNew = async (data, options = {}) => {
   try {
     const validData = await validateBeforeCreate(data)
     if (validData?.type == ACCOUNT_TYPES.WALLET) {validData.icon = 'https://i.pinimg.com/736x/1b/b8/e2/1bb8e2267dfcf1cfdd1c3d9a49964484.jpg'}
+    else if (validData?.type == ACCOUNT_TYPES.OTHER) {validData.icon = 'https://i.pinimg.com/736x/ea/e6/50/eae650c2c46e4aebb1dc1477d3e3cff9.jpg'}
     const createdAccount = GET_DB().collection(ACCOUNT_COLLECTION_NAME).insertOne({
       ...validData,
       ownerId: new ObjectId(validData.ownerId),

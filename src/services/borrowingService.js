@@ -52,7 +52,7 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
       const remindData = {
         jobName,
         userId: new ObjectId(userId),
-        borrowingTransactionId: new ObjectId(getNewBorrowing),
+        borrowingTransactionId: new ObjectId(getNewBorrowing?.transactionId),
         title: 'Nhắc trả nợ',
         message: `Bạn có khoản <strong>${amount}&nbsp;₫</strong> vay của <strong>${lender?.name}</strong> đến ngày trả nợ!`
       }
