@@ -24,8 +24,9 @@ const createFamilyAccount = async (req, res, next) => {
 const getIndividualAccounts = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
+    const query = req.query?.q
 
-    const result = await accountService.getIndividualAccounts(userId)
+    const result = await accountService.getIndividualAccounts(userId, query)
 
     res.status(StatusCodes.OK).json(result)
   } catch (error) { next(error) }
