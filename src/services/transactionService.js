@@ -347,6 +347,71 @@ const getIndividualTransactions = async (userId, query) => {
   } catch (error) { throw error }
 }
 
+const getFullInfoIndividualTransactions = async (userId, query) => {
+  try {
+    const filter = {}
+
+    filter.ownerType = OWNER_TYPE.INDIVIDUAL
+    filter.ownerId = new ObjectId(userId)
+    filter._destroy = false
+    if (query) {
+      if (query.type) {
+        if (Array.isArray(query.type)) { filter.type = { $in: query.type } }
+        else { filter.type = query.type }
+      }
+      if (query.categoryId) filter.categoryId = new ObjectId(query.categoryId)
+      if (query.transactionIds) {
+        if (Array.isArray(query.transactionIds)) {
+          const processedTransactionIds = query.transactionIds.map(transactionId => new ObjectId(transactionId))
+          filter._id = { $in: processedTransactionIds }
+        }
+        else { filter._id = new ObjectId(query.transactionIds) }
+      }
+      if (query.fromDate || query.toDate) {
+        filter.transactionTime = {}
+        if (query.fromDate) filter.transactionTime.$gte = new Date(query.fromDate)
+        if (query.toDate) filter.transactionTime.$lte = new Date(query.toDate)
+      }
+      if (query.moneySourceId && query.moneySourceType) { // account, savings, accumulation
+        filter.$or = [
+          { moneyFromType : query.moneySourceType, moneyFromId : new ObjectId(query.moneySourceId) },
+          { moneyTargetType: query.moneySourceType, moneyTargetId : new ObjectId(query.moneySourceId) }
+        ]
+      }
+    }
+    const result = await transactionModel.getIndividualTransactions(filter)
+
+    for (const transaction of result || []) {
+      const transactionTypeModelHandler = transactionTypeModelHandle[transaction?.type]
+      if (!transactionTypeModelHandler) break
+
+      transaction.detailInfo = await transactionTypeModelHandler.findOneByTransactionId(transaction?._id)
+      if (transaction.detailInfo?.moneyFromId) {
+        const moneySourceModelHandler = moneySourceModelHandle[transaction.detailInfo?.moneyFromType]
+        transaction.detailInfo.moneyFrom = await moneySourceModelHandler.findOneById(transaction.detailInfo.moneyFromId)
+      }
+      if (transaction.detailInfo?.moneyTargetId) {
+        const moneySourceModelHandler = moneySourceModelHandle[transaction.detailInfo?.moneyTargetType]
+        transaction.detailInfo.moneyTarget = await moneySourceModelHandler.findOneById(transaction.detailInfo.moneyTargetId)
+      }
+      if (transaction.detailInfo?.borrowerId) {
+        transaction.detailInfo.borrower = await contactModel.findOneById(transaction.detailInfo?.borrowerId)
+      }
+      if (transaction.detailInfo?.lenderId) {
+        transaction.detailInfo.lender = await contactModel.findOneById(transaction.detailInfo?.lenderId)
+      }
+      if (transaction.detailInfo?.loanTransactionId) {
+        result.loanTransaction = await transactionModel.findOneById(transaction.detailInfo?.loanTransactionId)
+      }
+      if (transaction.detailInfo?.borrowingTransactionId) {
+        result.borrowingTransaction = await transactionModel.findOneById(transaction.detailInfo?.borrowingTransactionId)
+      }
+    }
+
+    return result
+  } catch (error) { throw error }
+}
+
 const getFamilyTransactions = async (familyId, query) => {
   try {
     const filter = {}
@@ -520,6 +585,7 @@ export const transactionService = {
   createIndividualTransaction,
   createFamilyTransaction,
   getIndividualTransactions,
+  getFullInfoIndividualTransactions,
   getFamilyTransactions,
   getDetailIndividualTransaction,
   getDetailFamilyTransaction,
