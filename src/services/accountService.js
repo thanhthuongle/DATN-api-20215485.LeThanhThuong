@@ -118,12 +118,17 @@ const createFamilyAccount = async (familyId, reqBody) => {
   }
 }
 
-const getIndividualAccounts = async (userId) => {
+const getIndividualAccounts = async (userId, query) => {
   try {
     const filter = {}
     filter.ownerType = OWNER_TYPE.INDIVIDUAL
     filter.ownerId = new ObjectId(userId)
     filter._destroy = false
+
+    if (query?.isBlock) {
+      if (query.isBlock == 'true') filter.isBlock = true
+      else if (query.isBlock == 'false') filter.isBlock = false
+    }
 
     const result = await accountModel.getAccounts(filter)
 
