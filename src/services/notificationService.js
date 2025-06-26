@@ -1,7 +1,9 @@
 /* eslint-disable no-useless-catch */
+import { StatusCodes } from 'http-status-codes'
 import { notificationModel } from '~/models/notificatioModel'
 import { userNotificationModel } from '~/models/userNotificationModel'
 import { getIO, getUserSockets } from '~/sockets'
+import ApiError from '~/utils/ApiError'
 import { NOTIFICATION_TYPES } from '~/utils/constants'
 
 const createNew = async (userId, notificationData) => {
@@ -57,6 +59,12 @@ const getNotifications = async (userId) => {
 
 const markReaded = async (userId, userNotificationId, reqBody) => {
   try {
+    // Kiểm tra userNotificationId
+    const userNotification = await userNotificationModel.findOneById(userNotificationId)
+    if (!userNotification) throw new ApiError(StatusCodes.NOT_FOUND, 'Thông báo không tồn tại')
+    else if (userNotification?.userId?.toString() != userId?.toString()) throw new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền truy cạp thông báo này!')
+    else if (userNotification?.isRead == true) throw new ApiError(StatusCodes.CONFLICT, 'Thông báo đã đánh dấu đã đọc')
+
     const result = await userNotificationModel.markReaded(userId, userNotificationId)
 
     return result

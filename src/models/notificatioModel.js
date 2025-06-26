@@ -1,4 +1,4 @@
-import Joi, { options } from 'joi'
+import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { NOTIFICATION_TYPES } from '~/utils/constants'

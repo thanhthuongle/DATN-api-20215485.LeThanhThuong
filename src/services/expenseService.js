@@ -20,9 +20,10 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     const moneyFromId = dataDetail.moneyFromId
     const moneySource = await moneySourceModelHandler.findOneById(moneyFromId, { session })
     if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
+    else if (moneySource?.isBlock == true) throw new ApiError(StatusCodes.CONFLICT, 'Tài khoản sử dụng để chi tiền đang bị khóa.')
 
-    if (moneySource?.balance < amount) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Số dư nguồn tiền không đủ!')
+    if (Number(moneySource?.balance) < Number(amount)) {
+      throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Số dư nguồn tiền không đủ!')
     }
 
     if (Array.isArray(images) && images.length > 0) {

@@ -30,6 +30,7 @@ import { repaymentModel } from '~/models/repaymentModel'
 import { collectionService } from './collectionSevice'
 import { repaymentService } from './repaymentService'
 import { contactModel } from '~/models/contactModel'
+import moment from 'moment'
 
 const transactionTypeModelHandle = {
   [TRANSACTION_TYPES.EXPENSE]: expenseModel,
@@ -142,6 +143,12 @@ const createIndividualTransaction = async (userId, reqBody, images, options = {}
           readPreference: 'primary'
         })
       }
+
+      // Kiểm tra categoryId
+      const category = await categoryModel.findOneById(commonData?.categoryId)
+      if (!category || category?.ownerId?.toString() != userId?.toString()) throw new ApiError(StatusCodes.BAD_REQUEST, 'Hạng mục không hợp lệ')
+      // Kiểm tra thời gian thực hiện giao dịch
+      if (moment(commonData?.transactionTime).isAfter(moment())) throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể thực hiện giao dịch với thời gian trong tương lai')
 
       const createdTransaction = await transactionModel.createNew(commonData, { session })
 

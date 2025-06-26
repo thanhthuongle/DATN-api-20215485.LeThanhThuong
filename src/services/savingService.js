@@ -17,6 +17,14 @@ import moment from 'moment'
 import { agenda } from '~/agenda/agenda'
 import { userModel } from '~/models/userModel'
 import { generateNewName } from '~/utils/formatter'
+import { bankModel } from '~/models/bankModel'
+import { accumulationModel } from '~/models/accumulationModel'
+
+const moneySourceModelHandle = {
+  [MONEY_SOURCE_TYPE.ACCOUNT]: accountModel,
+  [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel,
+  [MONEY_SOURCE_TYPE.SAVINGS_ACCOUNT]: savingsAccountModel
+}
 
 function getAccumulationDaysInCurrentMonth(startDate, now) {
   const sentDay = startDate.date()
@@ -92,6 +100,20 @@ const createIndividualSaving = async (userId, reqBody, options = {}) => {
         const createdMoneySource = await moneySourceModel.createNew(newMoneySource, { session })
         moneySource = await moneySourceModel.findOneById(createdMoneySource.insertedId, { session })
       }
+
+      // Kiểm tra ngân hàng được hỗ trợ ko
+      const bank = await bankModel.findOneById(reqBody?.bankId, { session })
+      if (!bank) throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Ngân hàng gửi tiền chưa được hỗ trợ!')
+      // Kiểm tra tài khoản nguồn tiền gửi tiết kiệm
+      const moneySourceModelHandler = moneySourceModelHandle[reqBody?.moneyFromType]
+      const moneyFrom = await moneySourceModelHandler.findOneById(reqBody?.moneyFromId, { session })
+      if (!moneyFrom || moneyFrom?.ownerId?.toString() != userId?.toString()) throw new ApiError(StatusCodes.BAD_REQUEST, 'Nguồn tiền gửi tiết kiệm không hợp lệ')
+      // Kiểm tra tài khoản nhận tiền lãi (nếu có)
+      if (reqBody?.interestPaidTargetId) {
+        const interestPaidTarget = await accountModel.findOneById(reqBody?.interestPaidTargetId, { session })
+        if (!interestPaidTarget || interestPaidTarget?.ownerId?.toString() != userId?.toString()) throw new ApiError(StatusCodes.BAD_REQUEST, 'Tài khoản nhận lãi suất không hợp lệ')
+      }
+
       const data = {
         ownerType: OWNER_TYPE.INDIVIDUAL,
         ownerId: userId.toString(),

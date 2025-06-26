@@ -8,7 +8,6 @@ import { accountModel } from '~/models/accountModel'
 import ApiError from '~/utils/ApiError'
 import { AGENDA_NOTIFICATION_TYPES, MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
-import { generateAgendaJobName } from '~/utils/agendaJobNameHelper'
 import { ObjectId } from 'mongodb'
 import { agenda } from '~/agenda/agenda'
 
@@ -19,12 +18,18 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }
   try {
-    const accountId = dataDetail.moneyFromId
-    const account = await accountModel.findOneById(accountId, { session })
-    // console.log(account)
-    if (account.balance < amount) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, `Số dư trong tài khoản ${account.accountName} không đủ!`)
-    }
+    const moneySourceModelHandler = moneySourceModelHandle[dataDetail.moneyFromType]
+    const moneyFromId = dataDetail.moneyFromId
+    const borrowerId = dataDetail.borrowerId
+
+    // kiểm tra các id có tồn tại ko
+    const moneySource = await moneySourceModelHandler.findOneById(moneyFromId, { session })
+    if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
+    else if (moneySource?.isBlock == true) throw new ApiError(StatusCodes.CONFLICT, 'tài khoản nguồn tiền đang bị khóa')
+    else if (Number(moneySource?.balance) < Number(amount)) throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Số dư nguồn tiền không đủ')
+
+    const borrower = await contactModel.findOneById(borrowerId, { session })
+    if (!borrower) throw new ApiError(StatusCodes.NOT_FOUND, 'Người vay không tồn tại!')
 
     if (Array.isArray(images) && images.length > 0) {
       const uploadPromises = images.map(image =>
@@ -40,17 +45,7 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     }
     const createdLoan = await loanModel.createNew(dataDetail, { session })
 
-    const moneySourceModelHandler = moneySourceModelHandle[dataDetail.moneyFromType]
-    // const accountId = dataDetail.moneyFromId
-    const borrowerId = dataDetail.borrowerId
-
-    // kiểm tra các id có tồn tại ko
-    const moneySource = await moneySourceModelHandler.findOneById(accountId, { session })
-    if (!moneySource) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
-    const borrower = await contactModel.findOneById(borrowerId, { session })
-    if (!borrower) throw new ApiError(StatusCodes.NOT_FOUND, 'Người vay không tồn tại!')
-
-    await moneySourceModelHandler.decreaseBalance(accountId, amount, { session })
+    await moneySourceModelHandler.decreaseBalance(moneyFromId, amount, { session })
 
     // Tạo lịch nhắc thu nợ nếu có thời gian thu nợ dự kiến
     const getNewLoan = await loanModel.findOneById(createdLoan.insertedId, { session })

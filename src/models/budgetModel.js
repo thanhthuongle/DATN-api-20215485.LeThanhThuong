@@ -1,4 +1,4 @@
-import Joi, { optional } from 'joi'
+import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE } from '~/utils/constants'

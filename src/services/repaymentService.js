@@ -36,10 +36,11 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     const accountId = dataDetail.moneyFromId
     // kiểm tra các id có tồn tại ko
     const moneyFrom = await moneySourceModelHandler.findOneById(accountId, { session })
-    if (!moneyFrom) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền không tồn tại!')
+    if (!moneyFrom) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nguồn tiền trả nợ không tồn tại!')
+    else if (moneyFrom?.isBlock == true) throw new ApiError(StatusCodes.CONFLICT, 'tài khoản nguồn tiền trả nợđang bị khóa!')
     // kiểm tra số dư
     if (Number(moneyFrom.balance) < Number(amount)) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Số dư trong tài khoản không đủ!')
+      throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Số dư trong tài khoản không đủ!')
     }
     if (Array.isArray(images) && images.length > 0) {
       const uploadPromises = images.map(image =>

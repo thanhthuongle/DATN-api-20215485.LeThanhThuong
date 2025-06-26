@@ -19,6 +19,16 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }
   try {
+    const moneyTargetModelHandler = moneyTargetModelHandle[dataDetail.moneyTargetType]
+    const accountId = dataDetail.moneyTargetId
+    const lenderId = dataDetail.lenderId
+
+    // kiểm tra các id có tồn tại ko
+    const moneyTarget = await moneyTargetModelHandler.findOneById(accountId, { session })
+    if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
+    const lender = await contactModel.findOneById(lenderId, { session })
+    if (!lender) throw new ApiError(StatusCodes.NOT_FOUND, 'Người cho vay không tồn tại!')
+
     if (Array.isArray(images) && images.length > 0) {
       const uploadPromises = images.map(image =>
         CloudinaryProvider.streamUpload(image.buffer, 'transactionImages')
@@ -32,16 +42,6 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
       dataDetail.images = imageUrls
     }
     const createdBorrowing = await borrowingModel.createNew(dataDetail, { session })
-
-    const moneyTargetModelHandler = moneyTargetModelHandle[dataDetail.moneyTargetType]
-    const accountId = dataDetail.moneyTargetId
-    const lenderId = dataDetail.lenderId
-
-    // kiểm tra các id có tồn tại ko
-    const moneyTarget = await moneyTargetModelHandler.findOneById(accountId, { session })
-    if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
-    const lender = await contactModel.findOneById(lenderId, { session })
-    if (!lender) throw new ApiError(StatusCodes.NOT_FOUND, 'Người cho vay không tồn tại!')
 
     await moneyTargetModelHandler.increaseBalance(accountId, Number(amount), { session })
 
