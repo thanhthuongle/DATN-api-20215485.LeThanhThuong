@@ -15,6 +15,10 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }
   try {
+    // kiểm tra các id có tồn tại ko
+    const moneyTarget = await moneyTargetModelHandler.findOneById(accountId, { session })
+    if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
+
     if (Array.isArray(images) && images.length > 0) {
       const uploadPromises = images.map(image =>
         CloudinaryProvider.streamUpload(image.buffer, 'transactionImages')
@@ -31,11 +35,6 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
 
     const moneyTargetModelHandler = moneyTargetModelHandle[dataDetail.moneyTargetType]
     const accountId = dataDetail.moneyTargetId
-
-    // kiểm tra các id có tồn tại ko
-    const moneyTarget = await moneyTargetModelHandler.findOneById(accountId, { session })
-    if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
-
     await moneyTargetModelHandler.increaseBalance(accountId, Number(amount), { session })
 
     return createdIncome

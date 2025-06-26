@@ -1,4 +1,4 @@
-import Joi, { options } from 'joi'
+import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE } from '~/utils/constants'
@@ -43,6 +43,19 @@ const findOneById = async (contactId, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const findOneIndividualByName = async (userId, name, options = {}) => {
+  try {
+    const filter = {
+      ownerType: OWNER_TYPE.INDIVIDUAL,
+      ownerId: new ObjectId(userId),
+      name: name,
+      _destroy: false
+    }
+    const result = await GET_DB().collection(CONTACT_COLLECTION_NAME).findOne(filter, options)
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 const getContacts = async (filter, options = {}) => {
   try {
     const result = await GET_DB().collection(CONTACT_COLLECTION_NAME).find(filter, options).toArray()
@@ -55,5 +68,6 @@ export const contactModel = {
   CONTACT_COLLECTION_SCHEMA,
   createNew,
   findOneById,
+  findOneIndividualByName,
   getContacts
 }

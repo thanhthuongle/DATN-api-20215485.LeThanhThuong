@@ -1,6 +1,8 @@
 /* eslint-disable no-useless-catch */
+import { StatusCodes } from 'http-status-codes'
 import { ObjectId } from 'mongodb'
 import { contactModel } from '~/models/contactModel'
+import ApiError from '~/utils/ApiError'
 import { OWNER_TYPE } from '~/utils/constants'
 
 const createIndividualContact = async (userId, reqBody) => {
@@ -10,6 +12,10 @@ const createIndividualContact = async (userId, reqBody) => {
       ownerId: userId,
       ...reqBody
     }
+
+    // kiểm tra liên hệ tạo mới đã tồn tại chưa
+    const contact = await contactModel.findOneIndividualByName(userId, reqBody?.name)
+    if (contact) throw new ApiError(StatusCodes.CONFLICT, 'Liên hệ đã tồn tại!')
 
     const createdContact = await contactModel.createNew(newContactData)
     const getNewContact = await contactModel.findOneById(createdContact.insertedId)

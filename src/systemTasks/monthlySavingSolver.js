@@ -45,20 +45,20 @@ module.exports = (agenda) => {
       // Kiểm tra userId
       const user = await userModel.findOneById(userId)
       if (!user) {
-        console.log(`[monthly_saving_solver] Không tìm thấy userId: ${userId.toString()}.`)
+        console.error(`[monthly_saving_solver] Không tìm thấy userId: ${userId.toString()}.`)
         return
       }
 
       // Kiểm tra savingId
       const saving = await savingsAccountModel.findOneById(savingId)
       if (!saving) {
-        console.log(`[monthly_saving_solver] Không tìm thấy savingId: ${savingId.toString()}.`)
+        console.error(`[monthly_saving_solver] Không tìm thấy savingId: ${savingId.toString()}.`)
         return
       } else if (saving?.ownerId?.toString() != userId.toString()) {
-        console.log(`[monthly_saving_solver] userId: ${userId.toString()} không có quyền truy cập savingId: ${savingId.toString()}!`)
+        console.error(`[monthly_saving_solver] userId: ${userId.toString()} không có quyền truy cập savingId: ${savingId.toString()}!`)
         return
       } else if (saving?.isClosed == true) {
-        console.log(`[monthly_saving_solver] Sổ tiết kiệm: ${saving.savingsAccountName} với ID: ${savingId.toString()} đã tất toán!`)
+        console.error(`[monthly_saving_solver] Sổ tiết kiệm: ${saving.savingsAccountName} với ID: ${savingId.toString()} đã tất toán!`)
         return
       }
 

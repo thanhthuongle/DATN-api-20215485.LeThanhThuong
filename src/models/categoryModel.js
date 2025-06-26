@@ -1,4 +1,4 @@
-import Joi, { options } from 'joi'
+import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OWNER_TYPE, TRANSACTION_TYPES } from '~/utils/constants'
@@ -33,9 +33,9 @@ const validateBeforeCreate = async (data) => {
   return await CATEGORY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-const findOneById = async (userId) => {
+const findOneById = async (categoryId) => {
   try {
-    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(userId)) })
+    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(categoryId)) })
     return result
   } catch (error) { throw new Error(error) }
 }

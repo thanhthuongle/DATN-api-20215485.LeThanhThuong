@@ -16,7 +16,6 @@ const getIndividualCategories = async (userId, query) => {
       else { filter.type = query.type }
     }
 
-
     const result = await categoryModel.getIndividualCategories(filter)
 
     return result
