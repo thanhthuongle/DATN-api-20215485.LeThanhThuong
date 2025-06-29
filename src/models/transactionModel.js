@@ -93,6 +93,7 @@ const getIndividualTransactions = async (filter, options = {}) => {
     return result
   } catch (error) { throw new Error(error) }
 }
+
 const getDetailTransaction = async (filter, options = {}) => {
   try {
     const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME)

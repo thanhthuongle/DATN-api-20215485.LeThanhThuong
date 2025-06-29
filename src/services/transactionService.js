@@ -31,6 +31,7 @@ import { collectionService } from './collectionSevice'
 import { repaymentService } from './repaymentService'
 import { contactModel } from '~/models/contactModel'
 import moment from 'moment'
+import { budgetService } from './budgetService'
 
 const transactionTypeModelHandle = {
   [TRANSACTION_TYPES.EXPENSE]: expenseModel,
@@ -131,9 +132,6 @@ const createIndividualTransaction = async (userId, reqBody, images, options = {}
   let transactionTypeServiceHandler
 
   try {
-    const category = await categoryModel.findOneById(reqBody?.categoryId)
-    if (!category) throw new ApiError (StatusCodes.NOT_FOUND, 'category of transaction not found')
-
     const result = await runTransactionWithRetry(async (session) => {
       // Nếu dùng session bên ngoài thì không nên gọi startTransaction nữa!
       if (!externalSession) {
@@ -145,7 +143,7 @@ const createIndividualTransaction = async (userId, reqBody, images, options = {}
       }
 
       // Kiểm tra categoryId
-      const category = await categoryModel.findOneById(commonData?.categoryId)
+      const category = await categoryModel.findOneById(commonData?.categoryId, { session })
       if (!category || category?.ownerId?.toString() != userId?.toString()) throw new ApiError(StatusCodes.BAD_REQUEST, 'Hạng mục không hợp lệ')
       // Kiểm tra thời gian thực hiện giao dịch
       if (moment(commonData?.transactionTime).isAfter(moment())) throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể thực hiện giao dịch với thời gian trong tương lai')
@@ -167,6 +165,7 @@ const createIndividualTransaction = async (userId, reqBody, images, options = {}
           const moneySourceModelHandler = moneySourceModelHandle[detailInfo.moneyFromType]
           await moneySourceModelHandler.pushTransactionIds(detailInfo.moneyFromId, createdTransaction.insertedId, { session })
           await budgetModel.pushTransactionToBudgets(getNewTransaction, { session })
+          await budgetService.checkAndNotifyOverLimitBudget(userId, commonData?.categoryId, commonData.amount, { session })
           break
         }
 
