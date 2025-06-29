@@ -60,7 +60,7 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
 
       // Hủy lời nhắc nhở
       await agenda.cancel({
-        loanTransactionId: new ObjectId(getNewCollection?.loanTransactionId)
+        'data.loanTransactionId': new ObjectId(getNewCollection?.loanTransactionId)
       })
     }
 

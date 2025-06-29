@@ -81,7 +81,7 @@ module.exports = (agenda) => {
           }
         }
       } else { // Nếu mà chưa đến kỳ hạn thì chúng ta lên lịch agenda để xử lý trong tương lai
-        const runAt = moment(saving?.startDate).add(saving?.term, 'months').set({ hour: 8, minute: 0, second: 0, millisecond: 0 }).toISOString()
+        const runAt = moment.utc(saving?.startDate).add(saving?.term, 'months').add(7, 'hours').toISOString() // Chạy sau 7 tiếng đến kỳ hạn
         await agenda.schedule(runAt, 'maturity_saving_solver', {
           jobType: AGENDA_NOTIFICATION_TYPES.MATURITY_SAVING_SOLVER,
           userId: user._id,

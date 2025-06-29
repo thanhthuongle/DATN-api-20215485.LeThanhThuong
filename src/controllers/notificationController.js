@@ -2,7 +2,6 @@ import { StatusCodes } from 'http-status-codes'
 import { ObjectId } from 'mongodb'
 import { agenda } from '~/agenda/agenda'
 import { notificationService } from '~/services/notificationService'
-import { getIO, getUserSockets } from '~/sockets'
 import { AGENDA_NOTIFICATION_TYPES } from '~/utils/constants'
 
 const getNotifications = async (req, res, next) => {
