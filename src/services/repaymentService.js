@@ -63,7 +63,7 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
 
       // hủy lịch nhắc trả nợ
       await agenda.cancel({
-        borrowingTransactionId: new ObjectId(getNewRepayment?.borrowingTransactionId)
+        'data.borrowingTransactionId': new ObjectId(getNewRepayment?.borrowingTransactionId)
       })
     }
 

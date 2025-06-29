@@ -52,7 +52,7 @@ const createIndividualAccumulation = async (userId, reqBody) => {
         await moneySourceModel.pushAccumulationIds(getNewAccumulation, { session })
 
         // tạo lịch nhắc nhở người dùng khi đến hạn kết thúc tích lũy
-        await agenda.schedule(moment(getNewAccumulation?.endDate).set({ hour: 10, minute: 0, second: 0, millisecond: 0 }).toISOString(), 'send_reminder', {
+        await agenda.schedule(moment.utc(getNewAccumulation?.endDate).add(7, 'hours').toISOString(), 'send_reminder', { // Nhắc nhở sau 7 tiếng kết thúc
           jobType: AGENDA_NOTIFICATION_TYPES.NOTICE,
           userId: new ObjectId(userId),
           accumulationId: getNewAccumulation._id,

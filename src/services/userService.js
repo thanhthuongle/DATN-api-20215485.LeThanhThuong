@@ -16,11 +16,12 @@ import { moneySourceModel } from '~/models/moneySourceModel'
 import { agenda } from '~/agenda/agenda'
 import { generateAgendaJobName } from '~/utils/agendaJobNameHelper'
 import { ObjectId } from 'mongodb'
+import moment from 'moment'
 
-const toCronTime = (inputTime) => {
-  const [hourStr, minuteStr] = inputTime.split(':')
-  const hour = parseInt(hourStr, 10)
-  const minute = parseInt(minuteStr, 10)
+const toCronTime = (remindTimeISO) => {
+  const utcMoment = moment.utc(remindTimeISO)
+  const hour = utcMoment.hour()
+  const minute = utcMoment.minute()
 
   return `${minute} ${hour} * * *` // cron: phút giờ * * *
 }
@@ -172,7 +173,7 @@ const update = async (userId, reqBody, userAvatarFile) => {
       })
     } else if (userAvatarFile) { // TH2: Update File lên Cloud Storage
       const uploadResult = await CloudinaryProvider.streamUpload(userAvatarFile.buffer, 'users')
-      console.log('🚀 ~ update ~ uploadResult:', uploadResult)
+      // console.log('🚀 ~ update ~ uploadResult:', uploadResult)
 
       // Lưu lại url của file ảnh trên Clouldinary vào DB
       updatedUser = await userModel.update(existUser._id, {

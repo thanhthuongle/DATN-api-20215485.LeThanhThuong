@@ -1,7 +1,8 @@
 import Joi from 'joi'
-import { EMAIL_RULE, EMAIL_RULE_MESSAGE, REMIND_NOTE_TIME_MESSAGE, REMIND_NOTE_TIME_RULE,} from '~/utils/validators'
+import { EMAIL_RULE, EMAIL_RULE_MESSAGE } from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { ObjectId } from 'mongodb'
+import moment from 'moment'
 
 // Định nghĩa Collection (name & schema)
 const USER_COLLECTION_NAME = 'users'
@@ -20,7 +21,7 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   currency: Joi.string().default('VND'),
 
   remindToInput: Joi.boolean().default(true),
-  remindTime: Joi.string().pattern(REMIND_NOTE_TIME_RULE).message(REMIND_NOTE_TIME_MESSAGE).default('20:00'),
+  remindTime: Joi.date().iso().default(moment().hour(20).minute(0).second(0).millisecond(0).toISOString()),
 
   startDayOfWeek: Joi.string().default('MONDAY'),
   startDayOfMonth: Joi.number().integer().min(1).default(1),

@@ -67,7 +67,7 @@ module.exports = (agenda) => {
       if (stt == 0) {
         let sttSchedule
         for (let i = 1; i <= saving?.term; i++) {
-          const runAt = moment(saving?.startDate).add(i, 'months').set({ hour: 7, minute: 0, second: 0, millisecond: 0 }).toISOString()
+          const runAt = moment.utc(saving?.startDate).add(i, 'months').add(7, 'hours').toISOString()
           sttSchedule = i
           if (moment(runAt).isSameOrBefore(moment())) {
             // Tự động thu lãi
@@ -99,7 +99,7 @@ module.exports = (agenda) => {
 
         // Nếu chưa đến hạn thì tiếp tục tạo lịch cho tháng tiếp theo
         if (stt < saving?.term) {
-          const nextRunTime = moment(saving?.startDate).add(stt+1, 'months').set({ hour: 7, minute: 0, second: 0, millisecond: 0 }).toISOString()
+          const nextRunTime = moment(saving?.startDate).add(stt+1, 'months').add(7, 'hours').toISOString()
           await agenda.schedule(nextRunTime, 'monthly_saving_solver', {
             jobType: AGENDA_NOTIFICATION_TYPES.MONTHLY_SAVING_SOLVER,
             userId,
