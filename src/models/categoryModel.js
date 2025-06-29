@@ -33,9 +33,9 @@ const validateBeforeCreate = async (data) => {
   return await CATEGORY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
 
-const findOneById = async (categoryId) => {
+const findOneById = async (categoryId, options = {}) => {
   try {
-    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(categoryId)) })
+    const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).findOne({ _id: new ObjectId(String(categoryId)) }, options)
     return result
   } catch (error) { throw new Error(error) }
 }
