@@ -165,7 +165,7 @@ const createIndividualTransaction = async (userId, reqBody, images, options = {}
           const moneySourceModelHandler = moneySourceModelHandle[detailInfo.moneyFromType]
           await moneySourceModelHandler.pushTransactionIds(detailInfo.moneyFromId, createdTransaction.insertedId, { session })
           await budgetModel.pushTransactionToBudgets(getNewTransaction, { session })
-          await budgetService.checkAndNotifyOverLimitBudget(userId, commonData?.categoryId, commonData.amount, { session })
+          await budgetService.checkAndNotifyOverLimitBudget(userId, commonData?.categoryId, { session })
           break
         }
 

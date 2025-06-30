@@ -98,7 +98,7 @@ const createIndividualBudget = async (userId, reqBody) => {
         let totalAmountTransaction = 0
         const transactionIds = []
         _.forEach(transactions, (transaction) => {
-          transactionIds.push(transaction._id.toString())
+          transactionIds.push(new ObjectId(transaction._id))
           totalAmountTransaction += Number(transaction?.amount)
         })
 
@@ -285,7 +285,7 @@ const getFamilyBudgets = async (familyId, isFinish) => {
   } catch (error) { throw error}
 }
 
-const checkAndNotifyOverLimitBudget = async (userId, categoryId, newAmount, options = {}) => {
+const checkAndNotifyOverLimitBudget = async (userId, categoryId, options = {}) => {
   const externalSession = options.session
   const session = externalSession || MongoClientInstance.startSession()
   try {
@@ -320,10 +320,9 @@ const checkAndNotifyOverLimitBudget = async (userId, categoryId, newAmount, opti
               _id: { $in: cat.transactionIds }
             }, { session })
             const totalSpent = transactions.reduce((sum, t) => sum + Number(t.amount), 0)
-            const newTotal = totalSpent + Number(newAmount)
             const budgetLimit = Number(cat.amount)
 
-            if (newTotal > budgetLimit) { // Thông báo cho người dùng là đã vượt quá ngân sách
+            if (totalSpent > budgetLimit) { // Thông báo cho người dùng là đã vượt quá ngân sách
               const remindData = {
                 jobType: AGENDA_NOTIFICATION_TYPES.NOTICE,
                 userId: new ObjectId(userId),
