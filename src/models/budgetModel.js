@@ -104,20 +104,20 @@ const getIndividualBudgets = async (filter, options = {}) => {
         pipeline: [
           { $match: { $expr: { $in: ['$_id', '$$ids'] } } } // Match các transaction có _id nằm trong ids
         ],
-        as: 'transactionDetails'
+        as: 'transactions'
       } },
-      // Tính tổng amount trong transactionDetails và gán vào spent
+      // Tính tổng amount trong transactions và gán vào spent
       {
         $addFields: {
           'categories.spent': {
-            $sum: '$transactionDetails.amount'
+            $sum: '$transactions.amount'
           }
         }
       },
-      // Bỏ trường transactionDetails
+      // Bỏ trường transactions
       {
         $project: {
-          transactionDetails: 0
+          transactions: 0
         }
       },
       {
