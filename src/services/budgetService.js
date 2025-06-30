@@ -72,6 +72,7 @@ const createIndividualBudget = async (userId, reqBody) => {
             {
               categoryId: reqBody.categoryId,
               categoryName: category.name,
+              icon: category?.icon,
               childrenIds: category.childrenIds.map(id => id.toString()),
               parentIds: category.parentIds.map(id => id.toString()),
               amount: reqBody.amount,
@@ -106,6 +107,7 @@ const createIndividualBudget = async (userId, reqBody) => {
         const dataPushCaregory = {
           categoryId: new ObjectId(reqBody.categoryId),
           categoryName: category.name,
+          icon: category?.icon,
           childrenIds: category.childrenIds,
           parentIds: category.parentIds,
           amount: reqBody.amount,

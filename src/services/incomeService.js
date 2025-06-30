@@ -15,6 +15,8 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     [MONEY_SOURCE_TYPE.ACCUMULATION]: accumulationModel
   }
   try {
+    const moneyTargetModelHandler = moneyTargetModelHandle[dataDetail.moneyTargetType]
+    const accountId = dataDetail.moneyTargetId
     // kiểm tra các id có tồn tại ko
     const moneyTarget = await moneyTargetModelHandler.findOneById(accountId, { session })
     if (!moneyTarget) throw new ApiError(StatusCodes.NOT_FOUND, 'tài khoản nhận tiền không tồn tại!')
@@ -33,8 +35,6 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
     }
     const createdIncome = await incomeModel.createNew(dataDetail, { session })
 
-    const moneyTargetModelHandler = moneyTargetModelHandle[dataDetail.moneyTargetType]
-    const accountId = dataDetail.moneyTargetId
     await moneyTargetModelHandler.increaseBalance(accountId, Number(amount), { session })
 
     return createdIncome

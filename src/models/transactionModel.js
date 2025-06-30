@@ -129,11 +129,32 @@ const getFamilyTransactions = async (filter, options = {}) => {
 
 const getRecentTransactions = async (filter, options = {}) => {
   try {
-
-    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME).find(filter, options).sort({ transactionTime: -1 }).limit(RECENT_RECORD_LIMIT).toArray()
+    const result = await GET_DB().collection(TRANSACTION_COLLECTION_NAME)
+      .aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: categoryModel.CATEGORY_COLLECTION_NAME,
+            localField: 'categoryId',
+            foreignField: '_id',
+            as: 'category'
+          }
+        },
+        {
+          $unwind: {
+            path: '$category',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        { $sort: { transactionTime: -1 } },
+        { $limit: RECENT_RECORD_LIMIT }
+      ], options)
+      .toArray()
 
     return result
-  } catch (error) { throw new Error(error) }
+  } catch (error) {
+    throw new Error(error)
+  }
 }
 
 export const transactionModel = {
