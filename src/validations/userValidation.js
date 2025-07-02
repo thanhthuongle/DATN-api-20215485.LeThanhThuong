@@ -7,6 +7,7 @@ import {
   PASSWORD_RULE,
   PASSWORD_RULE_MESSAGE
 } from '~/utils/validators'
+import { CURRENCIES, LANGUAGES } from '~/utils/constants'
 
 const createNew = async (req, res, next) => {
   const CorrectCondition = Joi.object({
@@ -55,8 +56,8 @@ const update = async (req, res, next) => {
     displayName: Joi.string().trim(),
     current_password: Joi.string().pattern(PASSWORD_RULE).message(`current_password: ${PASSWORD_RULE_MESSAGE}`),
     new_password: Joi.string().pattern(PASSWORD_RULE).message(`new_password: ${PASSWORD_RULE_MESSAGE}`),
-    language: Joi.string(),
-    currency: Joi.string(),
+    language: Joi.string().valid(...Object.values(LANGUAGES)),
+    currency: Joi.string().valid(...Object.values(CURRENCIES)),
     remindToInput: Joi.boolean(),
     remindTime: Joi.date().iso(),
     startDayOfWeek: Joi.string(),

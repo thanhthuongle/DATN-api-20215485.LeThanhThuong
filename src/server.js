@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import express from 'express'
 import exitHook from 'async-exit-hook'
 import { CONNECT_DB, CLOSE_DB } from '~/config/mongodb'

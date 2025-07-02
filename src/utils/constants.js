@@ -69,6 +69,14 @@ export const ACCOUNT_TYPES = {
   OTHER: 'orther'
 }
 
+export const LANGUAGES = {
+  VIE: 'Tiếng Việt'
+}
+
+export const CURRENCIES = {
+  VND: 'VND'
+}
+
 export const AGENDA_NOTIFICATION_TYPES = {
   NOTICE: 'notice', // Thông báo text thông thường
   NOTE: 'note', // Nhắc nhở ghi chép mỗi ngày
