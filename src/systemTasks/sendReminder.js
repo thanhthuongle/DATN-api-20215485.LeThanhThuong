@@ -3,7 +3,6 @@ import { ObjectId } from 'mongodb'
 import { transactionModel } from '~/models/transactionModel'
 import { userModel } from '~/models/userModel'
 import { notificationService } from '~/services/notificationService'
-import { generateAgendaJobName } from '~/utils/agendaJobNameHelper'
 import { AGENDA_NOTIFICATION_TYPES, OWNER_TYPE } from '~/utils/constants'
 
 module.exports = (agenda) => {
@@ -19,8 +18,7 @@ module.exports = (agenda) => {
       }
 
       // Nếu loại thông báo là NOTE
-      const notificationNoteStart = generateAgendaJobName('send_reminder', AGENDA_NOTIFICATION_TYPES.NOTE, '')
-      if (job.attrs.data?.jobName && job.attrs.data?.jobName?.startsWith(notificationNoteStart)) {
+      if (job.attrs.data?.jobType && job.attrs.data?.jobType == AGENDA_NOTIFICATION_TYPES.NOTE) {
         // kiểm tra người dùng đã thực hiện ghi chép gì chưa
         const startOfToday = new Date()
         startOfToday.setHours(0, 0, 0, 0)

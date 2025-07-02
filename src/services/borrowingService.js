@@ -51,6 +51,7 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
       const jobName = generateAgendaJobName('send_reminder', AGENDA_NOTIFICATION_TYPES.REPAYMENT, userId)
       const remindData = {
         jobName,
+        jobType: AGENDA_NOTIFICATION_TYPES.REPAYMENT,
         userId: new ObjectId(userId),
         borrowingTransactionId: new ObjectId(getNewBorrowing?.transactionId),
         title: 'Nhắc trả nợ',

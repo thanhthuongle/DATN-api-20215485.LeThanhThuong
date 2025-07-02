@@ -3,6 +3,7 @@ import { EMAIL_RULE, EMAIL_RULE_MESSAGE } from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { ObjectId } from 'mongodb'
 import moment from 'moment'
+import { CURRENCIES, LANGUAGES } from '~/utils/constants'
 
 // Định nghĩa Collection (name & schema)
 const USER_COLLECTION_NAME = 'users'
@@ -17,8 +18,8 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   isActive: Joi.boolean().default(false),
   verifyToken: Joi.string().allow(null).default(null),
 
-  language: Joi.string().default('VN'),
-  currency: Joi.string().default('VND'),
+  language: Joi.string().valid(...Object.values(LANGUAGES)).default(LANGUAGES.VIE),
+  currency: Joi.string().valid(...Object.values(CURRENCIES)).default(CURRENCIES.VND),
 
   remindToInput: Joi.boolean().default(true),
   remindTime: Joi.date().iso().default(moment().hour(20).minute(0).second(0).millisecond(0).toISOString()),

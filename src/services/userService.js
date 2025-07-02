@@ -99,12 +99,13 @@ const verifyAccount = async (reqBody) => {
     const jobName = generateAgendaJobName('send_reminder', AGENDA_NOTIFICATION_TYPES.NOTE, existUser._id)
     const remindData = {
       jobName,
+      jobType: AGENDA_NOTIFICATION_TYPES.NOTE,
       userId: new ObjectId(existUser._id),
       title: 'Nhắc nhở ghi chép',
       message: 'Cùng tạo thói quen tốt bằng cách ghi chép thu chi hằng ngày nào!',
       link: '/new-transaction'
     }
-    await agenda.every(cronTime, 'send_reminder', remindData)
+    await agenda.every(cronTime, 'send_reminder', remindData, { timezone: 'UTC' })
 
     return pickUser(updateUser)
   } catch (error) { throw error }
@@ -182,6 +183,27 @@ const update = async (userId, reqBody, userAvatarFile) => {
     } else {
       // TH3: Update thông tin chung, ví dụ như displayName
       updatedUser = await userModel.update(existUser._id, reqBody)
+
+      if (updatedUser.remindToInput != existUser.remindToInput || updatedUser.remindTime != existUser.remindTime) {
+        // Xóa lịch thông báo nếu có
+        await agenda.cancel({
+          name: 'send_reminder',
+          'data.userId': updatedUser?._id,
+          'data.jobType': AGENDA_NOTIFICATION_TYPES.NOTE
+        })
+
+        if (updatedUser?.remindToInput?.toString() == 'true') { // Nếu bật thông báo thì tạo lịch nhắc nhở
+          const cronTime = toCronTime(updatedUser?.remindTime)
+          const remindData = {
+            jobType: AGENDA_NOTIFICATION_TYPES.NOTE,
+            userId: new ObjectId(updatedUser?._id),
+            title: 'Nhắc nhở ghi chép',
+            message: 'Cùng tạo thói quen tốt bằng cách ghi chép thu chi hằng ngày nào!',
+            link: '/new-transaction'
+          }
+          await agenda.every(cronTime, 'send_reminder', remindData, { timezone: 'UTC' })
+        }
+      }
     }
 
     return pickUser(updatedUser)
