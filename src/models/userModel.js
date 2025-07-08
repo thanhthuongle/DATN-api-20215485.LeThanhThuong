@@ -22,7 +22,7 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   currency: Joi.string().valid(...Object.values(CURRENCIES)).default(CURRENCIES.VND),
 
   remindToInput: Joi.boolean().default(true),
-  remindTime: Joi.date().iso().default(moment().hour(20).minute(0).second(0).millisecond(0).toISOString()),
+  remindTime: Joi.date().iso().default(moment().hour(12).minute(0).second(0).millisecond(0).toISOString()),
 
   startDayOfWeek: Joi.string().default('MONDAY'),
   startDayOfMonth: Joi.number().integer().min(1).default(1),

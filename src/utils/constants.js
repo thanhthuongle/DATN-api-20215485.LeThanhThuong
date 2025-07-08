@@ -91,4 +91,11 @@ export const AGENDA_NOTIFICATION_TYPES = {
   OVER_BUDGET: 'over_budget' // chi quá ngân sách thiết lập
 }
 
+export const TRUST_LEVEL_CONTACT = {
+  NORMAL: 'normal',
+  GOOD: 'good',
+  WARNING: 'warning',
+  BAD: 'bad'
+}
+
 export const WEBSITE_DOMAIN = env.BUILD_MODE === 'production' ? env.WEBSITE_DOMAIN_PRODUCTION : env.WEBSITE_DOMAIN_DEVELOPMENT

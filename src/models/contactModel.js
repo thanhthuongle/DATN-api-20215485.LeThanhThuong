@@ -1,7 +1,7 @@
 import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
-import { OWNER_TYPE } from '~/utils/constants'
+import { OWNER_TYPE, TRUST_LEVEL_CONTACT } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
 // Định nghĩa Collection (name & schema)
@@ -11,6 +11,7 @@ const CONTACT_COLLECTION_SCHEMA = Joi.object({
   ownerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   name: Joi.string().required().min(3).max(60).trim(),
+  trustLevel: Joi.string().valid(...Object.values(TRUST_LEVEL_CONTACT)).default(TRUST_LEVEL_CONTACT.NORMAL),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -63,11 +64,30 @@ const getContacts = async (filter, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const update = async (contactId, updateData, options = {}) => {
+  try {
+    updateData.updatedAt = Date.now()
+    Object.keys(updateData).forEach(fieldName => {
+      if (INVALID_UPDATE_FIELDS.includes (fieldName)) {
+        delete updateData [fieldName]
+      }
+    })
+
+    const result = await GET_DB().collection(CONTACT_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(String(contactId)) },
+      { $set: updateData },
+      { returnDocument: 'after', ...options }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const contactModel = {
   CONTACT_COLLECTION_NAME,
   CONTACT_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   findOneIndividualByName,
-  getContacts
+  getContacts,
+  update
 }

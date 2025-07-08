@@ -17,6 +17,7 @@ const BUDGET_COLLECTION_SCHEMA = Joi.object({
     Joi.object({
       categoryId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
       categoryName: Joi.string().required(),
+      icon: Joi.string().optional(),
       childrenIds: Joi.array().items(
         Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
       ).default([]),
