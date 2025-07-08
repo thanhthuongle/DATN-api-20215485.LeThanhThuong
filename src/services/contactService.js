@@ -67,9 +67,26 @@ const getFamilyContacts = async (familyId) => {
   } catch (error) { throw error }
 }
 
+const updateTrustLevel = async (userId, reqBody) => {
+  try {
+    // Kiểm tra dữ liệu
+    const contact = await contactModel.findOneById(reqBody?.contactId)
+    if (!contact) throw new ApiError(StatusCodes.NOT_FOUND, 'Liên hệ không tồn tại')
+    if (contact?.ownerId.toString() != userId.toString()) throw new ApiError(StatusCodes.FORBIDDEN, 'Người dùng không có quyền cập nhật liên hệ này!')
+
+    const updateData = {
+      trustLevel: reqBody?.trustLevel
+    }
+    const result = await contactModel.update(contact._id, updateData)
+
+    return result
+} catch (error) { throw error }
+}
+
 export const contactService = {
   createIndividualContact,
   createFamilyContact,
   getIndividualContacts,
-  getFamilyContacts
+  getFamilyContacts,
+  updateTrustLevel
 }

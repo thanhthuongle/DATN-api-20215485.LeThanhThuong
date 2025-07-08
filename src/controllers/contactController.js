@@ -41,9 +41,20 @@ const getFamilyContacts = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const updateTrustLevel = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+
+    const result = await contactService.updateTrustLevel(userId, req.body)
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 export const contactController = {
   createIndividualContact,
   createFamilyContact,
   getIndividualContacts,
-  getFamilyContacts
+  getFamilyContacts,
+  updateTrustLevel
 }
