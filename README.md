@@ -1,7 +1,5 @@
 <div align="center">
-  <img src="./express-and-node11b.png" alt="NodeJS and ExpressJS" width="70%" style="margin-bottom: -60px" />
-  <img src="./DB_tech.png" alt="MongoDB" width="70%" />
-  <!-- <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Expressjs.png" alt="Express Logo" width="120" height="80"/> -->
+  <img src="https://repository-images.githubusercontent.com/232512685/70107a80-31f8-11ea-9436-66c4dc25c0e2" alt="NodeJS and ExpressJS" width="70%" style="margin-bottom: 0px" />
 </div>
 
 <div align="center" style="margin-bottom: 32px">
