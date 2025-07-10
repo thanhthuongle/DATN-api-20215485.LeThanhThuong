@@ -80,7 +80,7 @@ const updateTrustLevel = async (userId, reqBody) => {
     const result = await contactModel.update(contact._id, updateData)
 
     return result
-} catch (error) { throw error }
+  } catch (error) { throw error }
 }
 
 export const contactService = {

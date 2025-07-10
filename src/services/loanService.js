@@ -10,6 +10,7 @@ import { AGENDA_NOTIFICATION_TYPES, MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { ObjectId } from 'mongodb'
 import { agenda } from '~/agenda/agenda'
+import { transactionModel } from '~/models/transactionModel'
 
 const createNew = async (userId, amount, dataDetail, images, { session }) => {
   const moneySourceModelHandle = {
@@ -66,6 +67,24 @@ const createNew = async (userId, amount, dataDetail, images, { session }) => {
   }
 }
 
+const updateTrustLevel = async (userId, reqBody) => {
+  try {
+    const transactionId = reqBody?.transactionId
+    // Kiểm tra dữ liệu
+    const transaction = await transactionModel.findOneById(transactionId)
+    if (!transaction) throw new ApiError(StatusCodes.NOT_FOUND, 'Khoản cho vay không tồn tại')
+    if (transaction?.ownerId.toString() != userId.toString()) throw new ApiError(StatusCodes.FORBIDDEN, 'Người dùng không có quyền cập nhật khoản cho vay này!')
+
+    const updateData = {
+      trustLevel: reqBody?.trustLevel
+    }
+    const result = await loanModel.update(transactionId, updateData)
+
+    return result
+  } catch (error) { throw error }
+}
+
 export const loanService = {
-  createNew
+  createNew,
+  updateTrustLevel
 }

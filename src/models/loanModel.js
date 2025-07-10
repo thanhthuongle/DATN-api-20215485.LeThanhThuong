@@ -1,7 +1,7 @@
 import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
-import { MONEY_SOURCE_TYPE } from '~/utils/constants'
+import { MONEY_SOURCE_TYPE, TRUST_LEVEL_LOAN } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { contactModel } from './contactModel'
 
@@ -15,6 +15,7 @@ const LOAN_COLLECTION_SCHEMA = Joi.object({
   borrowerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   rate: Joi.number().min(0).max(20).required(),
   collectTime: Joi.date().iso().optional().default(null),
+  trustLevel: Joi.string().valid(...Object.values(TRUST_LEVEL_LOAN)).default(TRUST_LEVEL_LOAN.NORMAL),
   images: Joi.array().items(
     Joi.string()
   ).default([]),
@@ -75,11 +76,30 @@ const getManyDetailTransactions = async (filter, options = {}) => {
   } catch (error) { throw new Error(error) }
 }
 
+const update = async (transactionId, updateData, options = {}) => {
+  try {
+    updateData.updatedAt = Date.now()
+    Object.keys(updateData).forEach(fieldName => {
+      if (INVALID_UPDATE_FIELDS.includes (fieldName)) {
+        delete updateData [fieldName]
+      }
+    })
+
+    const result = await GET_DB().collection(LOAN_COLLECTION_NAME).findOneAndUpdate(
+      { transactionId: new ObjectId(String(transactionId)) },
+      { $set: updateData },
+      { returnDocument: 'after', ...options }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const loanModel = {
   LOAN_COLLECTION_NAME,
   LOAN_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   findOneByTransactionId,
-  getManyDetailTransactions
+  getManyDetailTransactions,
+  update
 }

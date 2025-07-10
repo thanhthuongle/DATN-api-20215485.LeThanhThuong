@@ -98,4 +98,10 @@ export const TRUST_LEVEL_CONTACT = {
   BAD: 'bad'
 }
 
+export const TRUST_LEVEL_LOAN = {
+  NORMAL: 'normal',
+  WARNING: 'warning',
+  BAD: 'bad'
+}
+
 export const WEBSITE_DOMAIN = env.BUILD_MODE === 'production' ? env.WEBSITE_DOMAIN_PRODUCTION : env.WEBSITE_DOMAIN_DEVELOPMENT
