@@ -13,6 +13,8 @@ import { agenda } from '~/agenda/agenda'
 import { loadSystemTasks } from '~/agenda/loadSystemTasks'
 import http from 'http'
 import { initSocketServer } from './sockets'
+import { initializeCacheClient } from '~/utils/cache/cacheClient'
+import { cacheStatsMiddleware } from '~/middlewares/cacheStatsMiddleware'
 
 const START_SERVER = () => {
   const app = express()
@@ -32,6 +34,8 @@ const START_SERVER = () => {
     extended: true
   }))
 
+  app.use(cacheStatsMiddleware)
+
   app.use('/', APIs)
 
   app.use(errorHandlingMiddleware)
@@ -42,13 +46,13 @@ const START_SERVER = () => {
   if (env.BUILD_MODE === 'production') {
     server.listen(process.env.PORT, async () => {
       // eslint-disable-next-line no-console
-      console.log(`5. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT }/`)
+      console.log(`5. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT}/`)
     })
   } else {
     // Môi trường local dev
     server.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, async () => {
       // eslint-disable-next-line no-console
-      console.log(`5. Hello ${env.AUTHOR}, Server is running at http://${ env.LOCAL_DEV_APP_HOST }:${ env.LOCAL_DEV_APP_PORT }/`)
+      console.log(`5. Hello ${env.AUTHOR}, Server is running at http://${env.LOCAL_DEV_APP_HOST}:${env.LOCAL_DEV_APP_PORT}/`)
     })
   }
 
@@ -69,6 +73,11 @@ const START_SERVER = () => {
     await CONNECT_DB()
     // eslint-disable-next-line no-console
     console.log('2. Connected to MongoDB')
+
+    // ✅ init cache client
+    if (process.env.CACHE_ENABLED === 'true') {
+      await initializeCacheClient()
+    }
 
     // ✅ seedbank
     seedBanksIfEmpty()
