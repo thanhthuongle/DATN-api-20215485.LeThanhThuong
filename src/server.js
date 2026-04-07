@@ -75,7 +75,7 @@ const START_SERVER = () => {
     console.log('2. Connected to MongoDB')
 
     // ✅ init cache client
-    if (process.env.CACHE_ENABLED === 'true') {
+    if (env.CACHE_ENABLED) {
       await initializeCacheClient()
     }
 

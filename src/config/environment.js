@@ -25,5 +25,15 @@ export const env = {
 
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+
+  // Redis
+  REDIS_URL: process.env.REDIS_URL,
+  CACHE_ENABLED: process.env.CACHE_ENABLED === 'true',
+  CACHE_DEFAULT_TTL: process.env.CACHE_DEFAULT_TTL ? parseInt(process.env.CACHE_DEFAULT_TTL) : 3600,
+
+  // Per - resource TTLs
+  CACHE_TTL_BANKS: process.env.CACHE_TTL_BANKS ? parseInt(process.env.CACHE_TTL_BANKS) : 86400,
+  CACHE_TTL_CATEGORIES: process.env.CACHE_TTL_CATEGORIES ? parseInt(process.env.CACHE_TTL_CATEGORIES) : 3600,
+  CACHE_TTL_ACCOUNTS: process.env.CACHE_TTL_ACCOUNTS ? parseInt(process.env.CACHE_TTL_ACCOUNTS) : 3600
 }
