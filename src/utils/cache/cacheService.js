@@ -1,4 +1,5 @@
 import { getCacheClient, isCacheAvailable } from './cacheClient'
+import { env } from '~/config/environment'
 
 let requestHits = 0
 let requestMisses = 0
@@ -49,7 +50,7 @@ export const cacheService = {
 
     try {
       const serialized = JSON.stringify(value)
-      const ttlSeconds = ttl || parseInt(process.env.CACHE_DEFAULT_TTL || '3600')
+      const ttlSeconds = ttl || parseInt(env.CACHE_DEFAULT_TTL)
       await getCacheClient().setEx(key, ttlSeconds, serialized)
     } catch (error) {
       console.warn(`Cache set failed for key ${key}:`, error.message)

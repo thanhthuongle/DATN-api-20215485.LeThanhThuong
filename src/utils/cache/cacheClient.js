@@ -1,16 +1,17 @@
 import { createClient } from 'redis'
+import { env } from '~/config/environment'
 
 let cacheClient = null
 
 export const initializeCacheClient = async () => {
-  if (!process.env.REDIS_URL) {
+  if (!env.REDIS_URL) {
     console.warn('REDIS_URL not set, caching disabled')
     return null
   }
 
   try {
     cacheClient = createClient({
-      url: process.env.REDIS_URL,
+      url: env.REDIS_URL,
       socket: {
         reconnectStrategy: (retries) => Math.min(retries * 50, 500)
       }
@@ -35,5 +36,5 @@ export const initializeCacheClient = async () => {
 export const getCacheClient = () => cacheClient
 
 export const isCacheAvailable = () => {
-  return process.env.CACHE_ENABLED === 'true' && cacheClient?.isOpen
+  return env.CACHE_ENABLED && cacheClient?.isOpen
 }

@@ -4,6 +4,7 @@ import { categoryModel } from '~/models/categoryModel'
 import { OWNER_TYPE } from '~/utils/constants'
 import { cacheService } from '~/utils/cache/cacheService'
 import { CacheKeys } from '~/utils/cache/cacheKeys'
+import { env } from '~/config/environment'
 
 const getIndividualCategories = async (userId, query) => {
   try {
@@ -18,7 +19,7 @@ const getIndividualCategories = async (userId, query) => {
       cacheKey = CacheKeys.INDIVIDUAL_CATEGORIES(userId)
     }
 
-    const cacheTTL = parseInt(process.env.CACHE_TTL_CATEGORIES || 3600) // 1h
+    const cacheTTL = parseInt(env.CACHE_TTL_CATEGORIES)
 
     const cached = await cacheService.get(cacheKey)
     if (cached) {
@@ -58,7 +59,7 @@ const getFamilyCategories = async (familyId, query) => {
       cacheKey = CacheKeys.FAMILY_CATEGORIES(familyId)
     }
 
-    const cacheTTL = parseInt(process.env.CACHE_TTL_CATEGORIES || 3600)
+    const cacheTTL = parseInt(env.CACHE_TTL_CATEGORIES)
 
     const cached = await cacheService.get(cacheKey)
     if (cached) {

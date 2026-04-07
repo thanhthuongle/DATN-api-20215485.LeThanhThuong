@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb'
 import { bankModel } from '~/models/bankModel'
 import { cacheService } from '~/utils/cache/cacheService'
 import { CacheKeys } from '~/utils/cache/cacheKeys'
+import { env } from '~/config/environment'
 
 const getBanks = async () => {
   try {
@@ -11,7 +12,7 @@ const getBanks = async () => {
     }
 
     const cacheKey = CacheKeys.ALL_BANKS
-    const cacheTTL = parseInt(process.env.CACHE_TTL_BANKS || 86400)
+    const cacheTTL = parseInt(env.CACHE_TTL_BANKS)
 
     // Try cache first
     const cached = await cacheService.get(cacheKey)
@@ -38,7 +39,7 @@ const getDetail = async (bankId) => {
     }
 
     const cacheKey = CacheKeys.BANK_BY_ID(bankId?.toString())
-    const cacheTTL = parseInt(process.env.CACHE_TTL_BANKS || 86400)
+    const cacheTTL = parseInt(env.CACHE_TTL_BANKS)
 
     const cached = await cacheService.get(cacheKey)
     if (cached) {
