@@ -15,9 +15,12 @@ import http from 'http'
 import { initSocketServer } from './sockets'
 import { initializeCacheClient } from '~/utils/cache/cacheClient'
 import { cacheStatsMiddleware } from '~/middlewares/cacheStatsMiddleware'
+import qs from 'qs'
 
 const START_SERVER = () => {
   const app = express()
+
+  app.set('query parser', str => qs.parse(str))
 
   app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store')
