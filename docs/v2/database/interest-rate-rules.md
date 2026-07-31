@@ -1,5 +1,7 @@
 # Quy tắc lãi suất V2
 
+Mọi mốc thời gian và phép đếm ngày trong V2 dùng UTC. Lãi không kỳ hạn giữ tương thích V1 bằng cách tính inclusive cả ngày bắt đầu và ngày kết thúc; các test phải bao phủ ranh giới tháng/năm và leap day. Kỳ hạn theo tháng giữ công thức tháng của V1 cho đến khi có quyết định nghiệp vụ thay thế.
+
 ## 1. Kiểu dữ liệu
 
 Lãi suất phần trăm dùng:

@@ -26,8 +26,8 @@ Báo cáo theo ngày nghiệp vụ dựa trên `occurred_at` là read model khá
 ## 3. Đơn vị và lịch snapshot
 
 - Tạo một snapshot cho mỗi ledger account và business date.
-- Business date được xác định theo timezone của financial space, mặc định `Asia/Ho_Chi_Minh` nếu chưa có cấu hình khác.
-- Mốc local `[00:00 ngày D, 00:00 ngày D+1)` được chuyển thành khoảng UTC trước khi query.
+- Business date được xác định trực tiếp theo UTC cho toàn hệ thống V1/V2.
+- Khoảng ngày là `[00:00:00Z ngày D, 00:00:00Z ngày D+1)`.
 - Scheduler chạy mỗi 15 phút để tìm financial spaces đã qua giờ kết thúc ngày nhưng chưa có snapshot.
 - Cho phép grace period 15 phút; checkpoint ngày D thường bắt đầu được tạo từ 00:15 ngày D+1 theo timezone tương ứng.
 - Ngày không có ledger entry vẫn tạo carry-forward snapshot để snapshot chain liên tục.
@@ -86,13 +86,15 @@ updated_at
 Constraint/index tối thiểu:
 
 ```text
-UNIQUE(ledger_account_id, business_date)
+UNIQUE(ledger_account_id, business_date, calculation_version)
 CHECK(total_inflow >= 0)
 CHECK(total_outflow >= 0)
 CHECK(closing_balance = opening_balance + total_inflow - total_outflow)
 INDEX(financial_space_id, business_date)
 INDEX(status, business_date)
 ```
+
+Mỗi account/date chỉ có một version `is_current = true` bằng partial unique index. Rebuild không ghi đè lịch sử: version cũ chuyển `SUPERSEDED`, lưu `superseded_by_id/superseded_at`; version mới chỉ thành current sau khi tính và đối soát thành công.
 
 `first_entry_sequence` và `last_entry_sequence` có thể null với ngày không có giao dịch.
 
@@ -118,7 +120,10 @@ balance_snapshot_runs
 - accounts_succeeded
 - accounts_failed
 - error_summary
+- calculation_version
 ```
+
+Run có unique `(financial_space_id, business_date, calculation_version, trigger_type)` hoặc một idempotency key tương đương.
 
 ## 6. Công thức
 
@@ -133,7 +138,9 @@ closing_balance = opening_balance + total_inflow - total_outflow
 
 Snapshot đầu tiên dùng opening ledger transaction hoặc tổng ledger trước `period_start_utc` theo quy tắc bootstrap đã được đối soát.
 
-Checksum được tính từ dữ liệu canonical tối thiểu:
+Checksum snapshot gồm metadata canonical và entry-chain hash. Entry-chain hash duyệt entries theo `account_sequence`, nối tối thiểu `entry_id`, `account_sequence`, `amount`, `balance_before`, `balance_after`, `posted_at` và transaction ID. Nhờ vậy thay đổi một entry vẫn bị phát hiện dù tổng cuối ngày không đổi.
+
+Metadata canonical tối thiểu:
 
 ```text
 ledger_account_id
@@ -157,13 +164,13 @@ Cho mỗi financial space/business date:
 1. Tạo hoặc lấy snapshot run bằng idempotency key `(financial_space_id, business_date, calculation_version)`.
 2. Nếu run đã hoàn thành, trả kết quả cũ.
 3. Lấy danh sách ledger accounts thuộc financial space theo thứ tự ID ổn định.
-4. Với từng account, mở transaction ở isolation phù hợp để có consistent read.
+4. Với từng account, mở transaction và khóa ledger account theo cùng quy ước transaction core.
 5. Lấy snapshot hợp lệ gần nhất trước ngày D.
-6. Xác định period UTC từ timezone đã lưu.
-7. Lấy ledger entries theo `posted_at` trong period và account sequence.
+6. Sau khi lấy lock, đọc `clock_timestamp()` từ PostgreSQL và `next/current account_sequence` để chốt high-watermark. Không dùng timestamp được đọc trước lock.
+7. Lấy ledger entries trong period UTC với `account_sequence <= cutoff_sequence`; lưu cả `cutoff_posted_at` và cutoff sequence.
 8. Tính opening/inflow/outflow/closing/count/cutoff/checksum.
 9. So sánh closing balance với `balance_after` của last entry trong cutoff nếu có.
-10. Upsert theo `(ledger_account_id, business_date)`.
+10. Insert version theo `(ledger_account_id, business_date, calculation_version)` và chuyển current version trong cùng transaction.
 11. Ghi kết quả account vào run audit.
 12. Chỉ đánh dấu run thành công khi tất cả account cần thiết đã thành công.
 
@@ -177,6 +184,7 @@ Không giữ một database transaction lớn cho toàn bộ financial space. X�
 - Retry phải trả cùng kết quả khi ledger cutoff không đổi.
 - Snapshot generator chỉ đọc ledger và ghi snapshot tables; không cập nhật ledger hoặc account balance.
 - Failure của snapshot không rollback financial transaction đã commit trước đó.
+- Posting và snapshot cùng lấy account lock theo một thứ tự. Vì sequence được cấp khi giữ lock, snapshot không thể bỏ sót entry đã nằm trước cutoff hoặc nhận entry nửa chừng.
 
 ## 9. Backdated transaction và reversal
 

@@ -17,7 +17,7 @@ kiểm tra idempotency
 -> tạo ledger entries
 -> kiểm tra tổng postings bằng 0
 -> cập nhật cached balance
--> tạo snapshot
+-> tạo immutable business snapshot
 -> ghi outbox event
 -> commit
 ```
@@ -70,11 +70,13 @@ balance_after
 
 Giá trị được tính khi account đang bị khóa trong cùng database transaction.
 
-### Periodic snapshot
+### Periodic balance snapshot
 
 Periodic balance snapshot chủ yếu là checkpoint để tăng tốc báo cáo và rebuild, không phải nguồn kiểm tra tính đúng đắn chính. Reconciliation mới chịu trách nhiệm kiểm tra ledger với cached balance.
 
 Periodic balance snapshot là feature bắt buộc của V2. Snapshot được tạo hàng ngày như một ledger checkpoint theo `posted_at`, hỗ trợ idempotent generation, checksum, rebuild và reconciliation. Thiết kế chi tiết nằm tại `periodic-balance-snapshots.md`.
+
+Periodic balance snapshot chạy ngoài atomic posting path và không được rollback một financial transaction đã commit. Thuật ngữ `snapshot` bên trong transaction mặc định chỉ business snapshot và `balance_before/balance_after` của ledger entry.
 
 ## 6. Reversal
 

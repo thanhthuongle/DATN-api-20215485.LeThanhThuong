@@ -88,14 +88,19 @@ Cấu trúc này là mục tiêu cuối; việc di chuyển V1 phải thực hi�
 
 ### `src/v2/modules`
 
-Tổ chức theo domain, ví dụ:
+Tổ chức hybrid theo domain. Module nhỏ có thể giữ cấu trúc phẳng; module lớn tách thư mục theo trách nhiệm, ví dụ:
 
 ```text
 modules/accounts/
-├── accountService.js
-├── accountRepository.js
-├── accountValidation.js
-└── accountMapper.js
+├── accounts.routes.js
+├── accounts.controller.js
+├── services/
+│   ├── create-account.service.js
+│   └── close-account.service.js
+├── repositories/
+├── validators/
+├── mappers/
+└── policies/
 ```
 
 - Service xử lý nghiệp vụ của endpoint, quyền truy cập và điều phối core/repository.
@@ -149,12 +154,14 @@ POST /api/v2/transactions/expense
   -> kiểm tra quyền account/category/financial space
   -> financialTransactionCore.post
   -> PostgreSQL transaction + row locks
-  -> ledger + cached balance + snapshot + outbox
+  -> ledger + cached balance + immutable business snapshot + outbox
   -> commit
   -> mapper trả response tương thích contract
 ```
 
 `transactionService` không được gọi `accountRepository.decreaseBalance()` trực tiếp.
+
+Periodic balance snapshot là checkpoint đối soát chạy riêng sau commit; không nằm trong atomic write path trên. Sai lệch từ migration/reconciliation/snapshot/jobs/outbox được lưu qua module `admin-operations` để admin kiểm tra và xử lý có audit.
 
 ## 6. Cô lập staging
 

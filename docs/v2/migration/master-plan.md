@@ -29,6 +29,8 @@ phân tích -> cập nhật tài liệu -> triển khai phạm vi nhỏ
 - Profile kiểu dữ liệu thực tế, missing/null, duplicate, orphan và giá trị ngoài validation hiện tại.
 - Liệt kê aggregation pipelines và truy vấn báo cáo.
 - Liệt kê mọi vị trí tăng/giảm/set balance.
+- Ghi rõ balance policy thực tế của từng loại account và các ngoại lệ dữ liệu V1.
+- Inventory mọi phép tính ngày/timezone và xác nhận quy ước UTC của hệ thống.
 - Liệt kê scheduled jobs, cache và external side effects.
 - Xác nhận endpoint frontend đang sử dụng.
 - Thiết lập nguyên tắc feature freeze V1.
@@ -77,6 +79,7 @@ docs/v2/database/data-quality-report.md
 - Cô lập Redis namespace, jobs, email, socket và notification staging.
 - Giữ Agenda 5 với MongoDB job storage; V2 staging không dùng chung job collection/worker với production.
 - Cấu hình Prisma với Supabase connection mode phù hợp môi trường chạy và tách credential staging.
+- Thiết lập Node.js 20+, Vitest, Supertest và disposable PostgreSQL/MongoDB/Redis test infrastructure theo `docs/v2/testing/strategy.md`.
 
 ### Exit criteria
 
@@ -101,6 +104,7 @@ docs/v2/database/data-quality-report.md
 - Ghi migration rule cho từng field: migrate, transform, archive hoặc drop kèm lý do.
 - Ghi query/index mapping và lifecycle/status của từng bảng.
 - Áp dụng quy tắc lãi suất trong `docs/v2/database/interest-rate-rules.md`.
+- Áp dụng bộ ba internal BIGINT identity, public UUID và nullable legacy Mongo ID; money VND phải serialize dạng string ở API.
 
 ### Phase 3C - Prisma schema và migrations
 
@@ -145,6 +149,7 @@ prisma/schema.prisma
 - Xây ledger postings và cached balance projection.
 - Thêm idempotency, deterministic locking, snapshots, reversal và outbox.
 - Xây reconciliation service/job.
+- Enforce balanced postings tại database boundary và áp dụng locking/retry/idempotency/outbox trong `implementation-guardrails.md`.
 - Viết unit, integration, rollback và concurrency tests.
 
 ### Exit criteria
@@ -161,9 +166,10 @@ prisma/schema.prisma
 
 - Bổ sung account entry sequence và `posted_at` bất biến cho ledger entries.
 - Tạo bảng daily balance snapshots và snapshot run/audit metadata.
-- Xây snapshot generator theo business timezone và khoảng thời gian UTC tương ứng.
+- Xây snapshot generator theo business date UTC, account lock và sequence high-watermark.
 - Xây snapshot chain: opening balance của ngày sau phải bằng closing balance ngày trước.
-- Tính inflow, outflow, closing balance, entry count, cutoff sequence và checksum.
+- Tính inflow, outflow, closing balance, entry count, cutoff sequence và entry-chain checksum.
+- Lưu version/history; rebuild tạo version mới, không ghi đè checkpoint cũ.
 - Hỗ trợ ngày không có giao dịch bằng carry-forward snapshot.
 - Xây idempotent upsert, retry và rebuild theo account/date range.
 - Mở rộng reconciliation để kiểm tra snapshot với ledger và cached balance.
@@ -192,6 +198,7 @@ Job tự động chưa được nối vào Agenda trong Phase 4B; generator đư
 5. Categories.
 6. Contacts.
 7. Notifications cơ bản.
+8. Admin Operations API, discrepancy queue và audit foundation.
 
 ### Quy trình mỗi endpoint
 
@@ -294,14 +301,17 @@ extract -> transform -> load -> reconcile -> report
 
 - Script chạy lại không tạo dữ liệu trùng.
 - Giữ mapping ObjectId.
+- Chuyển lịch sử tiền sang ledger bằng posting template đã duyệt; không tạo adjustment im lặng để ép balance khớp.
 - Hỗ trợ batch, checkpoint/resume và dead-letter report.
 - Load bảng cha trước bảng con.
 - Đối soát counts, totals, balances, debts, savings, foreign keys và ledger.
+- Mọi reject/mismatch được lưu thành discrepancy case có evidence, severity và hướng xử lý.
 
 ### Exit criteria
 
 - Migration rehearsal hoàn thành nhiều lần trên staging snapshot.
 - Không có orphan hoặc unbalanced transaction.
+- Không còn discrepancy `BLOCKING`; mọi case cần review có quyết định và audit.
 - Mọi record bị loại đều có báo cáo và quyết định xử lý.
 
 ## 14. Phase 11 - Parity, UAT và security review
@@ -312,7 +322,7 @@ extract -> transform -> load -> reconcile -> report
 - Integration và financial invariant tests.
 - Concurrency, authorization/IDOR và failure-injection tests.
 - Performance, cache, jobs và migration rehearsal.
-- Diễn tập rollback.
+- Diễn tập rollback trước khi mở V2 writes và restore/forward-fix sau khi đã mở writes.
 
 ### Exit criteria
 
@@ -333,28 +343,37 @@ extract -> transform -> load -> reconcile -> report
 7. Nếu đạt go/no-go, chuyển traffic sang V2 và bật Agenda handlers đã chuyển sang V2 core.
 8. Theo dõi đặc biệt errors, latency, ledger, balances, outbox và jobs trong 2 giờ đầu.
 9. Duy trì hypercare 7 ngày, không triển khai thay đổi lớn không cần thiết.
-10. Giữ MongoDB read-only và backup tối thiểu 30 ngày.
+10. Giữ MongoDB business collections read-only và backup tối thiểu 30 ngày; MongoDB Agenda database/collection riêng vẫn read-write.
 
 Nếu rehearsal cho thấy hai giờ không đủ, maintenance window phải được mở rộng trước khi công bố; không rút ngắn reconciliation hoặc go/no-go để giữ khung giờ.
 
-Rollback trước khi mở V2 write traffic chỉ cần bật lại V1 sau khi xác minh MongoDB. Sau khi V2 đã nhận writes, rollback không còn tức thời: phải khóa V2 writes, trích xuất PostgreSQL delta, chuyển đổi ngược và đối soát trước khi mở lại V1. Với lỗi không làm sai dữ liệu, ưu tiên disable endpoint hoặc forward fix.
+Rollback trước khi mở V2 write traffic cho phép bật lại V1 sau khi xác minh MongoDB. Sau khi V2 đã nhận writes, không hỗ trợ rollback về V1 hoặc reverse migration; chỉ forward-fix hoặc restore V2 từ backup/PITR đã diễn tập.
 
-Không xóa MongoDB hoặc tài liệu V1 ngay sau cutover.
+Không xóa MongoDB hoặc tài liệu V1 ngay sau cutover. Việc nâng Agenda và loại MongoDB theo Phase 13-15 trong `docs/v2/operations/agenda-retirement.md`.
 
-## 16. Definition of Done tổng thể
+## 16. Phase 13-15 - Agenda và MongoDB retirement
 
-- V2 không import `mongodb`, `ObjectId`, `GET_DB` hoặc MongoDB client.
+- Phase 13: nâng Agenda 5 lên 6 nhưng tiếp tục dùng MongoDB backend.
+- Phase 14: sau giai đoạn ổn định, chuyển Agenda 6 sang PostgreSQL backend trong một release độc lập.
+- Phase 15: observation/backup/audit xong mới thu hồi MongoDB.
+
+Mỗi phase có rehearsal, exit criteria và rollback riêng; không nâng major version và đổi job backend cùng lúc.
+
+## 17. Definition of Done tổng thể
+
+- Business modules V2 không import `mongodb`, `ObjectId`, `GET_DB` hoặc MongoDB client. Agenda là ngoại lệ cô lập cho đến khi hoàn thành Phase 14; MongoDB chỉ được retire ở Phase 15.
 - PostgreSQL có thể dựng từ migrations và seed.
 - Không có service ngoài transaction core cập nhật balance.
 - Ledger, idempotency, reversal, snapshots, outbox và reconciliation hoạt động.
 - Daily balance snapshot chạy idempotent, snapshot chain/checksum hợp lệ và catch up được ngày bị bỏ lỡ.
 - Data migration có thể chạy lại, resume và báo cáo lỗi.
 - Không có orphan, unbalanced posting hoặc balance mismatch.
+- Admin có thể kiểm tra discrepancy, snapshot, outbox và job; không có thao tác sửa trực tiếp ledger/balance.
 - API contract được kiểm thử với frontend.
 - Cutover và rollback runbooks đã được diễn tập.
 - Tài liệu V1 hiện có được giữ nguyên; tài liệu V2 nằm dưới `docs/v2/`.
 
-## 17. Mẫu task triển khai có kiểm soát
+## 18. Mẫu task triển khai có kiểm soát
 
 ```text
 Task: <một module hoặc 1-3 endpoint liên quan>

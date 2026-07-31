@@ -10,13 +10,16 @@
 
 ## 2. Định danh
 
-- Giữ MongoDB ObjectId dưới dạng `CHAR(24)` trong lần migration đầu.
-- Không đồng thời đổi database và đổi toàn bộ ID sang UUID hoặc auto-increment.
-- API mapper tiếp tục trả `_id` nếu frontend V1 phụ thuộc trường này.
+- Entity dùng `BIGINT GENERATED ALWAYS AS IDENTITY` làm khóa nội bộ; foreign key dùng internal ID này.
+- Entity được tham chiếu bên ngoài dùng thêm UUID do PostgreSQL tạo và unique làm public ID.
+- `legacy_mongo_id CHAR(24) NULL UNIQUE` chỉ dùng mapping/audit cho record chuyển từ V1.
+- API không lộ internal ID. Mapper có thể tiếp tục trả tên trường `_id` để giữ contract V1, nhưng giá trị ở V2 là public UUID.
+- Join table thuần nội bộ không bắt buộc có UUID.
 
 ## 3. Kiểu dữ liệu tài chính
 
-- Amount và balance dùng `BIGINT` phù hợp với tiền nguyên.
+- V2 ban đầu chỉ hỗ trợ VND; amount và balance dùng `BIGINT`, đơn vị 1 VND.
+- API nhận/trả tiền bằng chuỗi thập phân để tránh mất chính xác khi qua JavaScript.
 - Lãi suất phần trăm dùng `DECIMAL(7,4)`; không tính bằng JavaScript `Number`.
 - Saving `annual_rate` và `non_term_annual_rate` dùng đơn vị phần trăm năm, phạm vi `0.0000-100.0000`.
 - Tiền lãi chỉ làm tròn ở kết quả cuối theo `HALF_UP` về `BIGINT` đối với VND.
@@ -41,7 +44,7 @@ Schema phải xem xét tối thiểu:
 - Constraint cho amount hợp lệ và trạng thái.
 - Constraint ngăn quan hệ trùng trong join tables.
 
-Tính cân bằng tổng postings được transaction core kiểm tra trước commit và reconciliation kiểm tra lại; không chỉ dựa vào row-level check constraint.
+Tính cân bằng tổng postings được database boundary bắt buộc trước khi transaction chuyển sang `POSTED`, transaction core kiểm tra sớm và reconciliation kiểm tra lại; không chỉ dựa vào row-level check constraint.
 
 ## 6. Migration và seed
 
@@ -55,7 +58,7 @@ Tính cân bằng tổng postings được transaction core kiểm tra trước 
 Periodic balance snapshot thuộc phạm vi bắt buộc của V2 và được lưu như daily ledger checkpoint theo `posted_at`:
 
 - Ledger tiếp tục là nguồn sự thật; snapshot là dữ liệu dẫn xuất.
-- Mỗi ledger account có tối đa một snapshot cho một business date.
+- Mỗi ledger account/date có tối đa một current snapshot cho một calculation version; version cũ được giữ làm lịch sử.
 - Snapshot lưu opening balance, inflow, outflow, closing balance, entry count, cutoff sequence và checksum.
 - `posted_at` và account entry sequence phải do hệ thống tạo, không nhận từ client và không được sửa.
 - Giao dịch backdated dùng `occurred_at` cho báo cáo nhưng thuộc checkpoint tại ngày thực sự được post.

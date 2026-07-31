@@ -23,10 +23,10 @@ docs/v2/
 ├── database/
 │   ├── design-rules.md
 │   └── interest-rate-rules.md
-└── migration/
-    ├── decision-register.md
-    ├── master-plan.md
-    └── progress.md
+├── migration/
+│   ├── decision-register.md
+│   ├── master-plan.md
+│   └── progress.md
 ├── operations/
 │   └── agenda-retirement.md
 └── testing/
