@@ -16,13 +16,21 @@ docs/v2/
 ├── README.md
 ├── architecture/
 │   ├── overview.md
+│   ├── admin-operations.md
+│   ├── implementation-guardrails.md
+│   ├── periodic-balance-snapshots.md
 │   └── transaction-core.md
 ├── database/
-│   └── design-rules.md
+│   ├── design-rules.md
+│   └── interest-rate-rules.md
 └── migration/
     ├── decision-register.md
     ├── master-plan.md
     └── progress.md
+├── operations/
+│   └── agenda-retirement.md
+└── testing/
+    └── strategy.md
 ```
 
 ## Thứ tự đọc
@@ -30,8 +38,14 @@ docs/v2/
 1. `migration/decision-register.md`: các quyết định đã thống nhất.
 2. `architecture/overview.md`: kiến trúc mục tiêu và trách nhiệm từng tầng.
 3. `architecture/transaction-core.md`: quy tắc xử lý tiền, ledger và snapshot.
-4. `database/design-rules.md`: nguyên tắc thiết kế PostgreSQL.
-5. `migration/master-plan.md`: kế hoạch triển khai theo phase.
-6. `migration/progress.md`: trạng thái thực tế của công việc.
+4. `architecture/implementation-guardrails.md`: ID, ledger enforcement, transactions, idempotency, outbox, money và module boundaries.
+5. `architecture/admin-operations.md`: discrepancy cases và vận hành thủ công an toàn.
+6. `architecture/periodic-balance-snapshots.md`: thiết kế và kế hoạch chi tiết daily ledger checkpoint.
+7. `database/design-rules.md`: nguyên tắc thiết kế PostgreSQL.
+8. `database/interest-rate-rules.md`: kiểu dữ liệu, đơn vị và cách tính/làm tròn lãi suất.
+9. `testing/strategy.md`: hạ tầng và test gates.
+10. `operations/agenda-retirement.md`: lộ trình nâng Agenda và loại MongoDB.
+11. `migration/master-plan.md`: kế hoạch triển khai theo phase.
+12. `migration/progress.md`: trạng thái thực tế của công việc.
 
 `migration/master-plan.md` là kế hoạch tổng thể. `migration/progress.md` mới là nguồn xác định phase nào đã thực sự được triển khai và nghiệm thu.

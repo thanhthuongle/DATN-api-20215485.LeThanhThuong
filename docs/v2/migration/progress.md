@@ -20,6 +20,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 2 | PostgreSQL staging foundation | NOT_STARTED |
 | Phase 3 | PostgreSQL data model | NOT_STARTED |
 | Phase 4 | Transaction core | NOT_STARTED |
+| Phase 4B | Periodic balance snapshot core | NOT_STARTED |
 | Phase 5 | Các module nền tảng | NOT_STARTED |
 | Phase 6 | Nguồn tiền | NOT_STARTED |
 | Phase 7 | Transaction endpoints | NOT_STARTED |
@@ -28,6 +29,9 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 10 | Data migration pipeline | NOT_STARTED |
 | Phase 11 | Parity, UAT và security review | NOT_STARTED |
 | Phase 12 | Production cutover | NOT_STARTED |
+| Phase 13 | Agenda 5 -> Agenda 6 với MongoDB backend | NOT_STARTED |
+| Phase 14 | Agenda 6 MongoDB -> PostgreSQL backend | NOT_STARTED |
+| Phase 15 | MongoDB retirement | NOT_STARTED |
 
 ## Phase đang hoạt động
 
@@ -38,6 +42,7 @@ Chưa có phase triển khai source code nào đang hoạt động. Bước ti�
 - [ ] Inventory routes, methods và middleware.
 - [ ] Inventory request/response/error contracts.
 - [ ] Inventory MongoDB collections và fields.
+- [ ] Profile kiểu dữ liệu thực tế, missing/null, duplicate và orphan relationships.
 - [ ] Inventory aggregation pipelines.
 - [ ] Inventory financial flows và balance mutations.
 - [ ] Inventory scheduled jobs và external side effects.

@@ -72,7 +72,9 @@ Giá trị được tính khi account đang bị khóa trong cùng database tran
 
 ### Periodic snapshot
 
-Snapshot cuối ngày hoặc cuối tháng là tối ưu bổ sung, chưa thuộc phạm vi bắt buộc của V2 đầu tiên.
+Periodic balance snapshot chủ yếu là checkpoint để tăng tốc báo cáo và rebuild, không phải nguồn kiểm tra tính đúng đắn chính. Reconciliation mới chịu trách nhiệm kiểm tra ledger với cached balance.
+
+Periodic balance snapshot là feature bắt buộc của V2. Snapshot được tạo hàng ngày như một ledger checkpoint theo `posted_at`, hỗ trợ idempotent generation, checksum, rebuild và reconciliation. Thiết kế chi tiết nằm tại `periodic-balance-snapshots.md`.
 
 ## 6. Reversal
 
