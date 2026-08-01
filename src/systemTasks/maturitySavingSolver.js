@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import moment from 'moment'
 import { ObjectId } from 'mongodb'
 import { bankModel } from '~/models/bankModel'

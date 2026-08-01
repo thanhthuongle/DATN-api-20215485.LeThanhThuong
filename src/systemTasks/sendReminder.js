@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { ObjectId } from 'mongodb'
 import { transactionModel } from '~/models/transactionModel'
 import { userModel } from '~/models/userModel'

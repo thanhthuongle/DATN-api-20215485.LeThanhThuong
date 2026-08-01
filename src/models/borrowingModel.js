@@ -25,6 +25,7 @@ const BORROWING_COLLECTION_SCHEMA = Joi.object({
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
+// eslint-disable-next-line no-unused-vars
 const INVALID_UPDATE_FIELDS = ['_id', 'transactionId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
@@ -63,12 +64,14 @@ const getManyDetailTransactions = async (filter, options = {}) => {
   try {
     const result = await GET_DB().collection(BORROWING_COLLECTION_NAME).aggregate([
       { $match: filter },
-      { $lookup: {
-        from: contactModel.CONTACT_COLLECTION_NAME,
-        localField: 'lenderId',
-        foreignField: '_id',
-        as: 'lender'
-      } },
+      {
+        $lookup: {
+          from: contactModel.CONTACT_COLLECTION_NAME,
+          localField: 'lenderId',
+          foreignField: '_id',
+          as: 'lender'
+        }
+      },
       { $unwind: { path: '$lender', preserveNullAndEmptyArrays: true } }
     ], options).toArray()
     return result

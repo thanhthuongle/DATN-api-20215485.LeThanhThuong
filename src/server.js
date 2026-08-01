@@ -48,33 +48,27 @@ const START_SERVER = () => {
 
   if (env.BUILD_MODE === 'production') {
     server.listen(process.env.PORT, async () => {
-      // eslint-disable-next-line no-console
       console.log(`5. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT}/`)
     })
   } else {
     // Môi trường local dev
     server.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, async () => {
-      // eslint-disable-next-line no-console
       console.log(`5. Hello ${env.AUTHOR}, Server is running at http://${env.LOCAL_DEV_APP_HOST}:${env.LOCAL_DEV_APP_PORT}/`)
     })
   }
 
   exitHook(async () => {
-    // eslint-disable-next-line no-console
     console.log('6. Server is shutting down...')
     await agenda.stop()
     CLOSE_DB()
-    // eslint-disable-next-line no-console
     console.log('7. DisConnected from MongoDB Cloud Atlas...')
   })
 }
 
 (async () => {
   try {
-    // eslint-disable-next-line no-console
     console.log('1. Connecting to MongoDB...')
     await CONNECT_DB()
-    // eslint-disable-next-line no-console
     console.log('2. Connected to MongoDB')
 
     // ✅ init cache client
@@ -94,7 +88,6 @@ const START_SERVER = () => {
 
     START_SERVER()
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error(error)
     process.exit(0)
   }

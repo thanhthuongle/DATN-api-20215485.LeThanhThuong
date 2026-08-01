@@ -57,6 +57,7 @@ const getNotifications = async (userId) => {
   } catch (error) { throw error }
 }
 
+// eslint-disable-next-line no-unused-vars
 const markReaded = async (userId, userNotificationId, reqBody) => {
   try {
     // Kiểm tra userNotificationId

@@ -21,6 +21,7 @@ const INCOME_COLLECTION_SCHEMA = Joi.object({
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
+// eslint-disable-next-line no-unused-vars
 const INVALID_UPDATE_FIELDS = ['_id', 'transactionId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {

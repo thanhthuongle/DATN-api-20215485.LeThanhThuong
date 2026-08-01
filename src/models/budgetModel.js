@@ -43,6 +43,7 @@ const BUDGET_COLLECTION_SCHEMA = Joi.object({
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
+// eslint-disable-next-line no-unused-vars
 const INVALID_UPDATE_FIELDS = ['_id', 'ownerType', 'ownerId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
@@ -99,14 +100,16 @@ const getIndividualBudgets = async (filter, options = {}) => {
     const result = await GET_DB().collection(BUDGET_COLLECTION_NAME).aggregate([
       { $match: filter },
       { $unwind: '$categories' },
-      { $lookup: {
-        from: transactionModel.TRANSACTION_COLLECTION_NAME,
-        let: { ids: '$categories.transactionIds' },
-        pipeline: [
-          { $match: { $expr: { $in: ['$_id', '$$ids'] } } } // Match các transaction có _id nằm trong ids
-        ],
-        as: 'transactions'
-      } },
+      {
+        $lookup: {
+          from: transactionModel.TRANSACTION_COLLECTION_NAME,
+          let: { ids: '$categories.transactionIds' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$_id', '$$ids'] } } } // Match các transaction có _id nằm trong ids
+          ],
+          as: 'transactions'
+        }
+      },
       // Tính tổng amount trong transactions và gán vào spent
       {
         $addFields: {
@@ -137,7 +140,7 @@ const getIndividualBudgets = async (filter, options = {}) => {
     ], options).toArray()
 
     return result
-  } catch (error) { throw new Error(error)}
+  } catch (error) { throw new Error(error) }
 }
 
 const getFamilyBudgets = async (filter, options = {}) => {
@@ -145,14 +148,16 @@ const getFamilyBudgets = async (filter, options = {}) => {
     const result = await GET_DB().collection(BUDGET_COLLECTION_NAME).aggregate([
       { $match: filter },
       { $unwind: '$categories' },
-      { $lookup: {
-        from: transactionModel.TRANSACTION_COLLECTION_NAME,
-        let: { ids: '$categories.transactionIds' },
-        pipeline: [
-          { $match: { $expr: { $in: ['$_id', '$$ids'] } } } // Match các transaction có _id nằm trong ids
-        ],
-        as: 'transactionDetails'
-      } },
+      {
+        $lookup: {
+          from: transactionModel.TRANSACTION_COLLECTION_NAME,
+          let: { ids: '$categories.transactionIds' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$_id', '$$ids'] } } } // Match các transaction có _id nằm trong ids
+          ],
+          as: 'transactionDetails'
+        }
+      },
       // Tính tổng amount trong transactionDetails và gán vào spent
       {
         $addFields: {
@@ -183,7 +188,7 @@ const getFamilyBudgets = async (filter, options = {}) => {
     ], options).toArray()
 
     return result
-  } catch (error) { throw new Error(error)}
+  } catch (error) { throw new Error(error) }
 }
 
 const pushTransactionToBudgets = async (transaction, options = {}) => {
@@ -210,7 +215,7 @@ const pushTransactionToBudgets = async (transaction, options = {}) => {
       }
     )
     return result
-  } catch (error) { throw new Error(error)}
+  } catch (error) { throw new Error(error) }
 }
 
 export const budgetModel = {

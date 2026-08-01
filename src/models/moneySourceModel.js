@@ -33,6 +33,7 @@ const MONEY_SOURCE_COLLECTION_SCHEMA = Joi.object({
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
+// eslint-disable-next-line no-unused-vars
 const INVALID_UPDATE_FIELDS = ['_id', 'ownerType', 'ownerId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
@@ -107,61 +108,67 @@ const getIndividualMoneySource = async (filter, options = {}) => {
   try {
     const result = await GET_DB().collection(MONEY_SOURCE_COLLECTION_NAME).aggregate([
       { $match: filter },
-      { $lookup: {
-        from: accountModel.ACCOUNT_COLLECTION_NAME,
-        let: { accountIds: '$accountIds' },
-        pipeline: [
-          { $match: { $expr: { $in: ['$_id', '$$accountIds'] } } },
-          {
-            $lookup: {
-              from: bankModel.BANK_COLLECTION_NAME,
-              localField: 'bankId',
-              foreignField: '_id',
-              as: 'bankInfo'
-            }
-          },
-          {
-            $unwind: {
-              path: '$bankInfo',
-              preserveNullAndEmptyArrays: true // vẫn giữ account ngay cả khi không có bank
-            }
-          },
-          { $sort: { createdAt: 1 } }
-        ],
-        as: 'accounts'
-      } },
-      { $lookup: {
-        from: savingsAccountModel.SAVINGS_ACCOUNT_COLLECTION_NAME,
-        let: { savingsIds: '$savings_accountIds' },
-        pipeline: [
-          { $match: { $expr: { $in: ['$_id', '$$savingsIds'] } } },
-          {
-            $lookup: {
-              from: bankModel.BANK_COLLECTION_NAME,
-              localField: 'bankId',
-              foreignField: '_id',
-              as: 'bankInfo'
-            }
-          },
-          {
-            $unwind: {
-              path: '$bankInfo',
-              preserveNullAndEmptyArrays: true // vẫn giữ account ngay cả khi không có bank
-            }
-          },
-          { $sort: { createdAt: 1 } }
-        ],
-        as: 'savings_accounts'
-      } },
-      { $lookup: {
-        from: accumulationModel.ACCUMULATION_COLLECTION_NAME,
-        let: { accumulationIds: '$accumulationIds' },
-        pipeline: [
-          { $match: { $expr: { $in: ['$_id', '$$accumulationIds'] } } },
-          { $sort: { createdAt: 1 } }
-        ],
-        as: 'accumulations'
-      } }
+      {
+        $lookup: {
+          from: accountModel.ACCOUNT_COLLECTION_NAME,
+          let: { accountIds: '$accountIds' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$_id', '$$accountIds'] } } },
+            {
+              $lookup: {
+                from: bankModel.BANK_COLLECTION_NAME,
+                localField: 'bankId',
+                foreignField: '_id',
+                as: 'bankInfo'
+              }
+            },
+            {
+              $unwind: {
+                path: '$bankInfo',
+                preserveNullAndEmptyArrays: true // vẫn giữ account ngay cả khi không có bank
+              }
+            },
+            { $sort: { createdAt: 1 } }
+          ],
+          as: 'accounts'
+        }
+      },
+      {
+        $lookup: {
+          from: savingsAccountModel.SAVINGS_ACCOUNT_COLLECTION_NAME,
+          let: { savingsIds: '$savings_accountIds' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$_id', '$$savingsIds'] } } },
+            {
+              $lookup: {
+                from: bankModel.BANK_COLLECTION_NAME,
+                localField: 'bankId',
+                foreignField: '_id',
+                as: 'bankInfo'
+              }
+            },
+            {
+              $unwind: {
+                path: '$bankInfo',
+                preserveNullAndEmptyArrays: true // vẫn giữ account ngay cả khi không có bank
+              }
+            },
+            { $sort: { createdAt: 1 } }
+          ],
+          as: 'savings_accounts'
+        }
+      },
+      {
+        $lookup: {
+          from: accumulationModel.ACCUMULATION_COLLECTION_NAME,
+          let: { accumulationIds: '$accumulationIds' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$_id', '$$accumulationIds'] } } },
+            { $sort: { createdAt: 1 } }
+          ],
+          as: 'accumulations'
+        }
+      }
     ], options).toArray()
 
     return result[0] || null
@@ -172,24 +179,30 @@ const getFamilyMoneySource = async (filter, options = {}) => {
   try {
     const result = await GET_DB().collection(MONEY_SOURCE_COLLECTION_NAME).aggregate([
       { $match: filter },
-      { $lookup: {
-        from: accountModel.ACCOUNT_COLLECTION_NAME,
-        localField: 'accountIds',
-        foreignField: '_id',
-        as: 'accounts'
-      } },
-      { $lookup: {
-        from: savingsAccountModel.SAVINGS_ACCOUNT_COLLECTION_NAME,
-        localField: 'savings_accountIds',
-        foreignField: '_id',
-        as: 'savings_accounts'
-      } },
-      { $lookup: {
-        from: accumulationModel.ACCUMULATION_COLLECTION_NAME,
-        localField: 'accumulationIds',
-        foreignField: '_id',
-        as: 'accumulations'
-      } }
+      {
+        $lookup: {
+          from: accountModel.ACCOUNT_COLLECTION_NAME,
+          localField: 'accountIds',
+          foreignField: '_id',
+          as: 'accounts'
+        }
+      },
+      {
+        $lookup: {
+          from: savingsAccountModel.SAVINGS_ACCOUNT_COLLECTION_NAME,
+          localField: 'savings_accountIds',
+          foreignField: '_id',
+          as: 'savings_accounts'
+        }
+      },
+      {
+        $lookup: {
+          from: accumulationModel.ACCUMULATION_COLLECTION_NAME,
+          localField: 'accumulationIds',
+          foreignField: '_id',
+          as: 'accumulations'
+        }
+      }
     ], options).toArray()
 
     return result[0] || null

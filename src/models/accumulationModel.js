@@ -33,6 +33,7 @@ const ACCUMULATION_COLLECTION_SCHEMA = Joi.object({
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
+// eslint-disable-next-line no-unused-vars
 const INVALID_UPDATE_FIELDS = ['_id', 'ownerType', 'moneySourceId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
@@ -60,7 +61,8 @@ const decreaseBalance = async (accountId, amount, options = {}) => {
         $inc: { balance: -amount },
         $set: { updatedAt: Date.now() }
       },
-      { returnDocument: 'after',
+      {
+        returnDocument: 'after',
         ...options
       }
     )
@@ -77,7 +79,8 @@ const increaseBalance = async (accountId, amount, options = {}) => {
         $inc: { balance: amount },
         $set: { updatedAt: Date.now() }
       },
-      { returnDocument: 'after',
+      {
+        returnDocument: 'after',
         ...options
       }
     )
@@ -116,11 +119,13 @@ const finishAccumulation = async (accumulationId, options = {}) => {
   try {
     const result = await GET_DB().collection(ACCUMULATION_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(String(accumulationId)) },
-      { $set: {
-        isFinish: true,
-        balance: 0,
-        updatedAt: Date.now()
-      } },
+      {
+        $set: {
+          isFinish: true,
+          balance: 0,
+          updatedAt: Date.now()
+        }
+      },
       { returnDocument: 'after', ...options }
     )
 

@@ -1,4 +1,4 @@
-import Joi, { options } from 'joi'
+import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
@@ -15,6 +15,7 @@ const USER_NOTIFICATION_COLLECTION_SCHEMA = Joi.object({
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
+// eslint-disable-next-line no-unused-vars
 const INVALID_UPDATE_FIELDS = ['_id', 'userId', 'notificationId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
@@ -52,7 +53,7 @@ const findByUserId = async (userId, options = {}) => {
           $match: filter
         },
         {
-          $lookup : {
+          $lookup: {
             from: 'notifications',
             localField: 'notificationId',
             foreignField: '_id',

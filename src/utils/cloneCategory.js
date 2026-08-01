@@ -35,6 +35,7 @@ export const cloneCategories = (ownerId, ownerType) => {
   }
 
   const finalCategories = categoriesReady.map(c => {
+    // eslint-disable-next-line no-unused-vars
     const { tempId, ...rest } = c
     return rest
   })

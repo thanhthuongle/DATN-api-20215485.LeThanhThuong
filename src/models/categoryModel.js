@@ -27,8 +27,10 @@ const CATEGORY_COLLECTION_SCHEMA = Joi.object({
 })
 
 // Chỉ định ra những Fields không cho phép cập nhật trong hàm update()
+// eslint-disable-next-line no-unused-vars
 const INVALID_UPDATE_FIELDS = ['_id', 'ownerType', 'ownerId', 'createdAt']
 
+// eslint-disable-next-line no-unused-vars
 const validateBeforeCreate = async (data) => {
   return await CATEGORY_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
 }
@@ -63,12 +65,12 @@ const getFamilyCategories = async (filter) => {
   } catch (error) { throw new Error(error) }
 }
 
-const findOneCategory = async(filter, options = {}) => {
+const findOneCategory = async (filter, options = {}) => {
   try {
     const result = await GET_DB().collection(CATEGORY_COLLECTION_NAME).findOne(filter, options)
 
     return result
-  } catch (error) { throw new Error(error)}
+  } catch (error) { throw new Error(error) }
 }
 
 export const categoryModel = {

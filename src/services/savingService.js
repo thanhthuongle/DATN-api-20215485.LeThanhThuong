@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /* eslint-disable no-useless-catch */
 import { ObjectId } from 'mongodb'
 import { MongoClientInstance } from '~/config/mongodb'

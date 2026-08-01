@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { OWNER_TYPE, TRANSACTION_TYPES, MONEY_SOURCE_TYPE } from '~/utils/constants'
+import { TRANSACTION_TYPES, MONEY_SOURCE_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
