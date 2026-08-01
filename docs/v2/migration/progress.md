@@ -27,6 +27,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 8 | Query, aggregation và báo cáo | NOT_STARTED |
 | Phase 9 | Budget, cache, notification và jobs | NOT_STARTED |
 | Phase 10 | Data migration pipeline | NOT_STARTED |
+| Phase 10B | Differential replay và shadow validation | NOT_STARTED |
 | Phase 11 | Parity, UAT và security review | NOT_STARTED |
 | Phase 12 | Production cutover | NOT_STARTED |
 | Phase 13 | Agenda 5 -> Agenda 6 với MongoDB backend | NOT_STARTED |
@@ -45,7 +46,9 @@ Chưa có phase triển khai source code nào đang hoạt động. Bước ti�
 - [ ] Profile kiểu dữ liệu thực tế, missing/null, duplicate và orphan relationships.
 - [ ] Inventory aggregation pipelines.
 - [ ] Inventory financial flows và balance mutations.
+- [ ] Tạo draft financial invariant/posting template matrix cho 100% financial flows.
 - [ ] Inventory scheduled jobs và external side effects.
+- [ ] Tạo draft migration rules cho embedded documents, arrays, ObjectId, orphan, duplicate và invalid legacy data.
 - [ ] Xác định endpoint frontend đang sử dụng.
 - [ ] Ghi chính sách feature freeze cho V1.
 
@@ -58,3 +61,4 @@ Không có blocker đã biết.
 - Chỉ đánh dấu phase `COMPLETED` khi đạt exit criteria trong `master-plan.md`.
 - Ghi blocker và quyết định phát sinh trước khi tiếp tục phase phụ thuộc.
 - Mỗi lần hoàn thành task phải cập nhật checklist, test đã chạy và commit liên quan.
+- Mỗi phase phải ghi acceptance metrics thực tế, đường dẫn evidence/report và approved exceptions trước khi chuyển `COMPLETED`.

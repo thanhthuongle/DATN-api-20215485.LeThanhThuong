@@ -18,6 +18,7 @@ Database thật trong container là bắt buộc cho transaction, constraint, lo
 4. HTTP contract: cùng fixture so response/status/error giữa V1 và V2, cho phép danh sách khác biệt đã duyệt.
 5. Migration: extract/transform/load chạy lại, resume và reconciliation.
 6. Operational: Agenda handlers, snapshot catch-up, outbox retry và admin actions.
+7. Differential: replay cùng input/fixture qua V1 và V2, canonicalize kết quả và ghi mismatch theo `migration/shadow-validation.md`.
 
 ## 3. Test bắt buộc cho tài chính
 
@@ -46,3 +47,5 @@ lint -> unit -> migration validation -> database integration
 ```
 
 Merge bị chặn nếu financial invariant, migration validation hoặc contract test trọng yếu fail. Coverage là tín hiệu bổ sung; không dùng một tỷ lệ tổng duy nhất để thay việc kiểm tra các nhánh lỗi tài chính. Phase 2 sẽ chốt script cụ thể sau khi inventory test hiện tại.
+
+Performance gate không dùng TPS đặt tùy ý. Phase 10B đo baseline V1 và V2 trên cùng dataset/workload; Phase 11 chốt ngưỡng từ peak quan sát được, tải dự kiến và maintenance budget rồi lưu kèm evidence.

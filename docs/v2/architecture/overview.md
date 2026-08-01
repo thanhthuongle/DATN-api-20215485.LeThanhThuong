@@ -140,6 +140,8 @@ infrastructure/
 - `jobs`: scheduled/background jobs.
 - `messaging`: outbox processor và event publisher.
 
+`jobs` cung cấp `JobScheduler` abstraction. Agenda 5/MongoDB chỉ là adapter ban đầu; job handler gọi V2 service/core và service/core không import Agenda. Chi tiết tại `job-scheduler.md`.
+
 ### `src/shared`
 
 Chỉ chứa thành phần trung lập với API version và database như error base class, JWT helpers hoặc security utilities. Không đặt MongoDB model, Prisma repository hoặc hàm cập nhật balance trong `shared`.
@@ -168,4 +170,5 @@ Periodic balance snapshot là checkpoint đối soát chạy riêng sau commit; 
 - PostgreSQL staging và Redis namespace staging phải tách production.
 - Job, email, notification và socket staging không được tạo side effect production.
 - V2 được bật bằng cấu hình môi trường, dự kiến `ENABLE_API_V2`.
+- Feature flags theo module dùng để rollout staging/read/admin và làm kill switch. Financial write không được chia giữa V1 và V2; tại một thời điểm chỉ có một write authority.
 - Production V1 là nguồn sự thật cho đến maintenance window.

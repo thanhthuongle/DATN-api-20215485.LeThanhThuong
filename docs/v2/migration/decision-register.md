@@ -38,6 +38,12 @@ Tệp này ghi lại các quyết định đã thống nhất. Thay đổi quy�
 | DEC-032 | Toàn bộ persisted timestamps và day calculations dùng UTC; lãi không kỳ hạn tương thích V1 theo ngày bắt đầu/kết thúc inclusive, còn kỳ hạn tháng dùng công thức tháng hiện tại. | Accepted |
 | DEC-033 | V2 dùng module layout hybrid: giữ tên service; module nhỏ có thể phẳng, module phức tạp tách services/repositories/validators/mappers/policies theo hành động. | Accepted |
 | DEC-034 | Financial transaction dùng deterministic row locks, transaction timeout và retry hữu hạn cho serialization/deadlock; idempotency có request fingerprint; outbox delivery at-least-once với consumer idempotency. | Accepted |
+| DEC-035 | Mỗi phase có acceptance metrics đo được; performance threshold lấy từ baseline V1 và tải dự kiến thay vì đặt TPS tùy ý. | Accepted |
+| DEC-036 | Financial invariant matrix và posting template matrix là deliverable bắt buộc của Phase 3 và là gate trước khi bắt đầu Phase 4. | Accepted |
+| DEC-037 | Thêm Phase 10B differential replay/shadow validation trên môi trường cô lập; cấm live shadow-write production và luôn chỉ có một write authority. | Accepted |
+| DEC-038 | Tạo job scheduler abstraction từ Phase 2; Agenda 5/MongoDB là adapter ban đầu, business service và transaction core không phụ thuộc Agenda. | Accepted |
+| DEC-039 | Feature flag theo module dùng cho staging, read rollout và kill switch; không được chia financial write authority giữa V1/MongoDB và V2/PostgreSQL. | Accepted |
+| DEC-040 | Mở rộng `docker-compose.dev.yml` hiện có cho local PostgreSQL và các dependency cần thiết; Testcontainers vẫn dùng riêng cho automated tests. | Accepted |
 
 ## Quyết định đang mở
 
