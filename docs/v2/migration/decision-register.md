@@ -67,3 +67,9 @@ Tệp này ghi lại các quyết định đã thống nhất. Thay đổi quy�
 | ID | Nội dung | Thời điểm chốt |
 |---|---|---|
 | OPEN-005 | Chọn PostgreSQL hosting và cấu hình production sau giai đoạn Supabase staging. | Trước Phase 10B |
+| OPEN-006 | Chốt semantics của `transfers.fee`: chỉ lưu metadata như hành vi balance V1, trừ thêm từ nguồn, hay post vào system account riêng. Evidence: `src/services/transferService.js` và `src/models/transferModel.js`. | Trước khi approve template `TRANSFER` ở Phase 3 |
+| OPEN-007 | Chốt repayment/collection chỉ hỗ trợ tất toán toàn phần hay hỗ trợ trả một phần; đồng thời chốt cách biểu diễn principal/interest. Evidence: `src/services/repaymentService.js`, `src/services/collectionSevice.js`. | Trước khi approve debt templates ở Phase 3 |
+| OPEN-008 | Chốt V2 có từ chối amount bằng 0 hay giữ contract V1 đang cho phép `min(0)`. Evidence: validators trong các transaction services và `src/utils/constants.js`. | Trước contract/schema freeze Phase 3 |
+| OPEN-009 | Chốt giữ, sửa hay deprecate các family transaction endpoints sau khi có frontend/traffic evidence; V1 generic dispatcher truyền subtype arguments không tương thích. Evidence: `src/routes/familyRoute.js`, `src/controllers/familyController.js`, transaction services. | Trước API baseline sign-off/Phase 3 |
+| OPEN-010 | Chốt quy tắc tái dựng các khoản lãi saving được cộng balance trực tiếp, không có transaction riêng. Evidence: `src/services/savingService.js` và profiler/reconstruction report. | Trước data migration rule approval |
+| OPEN-011 | Chốt chính sách transfer/contribution qua owner hoặc financial space khác nhau. Evidence: `src/services/transferService.js`, `src/services/contributionService.js`, account ownership fields. | Trước authorization/posting approval Phase 3 |

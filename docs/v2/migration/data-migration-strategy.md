@@ -56,3 +56,19 @@ data-quality-report.md
 ```
 
 Tên file chi tiết có thể điều chỉnh sau inventory, nhưng nội dung và khả năng truy vết không được bỏ.
+
+## 6. Wave 0 rule-catalog result
+
+Wave 0 đã tạo `migration-rule-catalog.md` với **26/26 collection rules** và các rule chung cho ID/type, money, UTC time, soft delete, duplicate và file provenance. Đây là baseline `DRAFT`, không phải target schema hay migration implementation.
+
+Wave 0 profiling evidence:
+
+- production: 15 live/26 source-declared collections, 11 absent/empty, 16 indexes và 0 non-`_id` unique indexes;
+- required/null, monetary, enum, timestamp, array, duplicate và relation classes đã có actual counts/examples;
+- 6/6 balance records khớp reconstructed balance tại tolerance `0 VND`;
+- 4 provider-orphan assets và 4 unversioned Agenda payloads có owner/rule, không bị tự động xóa/copy.
+
+Các điều kiện chưa đạt để chuyển catalog từ `DRAFT` thành approved Phase 3 design:
+
+- OPEN-006..OPEN-011 chưa chốt;
+- target PostgreSQL schema thuộc Phase 3, nằm ngoài phạm vi Wave 0.

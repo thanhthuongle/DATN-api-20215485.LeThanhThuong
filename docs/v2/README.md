@@ -25,16 +25,26 @@ docs/v2/
 │   └── transaction-core.md
 ├── database/
 │   ├── design-rules.md
-│   └── interest-rate-rules.md
+│   ├── interest-rate-rules.md
+│   ├── mongodb-inventory.md
+│   └── data-quality-report.md
 ├── migration/
+│   ├── background-jobs.md
 │   ├── decision-register.md
 │   ├── data-migration-strategy.md
+│   ├── endpoint-inventory.md
+│   ├── file-lifecycle-inventory.md
+│   ├── financial-flows.md
 │   ├── financial-invariant-matrix.md
 │   ├── final-migration-strategy.md
 │   ├── execution-waves.md
+│   ├── identity-auth-inventory.md
 │   ├── master-plan.md
+│   ├── migration-rule-catalog.md
 │   ├── progress.md
-│   └── shadow-validation.md
+│   ├── shadow-validation.md
+│   ├── timezone-inventory.md
+│   └── wave-0-review.md
 ├── operations/
 │   ├── agenda-retirement.md
 │   └── production-readiness.md
@@ -65,5 +75,7 @@ docs/v2/
 19. `migration/master-plan.md`: kế hoạch kiến trúc/dependency theo phase.
 20. `migration/execution-waves.md`: cách chia phase thành các đợt triển khai, vertical slices và staging gates.
 21. `migration/progress.md`: trạng thái thực tế của wave/phase/task.
+
+Các inventory Wave 0 được tra cứu từ `migration/wave-0-review.md`; file này liên kết endpoint, MongoDB/data quality, financial flow, jobs, identity, timezone, file lifecycle và draft migration rules theo evidence V1.
 
 `migration/master-plan.md` định nghĩa nội dung/dependency; `migration/execution-waves.md` định nghĩa thứ tự thực thi có kiểm soát. `migration/progress.md` là nguồn xác định wave/phase/task nào đã thực sự được triển khai và nghiệm thu.

@@ -55,3 +55,25 @@ Agenda phải rời business MongoDB trước khi business collections chuyển 
 - Mọi migration anchor có case/evidence/approval.
 - Full reload, reconciliation và smoke test nằm trong maintenance budget.
 - Trước mở V2 writes vẫn có thể bật lại V1; sau mở writes chỉ restore/forward-fix V2.
+
+## 6. Wave 0 evidence và reconstruction specification
+
+Wave 0 xác nhận từ source V1:
+
+- `accounts.balance`, `accumulations.balance` và `savings_accounts.balance` là các stored operational balances cần đối soát;
+- có 22 active mutation sites, bao phủ account opening, 8 transaction types và accumulation/saving lifecycle;
+- account opening balance và một số saving-interest credits không có transaction history tương ứng, vì vậy không thể chỉ cộng signed `transactions.amount` rồi coi kết quả là sự thật;
+- transaction detail collections xác định money source/target và dấu của amount; transaction header một mình không đủ tái dựng.
+
+Evidence chi tiết nằm ở `financial-flows.md`, `mongodb-inventory.md` và `financial-invariant-matrix.md`. Công thức Wave 0 cho mỗi account-like resource tại freeze là:
+
+```text
+reconstructed = evidenced opening/creation posting
+              + sum(approved signed legacy detail effects in deterministic time/_id order)
+              + sum(approved evidenced lifecycle effects)
+difference    = stored operational balance - reconstructed
+```
+
+Mỗi component phải giữ source collection, source `_id`, transaction/detail `_id`, event time, amount, sign rule và rule version. Các trường hợp sau là `BLOCKING`: missing/ambiguous detail, orphan money source, amount không phải safe integer, direct-interest credit không đủ evidence, duplicate effect, hoặc `difference != 0 VND`.
+
+Profiler read-only version 2 đã chạy production qua TLS seed list derive trong memory từ Atlas DNS do Node SRV resolver lỗi. Kết quả Wave 0: accounts 4/4 và accumulations 2/2 khớp, savings 0 record, tổng/max difference `0 VND`; không cần migration anchor cho snapshot này. Final cutover vẫn bắt buộc chạy lại trên immutable freeze snapshot vì production còn live khi Wave 0 profile.
