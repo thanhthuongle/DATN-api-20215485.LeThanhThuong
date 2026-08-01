@@ -44,9 +44,25 @@ Tệp này ghi lại các quyết định đã thống nhất. Thay đổi quy�
 | DEC-038 | Tạo job scheduler abstraction từ Phase 2; Agenda 5/MongoDB là adapter ban đầu, business service và transaction core không phụ thuộc Agenda. | Accepted |
 | DEC-039 | Feature flag theo module dùng cho staging, read rollout và kill switch; không được chia financial write authority giữa V1/MongoDB và V2/PostgreSQL. | Accepted |
 | DEC-040 | Mở rộng `docker-compose.dev.yml` hiện có cho local PostgreSQL và các dependency cần thiết; Testcontainers vẫn dùng riêng cho automated tests. | Accepted |
+| DEC-041 | Financial write dùng explicit `TransactionContext` chứa Prisma transaction client; repositories/raw SQL bắt buộc dùng context này, không dùng global Prisma client. | Accepted |
+| DEC-042 | Cutover force logout toàn bộ; V2 JWT dùng `sub` là public UUID và token version 2, refresh token V1 không được đổi sang token V2. | Accepted |
+| DEC-043 | Final cutover mặc định full reload sau khi freeze/drain toàn bộ V1 writes/jobs; chỉ dùng incremental strategy nếu rehearsal chứng minh full reload vượt maintenance budget. | Accepted |
+| DEC-044 | V1 stored account balance tại freeze là operational cutover balance; mọi chênh lệch với reconstructed history là blocking và chỉ xử lý bằng remediation hoặc audited migration anchor đối ứng `MIGRATION_EQUITY`. | Accepted |
+| DEC-045 | Agenda MongoDB store/credential được tách khỏi business MongoDB trước cutover; jobs được drain và reschedule bằng stable key, không copy mù internal lock state. | Accepted |
+| DEC-046 | PostgreSQL production hosting chốt trước Phase 10B; mục tiêu ban đầu RPO tối đa 5 phút, RTO tối đa 2 giờ, PITR và restore drill bắt buộc. | Accepted |
+| DEC-047 | V2 có refresh-token rotation/revocation, CSRF protection khi dùng cross-site cookie, exact CORS allowlist, rate limit, admin step-up auth và database least-privilege roles. | Accepted |
+| DEC-048 | `src/api/v2` chứa HTTP routes/controllers/Joi/API mappers; `src/v2` chỉ chứa business modules/core/infrastructure và không phụ thuộc Express HTTP objects. | Accepted |
+| DEC-049 | Financial time/business date dùng UTC; user IANA timezone chỉ phục vụ local reminder/notification scheduling và Agenda vẫn nhận UTC `runAt`. | Accepted |
+| DEC-050 | V2 ban đầu chỉ hỗ trợ full reversal: transaction mới đảo postings, entries gốc bất biến và original không thể full-reverse lần hai. | Accepted |
+| DEC-051 | Financial idempotency key/hash/resource tombstone giữ lâu dài; outbox có aggregate ordering, lease/claim, schema version và unknown-delivery chuyển review thay vì retry mù. | Accepted |
+| DEC-052 | Discrepancy/audit schema thuộc Phase 3, internal writer Phase 4, admin API/UI Phase 5. | Accepted |
+| DEC-053 | File upload dùng temporary asset lifecycle và cleanup/outbox; không gọi Cloudinary trong PostgreSQL transaction. | Accepted |
+| DEC-054 | Production readiness bắt buộc có financial/DB/outbox/job/snapshot observability, alert owner và runbook. | Accepted |
+| DEC-055 | Write authority là deployment-level control; runtime module flags fail-closed, có dependency/audit và không được chuyển writes từ V2 về V1. | Accepted |
+| DEC-056 | V1 baseline/V2 OpenAPI và approved-difference registry là contract deliverables bắt buộc trước cutover. | Accepted |
 
 ## Quyết định đang mở
 
 | ID | Nội dung | Thời điểm chốt |
 |---|---|---|
-| OPEN-005 | Chọn PostgreSQL hosting và cấu hình production sau giai đoạn Supabase staging. | Trước Phase 12 |
+| OPEN-005 | Chọn PostgreSQL hosting và cấu hình production sau giai đoạn Supabase staging. | Trước Phase 10B |

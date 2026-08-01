@@ -7,6 +7,7 @@
 - Prisma ORM và Prisma Migrate quản lý schema/migrations.
 - Prisma dùng cho CRUD và quan hệ thông thường.
 - Raw SQL/TypedSQL chỉ dùng cho locking, báo cáo hoặc truy vấn phức tạp; phải parameterized.
+- Financial raw SQL/repository phải dùng explicit Prisma transaction client từ transaction core; không dùng global client.
 
 ## 2. Định danh
 
@@ -33,6 +34,7 @@
 - Dùng `financial_spaces` và membership để thống nhất ownership cá nhân/gia đình.
 - Không dùng một `ownerId` đa hình không có constraint nếu có thể tránh.
 - Mọi foreign key phải có chính sách `RESTRICT`, `CASCADE` hoặc soft-delete được ghi rõ.
+- Entity có ledger/audit history mặc định `RESTRICT` hoặc soft-delete; không hard-delete làm đứt chuỗi tài chính.
 
 ## 5. Index và constraint
 
@@ -52,6 +54,7 @@ Tính cân bằng tổng postings được database boundary bắt buộc trư�
 - Không sửa production schema thủ công mà không ghi lại migration.
 - Seed chỉ chứa dữ liệu hệ thống như banks, default categories hoặc system ledger account types.
 - Migration dữ liệu MongoDB -> PostgreSQL dùng scripts riêng, có thể chạy lại và có báo cáo lỗi.
+- Tách database roles cho migration, application, jobs và read-only operations theo least privilege.
 
 ## 7. Periodic balance snapshot
 

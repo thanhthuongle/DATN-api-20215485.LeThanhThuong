@@ -4,6 +4,8 @@
 
 Admin Operations là mặt phẳng vận hành cho sai lệch migration, reconciliation, snapshot, outbox và scheduled jobs. Nó gồm backend admin API ngay trong V2 và một trang admin có thể xây theo từng bước; trang UI không phải điều kiện để bắt đầu transaction core, nhưng API, dữ liệu và audit phải có trước migration rehearsal.
 
+Triển khai theo dependency: Phase 3 tạo discrepancy/audit schema, Phase 4 tạo internal writer/dedup, Phase 5 mới mở admin API và UI.
+
 ## 2. Discrepancy case
 
 Mỗi phát hiện được lưu thành case, không chỉ ghi log:
@@ -50,10 +52,12 @@ UI có thể triển khai sau API theo các lát nhỏ, nhưng dashboard và dis
 
 - Admin endpoint dùng authorization riêng, deny-by-default và kiểm tra ownership/scope ở server.
 - Thao tác nhạy cảm yêu cầu nhập lý do; reversal/adjustment nên có bước xác nhận lại và có thể bổ sung maker-checker sau.
+- Reversal/adjustment bắt buộc step-up authentication bằng mật khẩu và TOTP/MFA; maker-checker được bổ sung khi có từ hai admin phù hợp.
 - Audit log append-only, không cho admin sửa/xóa.
 - Không đưa secret hoặc dữ liệu nhạy cảm không cần thiết vào evidence/log.
 - Rate limit, correlation ID và structured log cho toàn bộ admin requests.
 - Retry/rebuild phải idempotent; giao diện phải hiển thị kết quả trước đó thay vì phát lệnh trùng.
+- Case dùng optimistic version; phát hiện cùng fingerprint sau khi resolve phải tăng recurrence/reopen theo rule thay vì tạo vô hạn duplicate.
 
 ## 6. Quan hệ với cutover
 

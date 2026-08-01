@@ -46,8 +46,13 @@ Chưa có phase triển khai source code nào đang hoạt động. Bước ti�
 - [ ] Profile kiểu dữ liệu thực tế, missing/null, duplicate và orphan relationships.
 - [ ] Inventory aggregation pipelines.
 - [ ] Inventory financial flows và balance mutations.
+- [ ] Reconstruct transaction-history balances và so với stored account balances, tolerance 0 VND.
 - [ ] Tạo draft financial invariant/posting template matrix cho 100% financial flows.
 - [ ] Inventory scheduled jobs và external side effects.
+- [ ] Inventory Agenda business/job store coupling và kế hoạch credential/database riêng.
+- [ ] Inventory JWT/refresh/Socket ObjectId claims và frontend cached IDs cho force logout/UUID transition.
+- [ ] Inventory hard-coded timezone compensation và phân loại financial UTC với user reminders.
+- [ ] Inventory Cloudinary/file lifecycle và orphan side effects.
 - [ ] Tạo draft migration rules cho embedded documents, arrays, ObjectId, orphan, duplicate và invalid legacy data.
 - [ ] Xác định endpoint frontend đang sử dụng.
 - [ ] Ghi chính sách feature freeze cho V1.
@@ -55,6 +60,12 @@ Chưa có phase triển khai source code nào đang hoạt động. Bước ti�
 ## Blockers
 
 Không có blocker đã biết.
+
+## Gates đã biết
+
+- Phase 4 chờ approved posting/invariant matrix và explicit transaction-context design.
+- Phase 10B chờ đóng `OPEN-005`, production hosting/connection mode, RPO/RTO/PITR và restore procedure.
+- Phase 12 chờ Agenda store isolation, deterministic full-reload rehearsal, force-logout plan và `0 BLOCKING` discrepancy.
 
 ## Quy tắc cập nhật
 

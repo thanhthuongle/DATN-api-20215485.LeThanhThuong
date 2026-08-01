@@ -10,6 +10,7 @@ Tài liệu này chốt các ranh giới kỹ thuật bắt buộc khi hiện th
 - API, URL, log gửi ra client và event công khai chỉ dùng `public_id`; không serialize internal ID.
 - Join table hoặc bảng thuần kỹ thuật không cần public UUID nếu không được tham chiếu từ bên ngoài.
 - UUID phải do PostgreSQL tạo; sequence/identity và UUID không được client cung cấp.
+- V2 JWT dùng public UUID làm `sub`; cutover force logout token V1 theo `api-security-contracts.md`.
 
 Thiết kế này giữ ưu điểm join/index gọn của BIGINT, đồng thời không biến khóa tuần tự thành định danh công khai. PostgreSQL quản lý identity tương tự auto-increment; Prisma biểu diễn bằng `BigInt @id @default(autoincrement())` và UUID bằng `String @db.Uuid @default(dbgenerated("gen_random_uuid()"))`.
 
@@ -27,9 +28,10 @@ Trạng thái financial transaction tối thiểu:
 
 ```text
 DRAFT -> POSTED
-DRAFT -> FAILED
 POSTED -> REVERSED (thông qua transaction đảo mới)
 ```
+
+`DRAFT` chỉ tồn tại trong database transaction và phải `POSTED` trước commit. Failure rollback được ghi vào idempotency/operation attempt, không để lại financial transaction `FAILED` nửa chừng. V2 ban đầu chỉ hỗ trợ full reversal.
 
 - Chỉ transaction core được tạo postings và cập nhật cached balance.
 - Repository không cung cấp hàm post một ledger entry độc lập.
@@ -46,6 +48,7 @@ POSTED -> REVERSED (thông qua transaction đảo mới)
 - Chỉ retry hữu hạn các lỗi có thể thử lại như SQLSTATE `40001` và `40P01`, dùng exponential backoff có jitter.
 - Mỗi lần retry phải chạy lại toàn transaction, không tái sử dụng dữ liệu balance đã đọc từ lần trước.
 - Nếu một nghiệp vụ không thể chứng minh an toàn ở `READ COMMITTED`, tài liệu module phải nâng isolation và bổ sung concurrency test tương ứng.
+- Financial repository và raw SQL bắt buộc dùng explicit `TransactionContext.db`; cấm global Prisma client trong financial write path.
 
 ## 5. Idempotency
 
@@ -58,16 +61,19 @@ response_code, response_body, expires_at
 created_at, completed_at
 ```
 
-- Unique `(scope, idempotency_key)`.
+- Unique theo financial space, actor, operation và idempotency key; system actor có identity/scope ổn định.
 - Cùng key và cùng request hash trả lại kết quả đã lưu; cùng key nhưng payload khác trả conflict.
 - Record `IN_PROGRESS` phải có timeout/recovery rule; không được tự ý post lại khi chưa xác định transaction trước đã commit hay chưa.
 - Financial scheduled jobs dùng key ổn định theo loại job và kỳ nghiệp vụ.
+- Financial key/hash/resource tombstone giữ lâu dài; chỉ response body được purge theo retention.
 
 ## 6. Transactional outbox
 
 Outbox tối thiểu lưu `event_id`, aggregate, event type/version, payload, status, attempts, available/processed timestamps và last error. Business write và outbox insert phải commit cùng transaction.
 
 Delivery là at-least-once, vì vậy consumer phải deduplicate theo `event_id`. Retry quá ngưỡng chuyển dead-letter/requires-review và tạo discrepancy case; không được đánh dấu thành công trước khi side effect hoàn tất.
+
+Outbox phải có aggregate sequence, schema version và worker lease. Unknown delivery sau provider success/crash chuyển review nếu provider không hỗ trợ idempotency/lookup; không retry mù.
 
 ## 7. Balance policy kế thừa V1
 
@@ -85,8 +91,6 @@ Giữ tên `service`, không thêm tầng `use-case`. Module nhỏ có thể ph�
 
 ```text
 src/v2/modules/accounts/
-├── accounts.routes.js
-├── accounts.controller.js
 ├── services/
 │   ├── create-account.service.js
 │   └── close-account.service.js
@@ -96,13 +100,15 @@ src/v2/modules/accounts/
 └── policies/
 ```
 
+Express routes/controllers/Joi/API response mappers nằm trong `src/api/v2`; module V2 chỉ chứa business/application logic và không nhận `req/res/next`.
+
 Transaction core, admin operations và shared infrastructure là phần mới nằm hoàn toàn dưới `src/v2/`; không trộn vào thiết kế V1.
 
 ## 9. Retention khởi điểm
 
 - Ledger, financial transactions, reversals và business/periodic snapshots: giữ lâu dài.
 - Admin audit và discrepancy cases: giữ lâu dài.
-- Idempotency record hoàn tất: tối thiểu 90 ngày; key của nghiệp vụ định kỳ giữ đủ vòng đời nghiệp vụ.
+- Financial idempotency key/hash/resource tombstone: giữ lâu dài; response body hoàn tất tối thiểu 90 ngày.
 - Outbox đã xử lý: 90 ngày; failed/dead-letter giữ đến khi xử lý xong và tối thiểu thêm 180 ngày.
 - Snapshot run logs: 180 ngày.
 - Application logs: 30 ngày ở staging, mục tiêu 90 ngày ở production tùy hosting và dữ liệu nhạy cảm.

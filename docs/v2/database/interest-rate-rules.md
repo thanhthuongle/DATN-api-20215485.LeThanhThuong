@@ -2,6 +2,8 @@
 
 Mọi mốc thời gian và phép đếm ngày trong V2 dùng UTC. Lãi không kỳ hạn giữ tương thích V1 bằng cách tính inclusive cả ngày bắt đầu và ngày kết thúc; các test phải bao phủ ranh giới tháng/năm và leap day. Kỳ hạn theo tháng giữ công thức tháng của V1 cho đến khi có quyết định nghiệp vụ thay thế.
 
+Khi tính nhiều kỳ liên tiếp, boundary day không được đếm hai lần: kỳ đầu có thể bao gồm ngày bắt đầu theo V1, kỳ sau bắt đầu sau `previous_period_end` hoặc dùng interval tương đương đã ghi trong posting template. User timezone không tham gia phép tính lãi.
+
 ## 1. Kiểu dữ liệu
 
 Lãi suất phần trăm dùng:
@@ -118,3 +120,4 @@ Ví dụ:
 - Legacy `UNSPECIFIED` không được tự tính lãi.
 - Validation từng rate basis.
 - Kết quả V2 tương thích công thức V1 trên fixture hiện có.
+- Nhiều kỳ liên tiếp không đếm trùng boundary day.

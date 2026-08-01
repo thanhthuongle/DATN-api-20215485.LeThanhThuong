@@ -50,6 +50,8 @@ src/
 │   └── v2/
 │       ├── routes/
 │       ├── controllers/
+│       ├── validations/
+│       ├── mappers/
 │       └── index.js
 ├── v1/
 │   ├── services/
@@ -79,7 +81,9 @@ Cấu trúc này là mục tiêu cuối; việc di chuyển V1 phải thực hi�
 
 - Khai báo HTTP method, URL và middleware V2.
 - Controller chuyển request thành input cho service và định dạng HTTP response.
+- `validations` chứa Joi request schemas; `mappers` định dạng API response/compatibility contract.
 - Không gọi Prisma, Redis hoặc cập nhật số dư trực tiếp.
+- Không chứa business rule; actor lấy từ authentication context, không tin `userId/ownerId` trong body.
 
 ### `src/v1`
 
@@ -88,12 +92,10 @@ Cấu trúc này là mục tiêu cuối; việc di chuyển V1 phải thực hi�
 
 ### `src/v2/modules`
 
-Tổ chức hybrid theo domain. Module nhỏ có thể giữ cấu trúc phẳng; module lớn tách thư mục theo trách nhiệm, ví dụ:
+Tổ chức hybrid theo domain cho business/application layer. Routes/controllers không đặt trong module V2, ví dụ:
 
 ```text
 modules/accounts/
-├── accounts.routes.js
-├── accounts.controller.js
 ├── services/
 │   ├── create-account.service.js
 │   └── close-account.service.js
@@ -105,8 +107,9 @@ modules/accounts/
 
 - Service xử lý nghiệp vụ của endpoint, quyền truy cập và điều phối core/repository.
 - Repository đóng gói thao tác dữ liệu PostgreSQL qua Prisma.
-- Validation chứa quy tắc input riêng của V2.
-- Mapper giữ API response tương thích V1 khi cần, bao gồm mapping `id` thành `_id`.
+- Validator/policy ở đây chỉ là business/domain rule, không nhận Express request.
+- Mapper ở đây chỉ phục vụ domain/persistence; HTTP response mapper nằm trong `src/api/v2`.
+- Module không import Express hoặc sử dụng `req/res/next`/HTTP status code.
 
 Không sử dụng tầng có tên `use-case`; V2 tiếp tục dùng `service` để nhất quán với V1.
 
@@ -141,6 +144,8 @@ infrastructure/
 - `messaging`: outbox processor và event publisher.
 
 `jobs` cung cấp `JobScheduler` abstraction. Agenda 5/MongoDB chỉ là adapter ban đầu; job handler gọi V2 service/core và service/core không import Agenda. Chi tiết tại `job-scheduler.md`.
+
+Financial repositories nhận explicit `TransactionContext` từ transaction core; không dùng global Prisma client trong financial write path. Chi tiết tại `transaction-runtime.md`.
 
 ### `src/shared`
 

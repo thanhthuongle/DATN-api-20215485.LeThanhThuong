@@ -16,6 +16,7 @@ Quy tắc theo loại dữ liệu:
 - Duplicate: phân loại exact duplicate, duplicate business key và conflicting duplicate; chỉ auto-merge khi rule được duyệt.
 - Missing/null/invalid legacy: transform có chứng cứ, archive hoặc reject thành discrepancy case.
 - Financial history: tái dựng ledger theo posting template đã duyệt; không tạo adjustment im lặng để ép cached balance khớp.
+- Legacy current balance được so với reconstructed history với tolerance `0 VND`; mismatch là blocking và xử lý theo `final-migration-strategy.md`.
 
 ## 3. Pipeline và khả năng chạy lại
 
@@ -40,6 +41,8 @@ Tối thiểu so sánh:
 - sampled record-level canonical hash và toàn bộ record tài chính trọng yếu.
 
 Mỗi sai lệch tạo discrepancy case có source record, expected/actual, rule version và remediation. Cutover bị chặn khi còn `BLOCKING`.
+
+Final cutover mặc định full reload sau global write/job freeze. Incremental migration không được dựa riêng vào ObjectId/`updatedAt`; chỉ được thêm bằng decision riêng nếu full reload rehearsal vượt maintenance budget.
 
 ## 5. Deliverables
 

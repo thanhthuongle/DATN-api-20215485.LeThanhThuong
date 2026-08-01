@@ -13,6 +13,8 @@ MongoDB Agenda database/collection -> read-write, credential riêng
 
 Hai vùng phải tách database/collection, user và quyền để Agenda không thể ghi business collections.
 
+Việc tách Agenda store không chờ Phase 13: staging hoàn thành ở Phase 2 và production transition/rehearsal hoàn thành Phase 9 trước V2 cutover. Phase 13 chỉ nâng major version sau khi store đã cô lập.
+
 ## 2. Phase 13 - Agenda 5 lên Agenda 6, giữ MongoDB
 
 - Inventory job definitions, unique keys, repeat interval, lock lifetime, retry và handlers.

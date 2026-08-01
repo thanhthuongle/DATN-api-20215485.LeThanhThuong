@@ -19,6 +19,7 @@ Database thật trong container là bắt buộc cho transaction, constraint, lo
 5. Migration: extract/transform/load chạy lại, resume và reconciliation.
 6. Operational: Agenda handlers, snapshot catch-up, outbox retry và admin actions.
 7. Differential: replay cùng input/fixture qua V1 và V2, canonicalize kết quả và ghi mismatch theo `migration/shadow-validation.md`.
+8. Security/operations: JWT cutover, refresh rotation/reuse, CSRF/CORS, feature flags, backup restore, Agenda store isolation và admin step-up auth.
 
 ## 3. Test bắt buộc cho tài chính
 
@@ -31,6 +32,11 @@ Database thật trong container là bắt buộc cho transaction, constraint, lo
 - Snapshot cutoff không bỏ sót/đếm đôi entry khi transaction và generator chạy đồng thời.
 - BigInt vượt `Number.MAX_SAFE_INTEGER` vẫn round-trip chính xác qua API.
 - UTC boundary, leap day, month/year boundary và phép tính ngày inclusive.
+- Cùng transaction context xuyên repositories; fail nếu financial repository dùng global Prisma client.
+- Full reversal không sửa entries gốc hoặc reversal lần hai.
+- Outbox provider-success-before-ack, lease recovery, ordering và unknown delivery.
+- Temporary asset upload/DB rollback/cleanup/retry.
+- Legacy balance mismatch/migration anchor và deterministic full reload.
 
 ## 4. Cô lập và lifecycle
 
@@ -38,6 +44,7 @@ Database thật trong container là bắt buộc cho transaction, constraint, lo
 - Suite có concurrency dùng database/schema riêng; không phụ thuộc thứ tự test.
 - Mongo fixture cần replica set nếu test transaction/hành vi V1 yêu cầu nó.
 - Không dùng production/staging credentials trong test command; CI fail sớm nếu URL trỏ Supabase hoặc host không nằm trong allowlist test.
+- Load suite có hot-account contention và cùng connection-pooling mode với production rehearsal.
 
 ## 5. CI gates
 
@@ -49,3 +56,5 @@ lint -> unit -> migration validation -> database integration
 Merge bị chặn nếu financial invariant, migration validation hoặc contract test trọng yếu fail. Coverage là tín hiệu bổ sung; không dùng một tỷ lệ tổng duy nhất để thay việc kiểm tra các nhánh lỗi tài chính. Phase 2 sẽ chốt script cụ thể sau khi inventory test hiện tại.
 
 Performance gate không dùng TPS đặt tùy ý. Phase 10B đo baseline V1 và V2 trên cùng dataset/workload; Phase 11 chốt ngưỡng từ peak quan sát được, tải dự kiến và maintenance budget rồi lưu kèm evidence.
+
+Production readiness còn yêu cầu restore drill đạt RPO/RTO mục tiêu và ledger/balance/outbox/jobs reconcile sau restore; backup chưa restore thử không được coi là đã nghiệm thu.

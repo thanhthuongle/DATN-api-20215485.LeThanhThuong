@@ -24,6 +24,8 @@ kiểm tra idempotency
 
 Một bước thất bại phải rollback toàn bộ.
 
+Transaction core truyền explicit `TransactionContext` cho toàn bộ financial repositories. Không repository nào được thoát sang global Prisma client; chi tiết runtime nằm tại `transaction-runtime.md`.
+
 ## 3. Ledger
 
 - Ledger là nguồn sự thật.
@@ -78,9 +80,11 @@ Periodic balance snapshot là feature bắt buộc của V2. Snapshot được t
 
 Periodic balance snapshot chạy ngoài atomic posting path và không được rollback một financial transaction đã commit. Thuật ngữ `snapshot` bên trong transaction mặc định chỉ business snapshot và `balance_before/balance_after` của ledger entry.
 
-## 6. Reversal
+## 6. Trạng thái và reversal
 
-Financial transaction đã post không bị sửa hoặc xóa trực tiếp. Điều chỉnh tiền phải tạo reversal transaction liên kết với giao dịch gốc; metadata không ảnh hưởng tiền có thể có chính sách cập nhật riêng.
+V2 ban đầu dùng `DRAFT` chỉ trong database transaction, `POSTED` và `REVERSED`. Failure rollback được ghi ở operation/idempotency log, không để lại financial transaction `FAILED` nửa chừng.
+
+Financial transaction đã post không bị sửa hoặc xóa entries. Full reversal tạo transaction mới liên kết với giao dịch gốc và postings ngược, khóa original transaction và ngăn reversal lần hai. V2 ban đầu chưa hỗ trợ partial reversal; metadata không ảnh hưởng tiền có thể có chính sách cập nhật riêng.
 
 ## 7. Outbox
 

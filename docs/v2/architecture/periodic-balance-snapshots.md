@@ -29,8 +29,10 @@ Báo cáo theo ngày nghiệp vụ dựa trên `occurred_at` là read model khá
 - Business date được xác định trực tiếp theo UTC cho toàn hệ thống V1/V2.
 - Khoảng ngày là `[00:00:00Z ngày D, 00:00:00Z ngày D+1)`.
 - Scheduler chạy mỗi 15 phút để tìm financial spaces đã qua giờ kết thúc ngày nhưng chưa có snapshot.
-- Cho phép grace period 15 phút; checkpoint ngày D thường bắt đầu được tạo từ 00:15 ngày D+1 theo timezone tương ứng.
+- Cho phép grace period 15 phút; checkpoint ngày D thường bắt đầu được tạo từ `00:15Z` ngày D+1.
 - Ngày không có ledger entry vẫn tạo carry-forward snapshot để snapshot chain liên tục.
+
+Timezone IANA của user chỉ dùng cho reminder/notification, không tham gia accounting snapshot hoặc business date.
 
 ## 4. Yêu cầu bổ sung cho ledger entries
 
@@ -65,7 +67,6 @@ id
 ledger_account_id
 financial_space_id
 business_date
-timezone
 period_start_utc
 period_end_utc
 opening_balance
@@ -74,10 +75,15 @@ total_outflow
 closing_balance
 first_entry_sequence
 last_entry_sequence
+cutoff_sequence
+cutoff_posted_at
 entry_count
 calculation_version
 checksum
 status
+is_current
+superseded_by_id
+superseded_at
 generated_at
 created_at
 updated_at
@@ -104,6 +110,7 @@ Trạng thái:
 - `FAILED`: generator hoặc reconciliation thất bại.
 - `STALE`: cần rebuild do sửa thuật toán hoặc phát hiện corruption; không dùng cho báo cáo/checkpoint.
 - `REBUILDING`: đang được tạo lại có kiểm soát.
+- `SUPERSEDED`: version lịch sử đã được thay bằng version current mới.
 
 Snapshot run/audit metadata nên lưu riêng:
 
@@ -151,6 +158,8 @@ total_outflow
 closing_balance
 first_entry_sequence
 last_entry_sequence
+cutoff_sequence
+cutoff_posted_at
 entry_count
 calculation_version
 ```
@@ -166,8 +175,8 @@ Cho mỗi financial space/business date:
 3. Lấy danh sách ledger accounts thuộc financial space theo thứ tự ID ổn định.
 4. Với từng account, mở transaction và khóa ledger account theo cùng quy ước transaction core.
 5. Lấy snapshot hợp lệ gần nhất trước ngày D.
-6. Sau khi lấy lock, đọc `clock_timestamp()` từ PostgreSQL và `next/current account_sequence` để chốt high-watermark. Không dùng timestamp được đọc trước lock.
-7. Lấy ledger entries trong period UTC với `account_sequence <= cutoff_sequence`; lưu cả `cutoff_posted_at` và cutoff sequence.
+6. Sau khi lấy lock, đọc `clock_timestamp()` và current account sequence từ PostgreSQL để có stable read watermark. Không dùng timestamp được đọc trước lock.
+7. Lấy ledger entries trong period UTC; `cutoff_sequence` là sequence cuối cùng đã bao phủ tới period end (carry từ ngày trước nếu ngày D không có entry), không phải sequence của entry phát sinh sau `period_end_utc`. Lưu `cutoff_posted_at`/period end tương ứng.
 8. Tính opening/inflow/outflow/closing/count/cutoff/checksum.
 9. So sánh closing balance với `balance_after` của last entry trong cutoff nếu có.
 10. Insert version theo `(ledger_account_id, business_date, calculation_version)` và chuyển current version trong cùng transaction.
@@ -258,6 +267,13 @@ Rebuild yêu cầu:
 - Audit trước/sau và checksum.
 - Không update/delete ledger entries.
 - Rebuild tuần tự từ ngày bắt đầu đến ngày hiện tại nếu opening balance chain bị ảnh hưởng.
+
+### Account lifecycle
+
+- Snapshot bắt đầu từ ngày account được mở hoặc có opening transaction đầu tiên.
+- Account đóng có final snapshot cho ngày đóng và không tiếp tục carry-forward sau final snapshot.
+- Reopen nếu được nghiệp vụ cho phép phải tạo lifecycle segment/audit rõ ràng, không nối âm thầm vào closed chain.
+- Khi đổi calculation version, rebuild tuần tự toàn range bị ảnh hưởng; chỉ chuyển version mới thành current sau khi chain/reconciliation thành công, version cũ chuyển `SUPERSEDED`.
 
 ## 12. Tích hợp Agenda
 

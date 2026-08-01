@@ -17,9 +17,11 @@ docs/v2/
 ├── architecture/
 │   ├── overview.md
 │   ├── admin-operations.md
+│   ├── api-security-contracts.md
 │   ├── implementation-guardrails.md
 │   ├── job-scheduler.md
 │   ├── periodic-balance-snapshots.md
+│   ├── transaction-runtime.md
 │   └── transaction-core.md
 ├── database/
 │   ├── design-rules.md
@@ -28,11 +30,13 @@ docs/v2/
 │   ├── decision-register.md
 │   ├── data-migration-strategy.md
 │   ├── financial-invariant-matrix.md
+│   ├── final-migration-strategy.md
 │   ├── master-plan.md
 │   ├── progress.md
 │   └── shadow-validation.md
 ├── operations/
-│   └── agenda-retirement.md
+│   ├── agenda-retirement.md
+│   └── production-readiness.md
 └── testing/
     └── strategy.md
 ```
@@ -41,19 +45,23 @@ docs/v2/
 
 1. `migration/decision-register.md`: các quyết định đã thống nhất.
 2. `architecture/overview.md`: kiến trúc mục tiêu và trách nhiệm từng tầng.
-3. `architecture/transaction-core.md`: quy tắc xử lý tiền, ledger và snapshot.
-4. `architecture/implementation-guardrails.md`: ID, ledger enforcement, transactions, idempotency, outbox, money và module boundaries.
-5. `architecture/job-scheduler.md`: abstraction scheduler và ranh giới giữa Agenda, handler và business service.
-6. `architecture/admin-operations.md`: discrepancy cases và vận hành thủ công an toàn.
-7. `architecture/periodic-balance-snapshots.md`: thiết kế và kế hoạch chi tiết daily ledger checkpoint.
-8. `migration/financial-invariant-matrix.md`: invariant/posting template và gate trước transaction core.
-9. `database/design-rules.md`: nguyên tắc thiết kế PostgreSQL.
-10. `database/interest-rate-rules.md`: kiểu dữ liệu, đơn vị và cách tính/làm tròn lãi suất.
-11. `migration/data-migration-strategy.md`: rule catalog, pipeline và reconciliation migration.
-12. `migration/shadow-validation.md`: differential replay an toàn trước cutover.
-13. `testing/strategy.md`: hạ tầng và test gates.
-14. `operations/agenda-retirement.md`: lộ trình nâng Agenda và loại MongoDB.
-15. `migration/master-plan.md`: kế hoạch triển khai theo phase.
-16. `migration/progress.md`: trạng thái thực tế của công việc.
+3. `architecture/api-security-contracts.md`: HTTP boundary, UUID/token cutover, session security và OpenAPI.
+4. `architecture/transaction-core.md`: quy tắc xử lý tiền, ledger và snapshot.
+5. `architecture/transaction-runtime.md`: transaction context, reversal, idempotency, outbox và asset lifecycle.
+6. `architecture/implementation-guardrails.md`: ID, ledger enforcement, transactions, money và module boundaries.
+7. `architecture/job-scheduler.md`: abstraction scheduler, Agenda isolation và timezone reminder.
+8. `architecture/admin-operations.md`: discrepancy cases và vận hành thủ công an toàn.
+9. `architecture/periodic-balance-snapshots.md`: thiết kế và kế hoạch chi tiết daily ledger checkpoint.
+10. `migration/financial-invariant-matrix.md`: invariant/posting template và gate trước transaction core.
+11. `database/design-rules.md`: nguyên tắc thiết kế PostgreSQL.
+12. `database/interest-rate-rules.md`: kiểu dữ liệu, đơn vị và cách tính/làm tròn lãi suất.
+13. `migration/data-migration-strategy.md`: rule catalog, pipeline và reconciliation migration.
+14. `migration/final-migration-strategy.md`: full reload, legacy balance resolution và Agenda pre-cutover isolation.
+15. `migration/shadow-validation.md`: differential replay an toàn trước cutover.
+16. `testing/strategy.md`: hạ tầng và test gates.
+17. `operations/production-readiness.md`: hosting gate, RPO/RTO, restore, observability và feature flags.
+18. `operations/agenda-retirement.md`: lộ trình nâng Agenda và loại MongoDB.
+19. `migration/master-plan.md`: kế hoạch triển khai theo phase.
+20. `migration/progress.md`: trạng thái thực tế của công việc.
 
 `migration/master-plan.md` là kế hoạch tổng thể. `migration/progress.md` mới là nguồn xác định phase nào đã thực sự được triển khai và nghiệm thu.
