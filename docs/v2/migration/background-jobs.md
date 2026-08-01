@@ -10,7 +10,7 @@ Ngày inventory: 2026-08-01.
 | Bootstrap | all files under `src/systemTasks` are synchronously required, then `agenda.start()`; shutdown calls `agenda.stop()` | server/platform / ACTIVE |
 | Poll interval | `processEvery: '30 seconds'` | platform / ACTIVE |
 | Store | address is built from the same `env.MONGODB_URI` and `env.DATABASE_NAME` as business MongoDB; collection hard-coded `system_tasks` | **COUPLED** |
-| Credential isolation | no `AGENDA_MONGODB_URI`, `AGENDA_DATABASE_NAME` or `AGENDA_COLLECTION` env fields | MISSING; DEC-045 blocker before cutover |
+| Credential isolation | no `AGENDA_MONGODB_URI` or `AGENDA_DATABASE_NAME` env fields | MISSING; DEC-045 blocker before cutover; V2 code owns collection `v2_jobs` |
 | Worker isolation | no worker ID/fence/staging namespace in source | MISSING |
 | Job options | no definition declares concurrency, lockLifetime, priority, timeout or retry/backoff | Agenda defaults/unknown |
 | Stable uniqueness | helper creates string in payload for two producers, but no `job.unique()`/unique query is applied | NOT ENFORCED |

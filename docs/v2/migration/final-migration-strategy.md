@@ -41,7 +41,7 @@ Migration anchor post phần chênh lệch đối ứng với system account `MI
 
 Agenda phải rời business MongoDB trước khi business collections chuyển read-only:
 
-- Dùng `AGENDA_MONGODB_URI`, `AGENDA_DATABASE_NAME`, `AGENDA_COLLECTION` và credential riêng.
+- Chỉ cấu hình `AGENDA_MONGODB_URI`, `AGENDA_DATABASE_NAME` và credential riêng; V2 code cố định collection Agenda `v2_jobs` và tự sinh worker identity.
 - Staging isolation hoàn thành Phase 2; production rehearsal/transition hoàn thành Phase 9.
 - Dừng old worker, drain locks, inventory pending/repeating jobs và reschedule bằng stable business key vào store mới.
 - Không copy mù Agenda internal collection/lock state.

@@ -1,0 +1,491 @@
+openapi: 3.1.0
+info:
+  title: Hey Money API V1 Baseline
+  version: 1.0.0-baseline
+  description: >-
+    Source-derived Phase 1 skeleton for all 55 mounted V1 operations. Detailed
+    request/response schemas remain governed by endpoint-inventory.md until they
+    are promoted into this specification and verified by contract fixtures.
+  contact:
+    name: API platform owner
+servers:
+  - url: /
+    description: Legacy unversioned V1 mount
+  - url: /api/v1
+    description: Versioned V1 compatibility mount
+security:
+  - accessTokenCookie: []
+tags:
+  - { name: system }
+  - { name: users }
+  - { name: accounts }
+  - { name: accumulations }
+  - { name: savings }
+  - { name: money-sources }
+  - { name: transactions }
+  - { name: budgets }
+  - { name: categories }
+  - { name: contacts }
+  - { name: families }
+  - { name: banks }
+  - { name: loans }
+  - { name: notifications }
+paths:
+  /:
+    get:
+      operationId: getLegacyRoot
+      tags: [system]
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+  /status:
+    get:
+      operationId: getV1Status
+      tags: [system]
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+  /users/register:
+    post:
+      operationId: registerUserV1
+      tags: [users]
+      security: []
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /users/verify:
+    put:
+      operationId: verifyUserV1
+      tags: [users]
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /users/login:
+    post:
+      operationId: loginUserV1
+      tags: [users]
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /users/logout:
+    delete:
+      operationId: logoutUserV1
+      tags: [users]
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+  /users/refresh_token:
+    get:
+      operationId: refreshTokenV1
+      tags: [users]
+      security:
+        - refreshTokenCookie: []
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /users/update:
+    put:
+      operationId: updateUserV1
+      tags: [users]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /accounts/individual:
+    get:
+      operationId: listIndividualAccountsV1
+      tags: [accounts]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createIndividualAccountV1
+      tags: [accounts]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /accounts/individual/{accountId}/block:
+    parameters:
+      - { $ref: '#/components/parameters/AccountId' }
+    patch:
+      operationId: blockIndividualAccountV1
+      tags: [accounts]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /accounts/individual/{accountId}/unblock:
+    parameters:
+      - { $ref: '#/components/parameters/AccountId' }
+    patch:
+      operationId: unblockIndividualAccountV1
+      tags: [accounts]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /accounts/family/{familyId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    get:
+      operationId: listFamilyAccountsV1
+      tags: [accounts]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createFamilyAccountV1
+      tags: [accounts]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /accumulations/individual:
+    get:
+      operationId: listIndividualAccumulationsV1
+      tags: [accumulations]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createIndividualAccumulationV1
+      tags: [accumulations]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /accumulations/individual/{accumulationId}:
+    parameters:
+      - { $ref: '#/components/parameters/AccumulationId' }
+    patch:
+      operationId: finishIndividualAccumulationV1
+      tags: [accumulations]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /accumulations/family/{familyId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    post:
+      operationId: createFamilyAccumulationV1
+      tags: [accumulations]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /savings/individual:
+    get:
+      operationId: listIndividualSavingsV1
+      tags: [savings]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createIndividualSavingV1
+      tags: [savings]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /savings/individual/{savingId}/close:
+    parameters:
+      - { $ref: '#/components/parameters/SavingId' }
+    post:
+      operationId: closeIndividualSavingV1
+      tags: [savings]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /savings/family/{familyId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    post:
+      operationId: createFamilySavingV1
+      tags: [savings]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /moneySources/individual:
+    get:
+      operationId: listIndividualMoneySourcesV1
+      tags: [money-sources]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /moneySources/family/{familyId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    get:
+      operationId: listFamilyMoneySourcesV1
+      tags: [money-sources]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/:
+    post:
+      operationId: createGenericTransactionV1
+      tags: [transactions]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/individual:
+    get:
+      operationId: listIndividualTransactionsV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createIndividualTransactionV1
+      tags: [transactions]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/individual/fullInfo:
+    get:
+      operationId: listIndividualTransactionFullInfoV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/individual/recentTransactions:
+    get:
+      operationId: listIndividualRecentTransactionsV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/individual/detailTransactions:
+    post:
+      operationId: getIndividualDetailTransactionsV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/individual/{transactionId}:
+    parameters:
+      - { $ref: '#/components/parameters/TransactionId' }
+    get:
+      operationId: getIndividualTransactionV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/family/{familyId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    get:
+      operationId: listFamilyTransactionsV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createFamilyTransactionV1
+      tags: [transactions]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/family/{familyId}/recentTransactions:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    get:
+      operationId: listFamilyRecentTransactionsV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/family/{familyId}/detailTransactions:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    post:
+      operationId: getFamilyDetailTransactionsV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /transactions/family/{familyId}/{transactionId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+      - { $ref: '#/components/parameters/TransactionId' }
+    get:
+      operationId: getFamilyTransactionV1
+      tags: [transactions]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /budgets/individual:
+    get:
+      operationId: listIndividualBudgetsV1
+      tags: [budgets]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createIndividualBudgetV1
+      tags: [budgets]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /budgets/family/{familyId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    get:
+      operationId: listFamilyBudgetsV1
+      tags: [budgets]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createFamilyBudgetV1
+      tags: [budgets]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /categories/individual:
+    get:
+      operationId: listIndividualCategoriesV1
+      tags: [categories]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /categories/family/{familyId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    get:
+      operationId: listFamilyCategoriesV1
+      tags: [categories]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /contacts/individual:
+    get:
+      operationId: listIndividualContactsV1
+      tags: [contacts]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createIndividualContactV1
+      tags: [contacts]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /contacts/individual/update:
+    put:
+      operationId: updateIndividualContactV1
+      tags: [contacts]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /contacts/family/{familyId}:
+    parameters:
+      - { $ref: '#/components/parameters/FamilyId' }
+    get:
+      operationId: listFamilyContactsV1
+      tags: [contacts]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createFamilyContactV1
+      tags: [contacts]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /families/:
+    get:
+      operationId: listFamiliesV1
+      tags: [families]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+    post:
+      operationId: createFamilyV1
+      tags: [families]
+      responses:
+        '201': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /banks/:
+    get:
+      operationId: listBanksV1
+      tags: [banks]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /banks/{bankId}:
+    parameters:
+      - { $ref: '#/components/parameters/BankId' }
+    get:
+      operationId: getBankV1
+      tags: [banks]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /loans/individual/update:
+    put:
+      operationId: updateIndividualLoanV1
+      tags: [loans]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /notifications/test:
+    get:
+      operationId: triggerNotificationTestV1
+      tags: [notifications]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /notifications/:
+    get:
+      operationId: listNotificationsV1
+      tags: [notifications]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+  /notifications/{userNotificationId}:
+    parameters:
+      - { $ref: '#/components/parameters/UserNotificationId' }
+    put:
+      operationId: updateUserNotificationV1
+      tags: [notifications]
+      responses:
+        '200': { $ref: '#/components/responses/LegacySuccess' }
+        default: { $ref: '#/components/responses/LegacyError' }
+components:
+  securitySchemes:
+    accessTokenCookie:
+      type: apiKey
+      in: cookie
+      name: accessToken
+    refreshTokenCookie:
+      type: apiKey
+      in: cookie
+      name: refreshToken
+  parameters:
+    AccountId: { name: accountId, in: path, required: true, schema: { $ref: '#/components/schemas/LegacyObjectId' } }
+    AccumulationId: { name: accumulationId, in: path, required: true, schema: { $ref: '#/components/schemas/LegacyObjectId' } }
+    SavingId: { name: savingId, in: path, required: true, schema: { $ref: '#/components/schemas/LegacyObjectId' } }
+    FamilyId: { name: familyId, in: path, required: true, schema: { $ref: '#/components/schemas/LegacyObjectId' } }
+    TransactionId: { name: transactionId, in: path, required: true, schema: { $ref: '#/components/schemas/LegacyObjectId' } }
+    BankId: { name: bankId, in: path, required: true, schema: { type: string } }
+    UserNotificationId: { name: userNotificationId, in: path, required: true, schema: { $ref: '#/components/schemas/LegacyObjectId' } }
+  schemas:
+    LegacyObjectId:
+      type: string
+      pattern: '^[0-9a-fA-F]{24}$'
+    LegacyError:
+      type: object
+      required: [statusCode, message]
+      properties:
+        statusCode: { type: integer }
+        message: { type: string }
+        stack: { type: string, description: Present only when BUILD_MODE=dev }
+    UndocumentedLegacyPayload:
+      description: Schema pending fixture-backed promotion from the Wave 0 endpoint inventory.
+  responses:
+    LegacySuccess:
+      description: Source-confirmed legacy success; payload schema is not yet fixture-verified.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/UndocumentedLegacyPayload' }
+    LegacyError:
+      description: V1 centralized error envelope.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/LegacyError' }

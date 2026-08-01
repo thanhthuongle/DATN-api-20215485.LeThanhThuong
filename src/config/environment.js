@@ -1,5 +1,8 @@
 import 'dotenv/config'
 
+const DEPLOYMENT_ENV = process.env.DEPLOYMENT_ENV || (process.env.BUILD_MODE === 'production' ? 'production' : 'development')
+const API_V2_REQUESTED = process.env.ENABLE_API_V2 === 'true'
+
 export const env = {
   MONGODB_URI: process.env.BUILD_MODE == 'production' ? process.env.MONGODB_URI_PRODUCTION : process.env.MONGODB_URI_DEVELOPMENT,
   DATABASE_NAME: process.env.DATABASE_NAME,
@@ -7,6 +10,21 @@ export const env = {
   LOCAL_DEV_APP_PORT: process.env.LOCAL_DEV_APP_PORT,
 
   BUILD_MODE: process.env.BUILD_MODE,
+  DEPLOYMENT_ENV,
+  ENABLE_API_V2: API_V2_REQUESTED && DEPLOYMENT_ENV !== 'production',
+  ACTIVE_FINANCIAL_WRITE_VERSION: process.env.ACTIVE_FINANCIAL_WRITE_VERSION || 'V1',
+  V2_FEATURE_FLAGS_JSON: process.env.V2_FEATURE_FLAGS_JSON || '',
+
+  POSTGRESQL_DATABASE_URL: process.env.POSTGRESQL_DATABASE_URL,
+  POSTGRESQL_DIRECT_URL: process.env.POSTGRESQL_DIRECT_URL,
+
+  AGENDA_MONGODB_URI: process.env.AGENDA_MONGODB_URI,
+  AGENDA_DATABASE_NAME: process.env.AGENDA_DATABASE_NAME,
+
+  V2_REDIS_NAMESPACE: process.env.V2_REDIS_NAMESPACE,
+  V2_EMAIL_MODE: process.env.V2_EMAIL_MODE || 'disabled',
+  V2_SOCKET_MODE: process.env.V2_SOCKET_MODE || 'disabled',
+  V2_NOTIFICATION_MODE: process.env.V2_NOTIFICATION_MODE || 'disabled',
 
   AUTHOR: process.env.AUTHOR,
 

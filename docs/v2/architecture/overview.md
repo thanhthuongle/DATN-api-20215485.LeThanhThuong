@@ -7,7 +7,7 @@ V2 chuyển dữ liệu nghiệp vụ từ MongoDB sang PostgreSQL, giữ API co
 Trong thời gian phát triển:
 
 - V1 tiếp tục phục vụ production bằng MongoDB.
-- V2 chỉ chạy trên staging bằng PostgreSQL staging riêng.
+- V2 chỉ có shared deployment trên staging bằng PostgreSQL staging riêng trước cutover; local/dev có thể bật cùng feature gate để phát triển và kiểm thử. `DEPLOYMENT_ENV=production` luôn cấm mount V2 theo DEC-064.
 - Không dual-write giữa MongoDB và PostgreSQL.
 - Cutover chỉ diễn ra sau khi migration rehearsal, đối soát và kiểm thử V2 đạt yêu cầu.
 

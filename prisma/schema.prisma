@@ -1,0 +1,14 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  generatedFileExtension = "ts"
+  importFileExtension    = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Phase 2 contains infrastructure only. Business models begin after the
+// reviewed Phase 3 logical/physical schema and posting-template gate.

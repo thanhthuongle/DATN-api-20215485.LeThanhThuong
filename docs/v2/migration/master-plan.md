@@ -30,7 +30,7 @@ phân tích -> cập nhật tài liệu -> triển khai phạm vi nhỏ
 | Phase | Chỉ số nghiệm thu tối thiểu |
 |---|---|
 | 0 | 100% endpoint, collection, balance mutation và scheduled job được inventory, có owner/status; mọi vấn đề dữ liệu có count và rule owner |
-| 1 | 100% legacy routes vẫn mount và vượt smoke/contract baseline; API boundary/OpenAPI baseline có owner; V2 flag mặc định tắt ngoài staging |
+| 1 | 100% legacy routes vẫn mount và vượt smoke/contract baseline; API boundary/OpenAPI baseline có owner; V2 mặc định tắt và không thể bật khi `DEPLOYMENT_ENV=production` |
 | 2 | Local stack health thành công; database rỗng dựng được từ migration/seed; scheduler contract, Agenda store và staging isolation tests vượt qua |
 | 3 | 100% field có mapping decision; 100% financial flow có invariant/posting template được duyệt; auth/discrepancy/idempotency/outbox/asset schemas và clean migration vượt qua |
 | 4/4B | 0 invariant violation, duplicate posting hoặc lost update trong test matrix; toàn bộ failure point rollback đúng; snapshot chain/checksum hợp lệ |
@@ -105,7 +105,7 @@ docs/v2/database/data-quality-report.md
 
 - URL cũ không thay đổi hành vi.
 - `/api/v1` tương đương URL cũ.
-- V2 chỉ được bật trên staging.
+- V2 chỉ được bật khi có yêu cầu tường minh ở non-production; `DEPLOYMENT_ENV=production` luôn cấm mount. Local/dev và staging dùng cùng semantics feature gate theo DEC-064, nhưng staging vẫn là shared deployment target duy nhất trước cutover.
 - Chưa thay đổi MongoDB controller/service/model trong phase này ngoài import cần thiết.
 - Boundary test/lint rule chứng minh `src/v2` không import Express và V2 controller không import database infrastructure.
 
@@ -114,11 +114,11 @@ docs/v2/database/data-quality-report.md
 ### Công việc
 
 - Mở rộng `docker-compose.dev.yml` hiện có: giữ Redis, thêm PostgreSQL và profile dependency local cần thiết thay vì tạo stack rời; dùng Supabase PostgreSQL cho staging.
-- Cấu hình `DATABASE_URL` và database test riêng.
+- Cấu hình `POSTGRESQL_DATABASE_URL`, `POSTGRESQL_DIRECT_URL` và database test riêng.
 - Cài Prisma, tạo client singleton, migration/seed commands và health check.
 - Cô lập Redis namespace, jobs, email, socket và notification staging.
 - Giữ Agenda 5 với MongoDB job storage; V2 staging không dùng chung job collection/worker với production.
-- Tách staging Agenda store bằng `AGENDA_MONGODB_URI/DATABASE_NAME/COLLECTION` và credential riêng khỏi business MongoDB.
+- Tách staging Agenda store bằng `AGENDA_MONGODB_URI`, `AGENDA_DATABASE_NAME` và credential riêng khỏi business MongoDB; collection `v2_jobs` và worker identity do code quản lý.
 - Cấu hình Prisma với Supabase connection mode phù hợp môi trường chạy và tách credential staging.
 - Thiết lập Node.js 20+, Vitest, Supertest và disposable PostgreSQL/MongoDB/Redis test infrastructure theo `docs/v2/testing/strategy.md`.
 - Xây `JobScheduler` contract, `Agenda5MongoScheduler` adapter và job registry theo `docs/v2/architecture/job-scheduler.md`.

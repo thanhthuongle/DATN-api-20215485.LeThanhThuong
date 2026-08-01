@@ -61,6 +61,13 @@ Tệp này ghi lại các quyết định đã thống nhất. Thay đổi quy�
 | DEC-055 | Write authority là deployment-level control; runtime module flags fail-closed, có dependency/audit và không được chuyển writes từ V2 về V1. | Accepted |
 | DEC-056 | V1 baseline/V2 OpenAPI và approved-difference registry là contract deliverables bắt buộc trước cutover. | Accepted |
 | DEC-057 | Master phases được triển khai theo execution waves; mỗi thời điểm chỉ một wave chính active, business phases chia thành vertical slices có staging/sign-off và không chạy toàn plan trong một đợt. | Accepted |
+| DEC-058 | Yarn 1.22.22 là package manager canonical; `yarn.lock` là lockfile duy nhất. `package-lock.json` không được tạo/commit và install bằng npm bị chặn tại `preinstall`. | Accepted by project owner 2026-08-01 |
+| DEC-059 | Wave 1 dùng Prisma 7.9.1 ngay từ foundation, generator `prisma-client` dạng CommonJS và PostgreSQL driver adapter; generated TypeScript được Babel biên dịch, không chuyển V1 sang ESM. Node tối thiểu là 20.19.0. | Accepted by project owner 2026-08-01 |
+| DEC-060 | Dependency audit được project owner hoãn ra ngoài Wave 1; giữ evidence lịch sử nhưng không auto-fix, không tiếp tục xử lý và không dùng làm gate của Wave 1. | Accepted by project owner 2026-08-01 |
+| DEC-061 | Agenda staging có thể dùng cùng MongoDB cluster/server hiện có, nhưng bắt buộc dùng database, collection, worker identity và credential read/write riêng; credential đó phải bị từ chối ghi business database. Không dùng chung V1 business credential/store. | Accepted clarification of DEC-045, 2026-08-01 |
+| DEC-062 | Biến kết nối PostgreSQL dùng tên tường minh `POSTGRESQL_DATABASE_URL` cho pooled runtime và `POSTGRESQL_DIRECT_URL` cho direct migration; giá trị thật chỉ được nạp từ ignored `.env`/secret manager. Không giữ alias tên cũ để tránh cấu hình nhầm. | Accepted by project owner 2026-08-01 |
+| DEC-063 | Agenda V2 chỉ yêu cầu hai biến cấu hình `AGENDA_MONGODB_URI` và `AGENDA_DATABASE_NAME`. Collection là hằng nội bộ `v2_jobs`; worker identity tự sinh từ hostname/process. Quy tắc database/credential tách khỏi V1 của DEC-045/061 vẫn giữ nguyên. | Accepted by project owner 2026-08-01 |
+| DEC-064 | `DEPLOYMENT_ENV=production` là ranh giới duy nhất cấm mount API V2. Khi `ENABLE_API_V2=true`, mọi giá trị `DEPLOYMENT_ENV` khác `production` được xem là non-production và có thể bật V2; local/dev và staging không khác nhau về semantics feature gate. Staging vẫn là shared deployment target duy nhất trước cutover, còn V2 write flags tiếp tục mặc định tắt. | Accepted by project owner 2026-08-01 |
 
 ## Quyết định đang mở
 
@@ -73,3 +80,10 @@ Tệp này ghi lại các quyết định đã thống nhất. Thay đổi quy�
 | OPEN-009 | Chốt giữ, sửa hay deprecate các family transaction endpoints sau khi có frontend/traffic evidence; V1 generic dispatcher truyền subtype arguments không tương thích. Evidence: `src/routes/familyRoute.js`, `src/controllers/familyController.js`, transaction services. | Trước API baseline sign-off/Phase 3 |
 | OPEN-010 | Chốt quy tắc tái dựng các khoản lãi saving được cộng balance trực tiếp, không có transaction riêng. Evidence: `src/services/savingService.js` và profiler/reconstruction report. | Trước data migration rule approval |
 | OPEN-011 | Chốt chính sách transfer/contribution qua owner hoặc financial space khác nhau. Evidence: `src/services/transferService.js`, `src/services/contributionService.js`, account ownership fields. | Trước authorization/posting approval Phase 3 |
+
+## Quyết định mở đã đóng
+
+| ID | Kết quả | Evidence |
+|---|---|---|
+| OPEN-012 | Resolved by DEC-058: Yarn 1.22.22 và `yarn.lock` là canonical. | `packageManager`, install guard, single-lock verification và frozen install PASS. |
+| OPEN-013 | Resolved by DEC-059: nâng lên Prisma 7.9.1 ngay trong Wave 1. | validate/generate/migrate/seed/health, full build, V1 startup regression và 29/29 tests PASS. |

@@ -1,48 +1,18 @@
 /* eslint-disable no-console */
-import express from 'express'
 import exitHook from 'async-exit-hook'
 import { CONNECT_DB, CLOSE_DB } from '~/config/mongodb'
 import { env } from '~/config/environment'
-import { APIs } from './routes'
-import { errorHandlingMiddleware } from './middlewares/errorHandlingMiddleware'
-import cors from 'cors'
 import { corsOptions } from './config/cors'
 import { seedBanksIfEmpty } from '~/utils/seedBanks'
-import cookieParser from 'cookie-parser'
 import { agenda } from '~/agenda/agenda'
 import { loadSystemTasks } from '~/agenda/loadSystemTasks'
 import http from 'http'
 import { initSocketServer } from './sockets'
 import { initializeCacheClient } from '~/utils/cache/cacheClient'
-import { cacheStatsMiddleware } from '~/middlewares/cacheStatsMiddleware'
-import qs from 'qs'
+import { createApplication } from './app'
 
 const START_SERVER = () => {
-  const app = express()
-
-  app.set('query parser', str => qs.parse(str))
-
-  app.use((req, res, next) => {
-    res.set('Cache-Control', 'no-store')
-    next()
-  })
-
-  app.use(cookieParser())
-
-  app.use(cors(corsOptions))
-
-  app.use(express.json())
-
-  app.use(express.urlencoded({
-    extended: true
-  }))
-
-  app.use(cacheStatsMiddleware)
-
-  app.use('/', APIs)
-
-  app.use(errorHandlingMiddleware)
-
+  const app = createApplication()
   const server = http.createServer(app)
   initSocketServer(server, corsOptions)
 

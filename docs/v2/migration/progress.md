@@ -17,7 +17,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave | Phạm vi | Trạng thái |
 |---|---|---|
 | Wave 0 | Phase 0 - Discovery/V1 freeze | COMPLETED |
-| Wave 1 | Phase 1-2 - API và staging foundation | IN_PROGRESS |
+| Wave 1 | Phase 1-2 - API và staging foundation | READY_FOR_REVIEW |
 | Wave 2 | Phase 3 - PostgreSQL design freeze | NOT_STARTED |
 | Wave 3 | Phase 4-4B - Financial kernel | NOT_STARTED |
 | Wave 4A | Phase 5 - Foundation modules | NOT_STARTED |
@@ -37,8 +37,8 @@ Ngày khởi tạo tài liệu: 2026-07-31
 |---|---|---|
 | Documentation baseline | Ghi nhận kiến trúc và kế hoạch đã thống nhất | COMPLETED |
 | Phase 0 | Inventory và đóng băng hành vi V1 | COMPLETED |
-| Phase 1 | API versioning | IN_PROGRESS |
-| Phase 2 | PostgreSQL staging foundation | NOT_STARTED |
+| Phase 1 | API versioning | COMPLETED |
+| Phase 2 | PostgreSQL staging foundation | READY_FOR_REVIEW |
 | Phase 3 | PostgreSQL data model | NOT_STARTED |
 | Phase 4 | Transaction core | NOT_STARTED |
 | Phase 4B | Periodic balance snapshot core | NOT_STARTED |
@@ -57,7 +57,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 
 ## Wave/phase đang hoạt động
 
-Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01 sau khi đạt toàn bộ source/data inventory exit metrics. Wave 1 / Phase 1 được mở theo yêu cầu của project owner; Phase 2 chỉ được mở sau khi Phase 1 đạt exit criteria và được nghiệm thu.
+Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01. Wave 1 Phase 1 đã đạt exit criteria và `COMPLETED`; Phase 2 implementation/local verification, Supabase least-privilege/TLS và Agenda staging isolation/execution đều PASS. Phase 2/Wave 1 hiện `READY_FOR_REVIEW`, chưa `COMPLETED`; Wave 2 chưa được mở.
 
 ## Wave 1 task register
 
@@ -65,16 +65,106 @@ Các task Wave 1 được thực hiện tuần tự. Task kế tiếp chỉ đư
 
 | Task | Phase | Phạm vi | Trạng thái | Evidence/review |
 |---|---|---|---|---|
-| W1-01 | Phase 1 | API boundary, legacy URL, `/api/v1`, `/api/v2/health` | IN_PROGRESS | Pending implementation/review |
-| W1-02 | Phase 1 | Feature-flag registry và fail-closed write flags | NOT_STARTED | Chờ W1-01 |
-| W1-03 | Phase 1 | OpenAPI V1 baseline skeleton và approved differences | NOT_STARTED | Chờ W1-02 |
-| W1-04 | Phase 1 | Boundary/contract/V1 regression gate | NOT_STARTED | Chờ W1-03 |
-| W1-05 | Phase 2 | Docker Compose và local/staging isolation config | NOT_STARTED | Chờ Phase 1 sign-off |
-| W1-06 | Phase 2 | Prisma client, migration/seed commands và PostgreSQL health | NOT_STARTED | Chờ W1-05 |
-| W1-07 | Phase 2 | Node 20+, Vitest, Supertest và Testcontainers foundation | NOT_STARTED | Chờ W1-06 |
-| W1-08 | Phase 2 | JobScheduler, Agenda 5 adapter/store isolation và registry | NOT_STARTED | Chờ W1-07 |
-| W1-09 | Phase 2 | Side-effect isolation, observability và flag conventions | NOT_STARTED | Chờ W1-08 |
-| W1-10 | Phase 2 | Local/staging health, isolation và V1 regression gate | NOT_STARTED | Chờ W1-09 |
+| W1-01 | Phase 1 | API boundary, legacy URL, `/api/v1`, `/api/v2/health` | COMPLETED | Reviewed: build + targeted lint PASS; 55 V1 operations; legacy `/status` = `/api/v1/status`; gated V2 health PASS |
+| W1-02 | Phase 1 | Feature-flag registry và fail-closed write flags | COMPLETED | Reviewed: 6 write flags default off; write-authority/dependency/malformed-config fail-closed tests PASS; `src/v2` Express scan clean |
+| W1-03 | Phase 1 | OpenAPI V1 baseline skeleton và approved differences | COMPLETED | Reviewed: valid YAML; 44 paths/55 unique operations; 0 approved differences; candidates remain unapproved |
+| W1-04 | Phase 1 | Boundary/contract/V1 regression gate | COMPLETED | Phase 1 accepted: aggregate verification, full lint, build and source-boundary regression PASS |
+| W1-05 | Phase 2 | Docker Compose và local/staging isolation config | COMPLETED | Reviewed: Compose config PASS; PostgreSQL 16, Redis 7, Agenda MongoDB 7 all healthy; staging placeholders/isolation documented |
+| W1-06 | Phase 2 | Prisma client, migration/seed commands và PostgreSQL health | COMPLETED | Reviewed/refreshed: Prisma 7.9.1 + pg adapter validate/generate; one infrastructure migration; seed; local health 82ms; 0 business tables; V1 stays CommonJS |
+| W1-07 | Phase 2 | Node 20+, Vitest, Supertest và Testcontainers foundation | COMPLETED | Reviewed: Node 22.22 satisfies >=20.19; Vitest/Supertest; disposable PostgreSQL migration/health; 3 files/7 tests PASS at gate |
+| W1-08 | Phase 2 | JobScheduler, Agenda 5 adapter/store isolation và registry | COMPLETED | Reviewed: registry-only concurrency/lock policy; partial unique stable-key index; 20-way concurrency/graceful-stop/auth-isolation/IANA tests PASS |
+| W1-09 | Phase 2 | Side-effect isolation, observability và flag conventions | COMPLETED | Reviewed: Redis namespace container test; safe email/socket/notification modes; correlation/recursive-redaction/circular/flag-audit tests PASS |
+| W1-10 | Phase 2 | Local/staging health, isolation và V1 regression gate | READY_FOR_REVIEW | All functional/isolation gates PASS; Supabase runtime/migration client sockets encrypted after option-A remediation; Agenda isolation/execution and full regression PASS |
+
+### Wave 1 verification log
+
+| Task | Command/check | Kết quả |
+|---|---|---|
+| W1-01 | `yarn verify:phase1:api` | PASS: legacy and `/api/v1` parity; V2 health enabled/disabled behavior; 55 V1 source operations retained |
+| W1-01 | Targeted ESLint for `src/app.js`, `src/server.js`, environment and `src/api/**` | PASS, 0 issue |
+| W1-01 | `git diff --check` | PASS; only expected Windows LF/CRLF warnings |
+| W1-02 | `yarn verify:phase1:flags` | PASS: 6 V2 write flags default off; V1 authority, dependency, unknown/malformed config checks fail closed |
+| W1-02 | Targeted ESLint + `src/v2` Express-object scan | PASS, 0 issue/import/reference |
+| W1-03 | `yarn verify:phase1:contracts` + YAML parse | PASS: OpenAPI 3.1, 44 paths/55 operationIds, no duplicate operationId, 0 approved difference |
+| W1-04 | `yarn verify:phase1` | PASS: build + API parity + flags + OpenAPI + boundary tests |
+| W1-04 | `yarn lint` | PASS, 0 error/warning on current source |
+| W1-05 | `docker compose ... --profile v2 config` | PASS; one extended Compose stack, existing Redis retained |
+| W1-05 | `docker compose ... --profile v2 up -d --wait` + service probes | PASS: PostgreSQL accepting connections, Redis `PONG`, Agenda database `agenda_v2`; 3/3 containers healthy |
+| W1-06 | `yarn prisma:validate` / generate / migrate deploy / seed | PASS on Prisma 7.9.1: schema valid, CommonJS client generated, 1 migration applied/idempotent, infrastructure-only seed |
+| W1-06 | `yarn db:local:health` | PASS: Prisma 7 PostgreSQL adapter `SELECT 1`, latest 82ms observed |
+| W1-06 | PostgreSQL catalog check | PASS: 1 completed Prisma migration, `pgcrypto` present, 0 Phase 2 business tables |
+| W1-07 | `yarn test` at W1-07 gate | PASS: 3 files/7 tests; unit, Supertest contract and disposable PostgreSQL migration/health |
+| W1-07 | Node/runtime check | PASS: Node 22.22.0 against declared `>=20.19.0`; `.nvmrc` baseline 20.19.0 |
+| W1-08 | Unit + Agenda/MongoDB Testcontainers integration | PASS: 4 unit files/10 tests and 2 integration files/5 tests after scheduler scope; duplicate stable key produced 1 stored job; graceful stop idempotent |
+| W1-08 | Agenda credential authorization test | PASS: dedicated `readWrite` credential dispatched in `agenda_v2_test` and was denied write to V1 business database |
+| W1-08 | IANA timezone tests | PASS: Asia/Ho_Chi_Minh and America/New_York DST conversion/reschedule; invalid timezone rejected; no hard-coded +7 in V2 |
+| W1-09 | Unit/contract/integration isolation tests | PASS: 6 unit files/17 tests, 1 contract file/2 tests, 3 integration files/6 tests |
+| W1-09 | Redis Testcontainer namespace test | PASS: identical logical V1/V2 keys remained physically/value-isolated |
+| W1-09 | Staging side-effect/observability tests | PASS: live production modes rejected; correlation header preserved/generated; secrets redacted; flag audit shape immutable |
+| W1-10 | `yarn test:coverage` after Prisma 7/Yarn/Agenda routing decisions | PASS: 11 files/29 tests; statements 83.87%, branches 80.82%, functions 80.64%, lines 86.78% |
+| W1-10 | V1 startup regression on disposable standalone MongoDB | PASS: DB connect, seed, Agenda start, legacy `/status` and `/api/v1/status` 200/equal; V2 default 404 |
+| W1-10 | `yarn install --frozen-lockfile` + single-lock/install guard | PASS: Yarn 1.22.22 canonical; one `yarn.lock`; `package-lock.json` absent |
+| W1-10 | PostgreSQL/Agenda environment contract simplification | PASS: explicit PostgreSQL names applied with legacy names 0; Agenda public config reduced to URI/database, code-owned collection/worker identity; pathless URI normalized; full suite 29/29 PASS |
+| W1-10 | Final `yarn verify:phase1`, lint, build, Prisma validate | PASS: 55 V1 operations; Prisma generate + Babel 145 files; 14 `src/v2` files free of Express objects; ESLint 0 issue; Prisma schema valid |
+| W1-10 | Final local Compose health | PASS: PostgreSQL/Redis/Agenda MongoDB 3/3 healthy and still running |
+| W1-10 | Supabase staging connectivity recheck | PASS: pooled/session-migration connect, idempotent migration, seed and runtime health 568ms; 1 migration, 0 business tables |
+| W1-10 | Supabase staging role isolation recheck | PASS: roles distinct; runtime schema/database/create-role/create-database/superuser all false; migration role retains schema/database CREATE |
+| W1-10 | Agenda staging connectivity | PASS via in-memory DNS fallback: 3 SRV/1 TXT, TCP/TLS, authenticated ping; no secret/seed list persisted |
+| W1-10 | Agenda staging authorization final recheck | PASS on fresh connection: 0 all-database write scopes; 6 Agenda-database write scopes; Agenda write allowed; business write denied; database names distinct |
+| W1-10 | Agenda staging routing/execution/cleanup | PASS: pathless URI routing; real Atlas credential with Agenda 5-compatible driver; duplicate stable key produced 1 stored job and 1 handler execution; cleanup left 0 probes |
+| W1-10 | Final post-staging `yarn test` | PASS: 11 files/29 tests after Supabase and Agenda gates closed |
+| W1-10 | Final full Wave 1 re-audit | PASS: frozen install; build 145 files; lint 0; Phase 1 verification; Compose 3/3; local migrate/seed/health 95ms; 29/29 tests; unchanged coverage |
+| W1-10 | Supabase transport-security audit | **FAIL/BLOCKING**: runtime and migration client sockets both unencrypted; `pg_stat_ssl=false`; current URLs do not request TLS |
+| W1-10 | Supabase TLS remediation proof (in-memory only) | PASS candidate: `uselibpqcompat=true&sslmode=require` gives encrypted client sockets and idempotent Prisma migrate PASS; not persisted to `.env`, CA/hostname verification still not configured |
+| W1-10 | Supabase TLS final persisted recheck | PASS: both URLs contain `uselibpqcompat=true&sslmode=require`; runtime/migration client sockets encrypted; roles distinct; Prisma validate/migrate/seed and health 681ms PASS |
+| W1-10 | Non-production V2 gate owner decision and staging TLS template review | PASS: DEC-064 records non-production semantics; production remains fail-closed; both placeholder URLs use option-A TLS parameters and the pooled URL retains its query delimiter |
+| W1-10 | Recursive structured-log redaction remediation | PASS: nested object/array authorization, cookie, password and token fields are redacted; circular references serialize safely; 6 unit files/20 tests and targeted lint PASS |
+| W1-10 | Agenda stable-key concurrency remediation | PASS: code-owned partial unique `{ name, data.stableKey }` index is ensured before worker start; 20 concurrent schedules produced 1 stored job/1 handler execution; 4 integration files/9 tests and targeted lint PASS |
+| W1-10 | Agenda registry-policy and duplicate-race remediation | PASS: `define(jobName, handler)` no longer accepts Agenda policy overrides; concurrency/lock lifetime come only from the reviewed registry; explicit E11000 recovery returns the existing stable-key job; focused unit 4/4 and targeted lint PASS |
+| W1-10 | Post-review full local verification | PASS: 11 files/33 tests; statements 84.45%, branches 80.50%, functions 82.08%, lines 87.89%; Phase 1, full lint, Prisma validate/migrate/seed/health 82ms, package policy and Compose 3/3 PASS |
+| W1-10 | Agenda staging stable-key index remediation | PASS: preflight found 0 duplicate stable-key groups; code-owned partial unique index present/unique; staging `v2_jobs` now has 3 indexes; no job or credential was logged |
+
+### Phase 1 acceptance metrics
+
+| Metric | Actual | Kết quả |
+|---|---:|---|
+| Legacy V1 source operations retained/mounted | 55/55 at legacy root and same router at `/api/v1` | PASS |
+| Legacy smoke contract | `/status` and `/api/v1/status` identical status/body/headers | PASS |
+| V2 foundation endpoints | 1 health operation; enabled and disabled mount cases tested | PASS |
+| V2 deployment gate | Default disabled; `ENABLE_API_V2=true` still resolves false for `DEPLOYMENT_ENV=production`; other deployment labels are explicitly non-production by DEC-064 | PASS owner-approved/fail-closed in production |
+| V2 write feature flags | 6/6 default disabled; authority/dependency checks enforced | PASS |
+| V1 OpenAPI baseline | 44 paths, 55/55 unique operations; 0 approved differences | PASS skeleton |
+| Source boundary | 14/14 current `src/v2` files free of Express objects; V2 controllers have 0 infrastructure import; legacy implementation diff empty | PASS |
+| Build/lint | Prisma generate + Babel build 145 files; ESLint 0 issue | PASS |
+
+Phase 1 đạt exit criteria và được nghiệm thu nội bộ ngày 2026-08-01 trước khi mở Phase 2. OpenAPI mới là baseline skeleton theo đúng scope Phase 1; schema chi tiết tiếp tục cần fixture/contract promotion ở các phase nghiệp vụ.
+
+### Phase 2 acceptance metrics
+
+| Metric | Actual | Kết quả |
+|---|---:|---|
+| Local Compose dependencies | PostgreSQL 16 + Redis 7 + Agenda MongoDB 7; 3/3 healthy | PASS |
+| Clean PostgreSQL foundation | 1/1 infrastructure migration; seed PASS; 0 business tables | PASS |
+| Package manager | Yarn 1.22.22; one canonical `yarn.lock`; frozen install/install guard PASS | PASS |
+| Prisma local/API health | Prisma 7.9.1 + pg adapter `SELECT 1` PASS (latest 95ms observed); `/api/v2/health/postgres` integration PASS | PASS |
+| Node/test stack | Node 22.22.0 (`>=20.19`), Vitest/Supertest/Testcontainers; 11 files/33 tests | PASS |
+| Coverage evidence | statements 84.45%; branches 80.50%; functions 82.08%; lines 87.89% | PASS signal, no arbitrary threshold |
+| Scheduler contract | 6/6 required methods implemented and exercised | PASS |
+| Agenda stable-key/graceful shutdown | partial unique index; 20 concurrent schedules -> 1 stored job/1 execution; repeated stop safe | PASS |
+| Agenda credential isolation | test credential writes Agenda DB and is denied on business DB | PASS disposable environment |
+| IANA reminder time | UTC conversion/reschedule + DST/invalid-zone cases | PASS |
+| Redis isolation | same logical key separated across V1/V2 namespaces | PASS |
+| Email/Socket/notification staging modes | unsafe live modes rejected; sink/disabled/capture conventions tested | PASS config boundary |
+| V1 regression | disposable MongoDB startup + legacy/versioned status parity | PASS |
+| Supabase PostgreSQL staging | pooled/session-migration connect; roles distinct; both client sockets encrypted; migration/seed/health 681ms; 1 migration, 0 business tables | PASS option-A TLS |
+| Actual Agenda staging credential/store | TCP/TLS/connect/ping PASS; 0 all-database write scopes; 6 Agenda DB write scopes; business DB write denied | PASS |
+| Actual Agenda staging job/store | Agenda 5 adapter: duplicate stable key -> 1 stored job, handler execution 1, cleanup probes 0; preflight duplicate groups 0 and code-owned unique stable-key index present (3 total indexes) | PASS |
+
+Phase 2 and Wave 1 meet the implementation/evidence exit gate and are `READY_FOR_REVIEW`. Project-owner review/sign-off is still required before `COMPLETED`. No business endpoint, business Prisma model, ledger or balance write was implemented.
+
+Full Wave 1 file/evidence review: `docs/v2/migration/wave-1-review.md`.
+
+W1-01 also replaces the non-portable `rm -rf build` command with an equivalent Node `fs.rmSync` build-clean script. This restores the existing V1 Babel build on Windows and does not change runtime behavior.
 
 ## Wave 0 task register
 
@@ -147,6 +237,11 @@ Chi tiết evidence, file đã đọc và review outcome nằm ở `wave-0-revie
 
 ## Blockers
 
+- `W1-STAGING-DB-001` (`RESOLVED` 2026-08-01): runtime/migration roles đã tách. Runtime role không có quyền tạo schema/database/role, không phải superuser; migration role vẫn có schema/database CREATE. Prisma validate, idempotent migrate deploy, infrastructure-only seed và runtime health 568ms đều PASS; 1 migration, 0 business tables. Transport TLS được theo dõi riêng bởi `W1-STAGING-TLS-001`.
+- `W1-STAGING-AGENDA-001` (`RESOLVED` 2026-08-01): credential mới kết nối/ping PASS; server báo 0 all-database write scope, 6 Agenda-database write scopes và business-DB write denied. Agenda 5 adapter chạy real staging smoke job đúng 1 lần cho duplicate stable key, tạo 1 stored job và cleanup còn 0 probe. Native SRV resolver của máy vẫn `ECONNREFUSED`; verification dùng DNS fallback in-memory và MongoDB driver v4 đi kèm Agenda 5, không persist seed/credential. Đây là environment limitation đã có authenticated TLS/adapter evidence, không còn là credential/execution blocker.
+- `W1-STAGING-TLS-001` (`RESOLVED` 2026-08-01): cả hai ignored `.env` URLs đã dùng `uselibpqcompat=true&sslmode=require`; runtime và migration client sockets đều `encrypted=true`. Roles vẫn tách, runtime không có schema/database/role/admin privilege; Prisma validate, idempotent migrate, seed và health 681ms PASS. Đây là option-A transport encryption, chưa xác minh CA/hostname như `verify-full`; migration credential vẫn có DDL/role/database-create capability và chỉ được dùng cho protected migration tooling.
+- `W1-DEPENDENCY-AUDIT-001` (`OWNER_DEFERRED_NON_GATING` theo DEC-060): evidence audit lịch sử được giữ nguyên; không auto-fix, không tiếp tục xử lý và không dùng làm blocker/acceptance gate Wave 1.
+
 - `W0-DATA-ACCESS-001` (`RESOLVED` 2026-08-01): Node SRV resolver vẫn lỗi nhưng read-only production/development profiles đã chạy thành công qua TLS seed list được derive trong memory từ Atlas DNS. Không credential nào được ghi vào report.
 - `W0-FRONTEND-EVIDENCE-001` (`RESOLVED_FOR_SCOPE` 2026-08-01): project owner xác nhận 55/55 V1 operations đều được frontend sử dụng và phải nằm trong migration scope. Không có per-endpoint traffic telemetry; không endpoint nào được deprecate dựa trên thiếu log.
 - `W0-TEST-EVIDENCE-001` (`ACCEPTED_LIMITATION`): repo không có test/spec/fixture hoặc test script. Wave 0 dùng route/model/service evidence và read-only production profile; test foundation vẫn là entry work của Phase 2 và không được coi là đã hoàn thành sớm.
@@ -162,6 +257,8 @@ Không còn blocker Wave 0 chưa phân loại. Hai non-zero data issues là 4 pr
 - `OPEN-009`: giữ/sửa/deprecate family financial endpoints sau frontend/traffic evidence.
 - `OPEN-010`: reconstruction cho direct saving-interest credits.
 - `OPEN-011`: cross-owner/cross-financial-space transfer/contribution policy.
+- `OPEN-012` đã đóng bởi DEC-058: Yarn 1.22.22/`yarn.lock` canonical.
+- `OPEN-013` đã đóng bởi DEC-059: Prisma 7.9.1 + pg adapter/CommonJS generator trong Wave 1.
 
 Các decision mới chỉ được đăng ký `Open` trong `decision-register.md`; chưa decision nào được ngầm phê duyệt.
 
@@ -178,7 +275,7 @@ Các decision mới chỉ được đăng ký `Open` trong `decision-register.md
 | Mongo profiler v2 execution | PASS production via derived TLS seed list; `listCollections`/`countDocuments`/`find`/`listIndexes` only; no credential recorded |
 | Cloudinary manifest comparison | PASS read-only: DB refs 3/3 resolve; provider resources 7; unreferenced 4; no upload/delete |
 
-Không có automated test script để chạy. Baseline lint failure không phát sinh từ Wave 0 docs/script và chưa được auto-fix. Không có commit/push trong lượt triển khai này.
+Tại gate Wave 0 ban đầu chưa có automated test script; baseline lint failure khi đó không phát sinh từ Wave 0 docs/script và không được auto-fix. Wave 1 hiện đã bổ sung test foundation và có verification log riêng ở trên. Không có commit/push trong lượt triển khai này.
 
 ## Gates đã biết
 
