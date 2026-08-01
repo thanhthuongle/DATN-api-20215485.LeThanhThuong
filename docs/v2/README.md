@@ -31,6 +31,7 @@ docs/v2/
 │   ├── data-migration-strategy.md
 │   ├── financial-invariant-matrix.md
 │   ├── final-migration-strategy.md
+│   ├── execution-waves.md
 │   ├── master-plan.md
 │   ├── progress.md
 │   └── shadow-validation.md
@@ -61,7 +62,8 @@ docs/v2/
 16. `testing/strategy.md`: hạ tầng và test gates.
 17. `operations/production-readiness.md`: hosting gate, RPO/RTO, restore, observability và feature flags.
 18. `operations/agenda-retirement.md`: lộ trình nâng Agenda và loại MongoDB.
-19. `migration/master-plan.md`: kế hoạch triển khai theo phase.
-20. `migration/progress.md`: trạng thái thực tế của công việc.
+19. `migration/master-plan.md`: kế hoạch kiến trúc/dependency theo phase.
+20. `migration/execution-waves.md`: cách chia phase thành các đợt triển khai, vertical slices và staging gates.
+21. `migration/progress.md`: trạng thái thực tế của wave/phase/task.
 
-`migration/master-plan.md` là kế hoạch tổng thể. `migration/progress.md` mới là nguồn xác định phase nào đã thực sự được triển khai và nghiệm thu.
+`migration/master-plan.md` định nghĩa nội dung/dependency; `migration/execution-waves.md` định nghĩa thứ tự thực thi có kiểm soát. `migration/progress.md` là nguồn xác định wave/phase/task nào đã thực sự được triển khai và nghiệm thu.

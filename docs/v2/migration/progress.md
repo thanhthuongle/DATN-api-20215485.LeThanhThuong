@@ -12,6 +12,27 @@ Ngày khởi tạo tài liệu: 2026-07-31
 
 ## Tổng quan
 
+### Execution waves
+
+| Wave | Phạm vi | Trạng thái |
+|---|---|---|
+| Wave 0 | Phase 0 - Discovery/V1 freeze | NOT_STARTED |
+| Wave 1 | Phase 1-2 - API và staging foundation | NOT_STARTED |
+| Wave 2 | Phase 3 - PostgreSQL design freeze | NOT_STARTED |
+| Wave 3 | Phase 4-4B - Financial kernel | NOT_STARTED |
+| Wave 4A | Phase 5 - Foundation modules | NOT_STARTED |
+| Wave 4B | Phase 6 - Sources/accounts | NOT_STARTED |
+| Wave 4C | Phase 7 - Income/expense/transfer | NOT_STARTED |
+| Wave 4D | Phase 7 - Debt/advanced commands | NOT_STARTED |
+| Wave 4E | Phase 7 - Time-based savings | NOT_STARTED |
+| Wave 5 | Phase 8-9 - Read models/operations | NOT_STARTED |
+| Wave 6 | Phase 10-10B - Migration/differential validation | NOT_STARTED |
+| Wave 7 | Phase 11 - Release candidate | NOT_STARTED |
+| Wave 8 | Phase 12 - Cutover/hypercare | NOT_STARTED |
+| Wave 9 | Phase 13-15 - Agenda/MongoDB retirement | NOT_STARTED |
+
+### Phases
+
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
 | Documentation baseline | Ghi nhận kiến trúc và kế hoạch đã thống nhất | COMPLETED |
@@ -34,9 +55,9 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 14 | Agenda 6 MongoDB -> PostgreSQL backend | NOT_STARTED |
 | Phase 15 | MongoDB retirement | NOT_STARTED |
 
-## Phase đang hoạt động
+## Wave/phase đang hoạt động
 
-Chưa có phase triển khai source code nào đang hoạt động. Bước tiếp theo là Phase 0.
+Chưa có wave/phase triển khai source code nào đang hoạt động. Bước tiếp theo là Wave 0 / Phase 0.
 
 ## Phase 0 checklist
 
@@ -70,6 +91,8 @@ Không có blocker đã biết.
 ## Quy tắc cập nhật
 
 - Chỉ đánh dấu phase `COMPLETED` khi đạt exit criteria trong `master-plan.md`.
+- Chỉ đánh dấu wave `COMPLETED` khi toàn bộ phase/sub-wave trong scope đạt sign-off theo `execution-waves.md`.
+- Mỗi thời điểm chỉ có một wave chính `IN_PROGRESS`; không mở task mới chạm cùng schema/core trước khi task hiện tại review xong.
 - Ghi blocker và quyết định phát sinh trước khi tiếp tục phase phụ thuộc.
 - Mỗi lần hoàn thành task phải cập nhật checklist, test đã chạy và commit liên quan.
 - Mỗi phase phải ghi acceptance metrics thực tế, đường dẫn evidence/report và approved exceptions trước khi chuyển `COMPLETED`.

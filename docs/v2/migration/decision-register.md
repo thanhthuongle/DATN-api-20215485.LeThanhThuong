@@ -60,6 +60,7 @@ Tệp này ghi lại các quyết định đã thống nhất. Thay đổi quy�
 | DEC-054 | Production readiness bắt buộc có financial/DB/outbox/job/snapshot observability, alert owner và runbook. | Accepted |
 | DEC-055 | Write authority là deployment-level control; runtime module flags fail-closed, có dependency/audit và không được chuyển writes từ V2 về V1. | Accepted |
 | DEC-056 | V1 baseline/V2 OpenAPI và approved-difference registry là contract deliverables bắt buộc trước cutover. | Accepted |
+| DEC-057 | Master phases được triển khai theo execution waves; mỗi thời điểm chỉ một wave chính active, business phases chia thành vertical slices có staging/sign-off và không chạy toàn plan trong một đợt. | Accepted |
 
 ## Quyết định đang mở
 

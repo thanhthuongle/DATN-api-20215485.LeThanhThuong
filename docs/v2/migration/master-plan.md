@@ -22,6 +22,8 @@ phân tích -> cập nhật tài liệu -> triển khai phạm vi nhỏ
 - Feature flag không thay đổi nguyên tắc single write authority: tại một thời điểm financial write chỉ thuộc V1 hoặc V2.
 - `src/api/v2` là HTTP layer; `src/v2` không phụ thuộc Express request/response và chỉ chứa business/core/infrastructure.
 - Financial write repositories/raw SQL luôn dùng explicit transaction context; không dùng global Prisma client.
+- Các phase được thực thi theo waves trong `docs/v2/migration/execution-waves.md`; không chạy toàn bộ plan trong một đợt.
+- Mỗi thời điểm chỉ một wave chính active; Phase 5-7 được chia thành vertical slices và staging sign-off riêng.
 
 ### Acceptance metrics theo phase
 
