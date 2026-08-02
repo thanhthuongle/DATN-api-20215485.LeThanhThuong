@@ -28,7 +28,7 @@ Ngày review: 2026-08-02. Kết luận: **READY_FOR_REVIEW**, chờ project-owne
 
 - Updated `decision-register.md`, `financial-invariant-matrix.md`, `migration-rule-catalog.md` and `data-quality-report.md`.
 - Added `legacy-financial-posting-rules.md`, `reconciliation-specification.md` and `wave-2-dry-run-report.md`.
-- Added `prisma/schema.prisma`, versioned migration `20260802091444_wave2_physical_schema`, idempotent `prisma/seed.ts` and three verification/dry-run scripts.
+- Added `prisma/schema.prisma`, seven versioned migrations through `20260802124000_wave2_immutable_migration_evidence`, idempotent `prisma/seed.ts`, least-privilege role policy/provisioning and the verification/dry-run scripts.
 - Updated `tests/integration/postgresFoundation.test.js` from the obsolete Phase 2 expectation to the reviewed Wave 2 schema metrics.
 
 ## 3. Acceptance metrics
@@ -39,23 +39,26 @@ Ngày review: 2026-08-02. Kết luận: **READY_FOR_REVIEW**, chờ project-owne
 | Source field/path dispositions | 305/305; 190 transform, 29 migrate, 85 archive, 1 security drop | PASS |
 | Logical required entities | 19/19 | PASS |
 | PostgreSQL tables / enums | 45 / 52 | PASS |
-| Foreign keys / CHECK constraints / triggers | 105 / 65 / 39 | PASS |
+| Foreign keys / CHECK constraints / triggers | 105 / 70 / 50 | PASS |
+| Payload-safe readonly views | 4 | PASS |
 | PUBLIC table grants | 0 | PASS |
 | Business posting templates | 17/17 APPROVED | PASS |
 | Physical template definitions | 18/18 APPROVED, 18 distinct hashes | PASS |
 | System definitions / entry roles | 8 / 43 | PASS |
 | TBD/DRAFT posting rows in cutover matrix | 0 | PASS |
-| Clean migrations | 2/2 applied from empty database | PASS |
+| Clean migrations | 7/7 applied from empty database | PASS |
 | Prisma live-schema drift | empty migration | PASS |
 | Controlled source routes | 26/26 | PASS |
 | Dry-run records | 22 = 16 loaded + 6 archive-only + 0 rejected | PASS |
 | Dry-run data errors | 0 unclassified, 0 active BLOCKING | PASS |
 | Ledger result | 5 transactions, 10 entries, 0 unbalanced | PASS |
 | Balance reconciliation | 3/3 match, total/max difference 0 VND | PASS |
-| Deterministic clean rerun | identical source checksum and target hash | PASS |
-| Full reversal guard | exact opposite accepted; 1 VND mismatch rejected; probes rolled back | PASS |
+| Deterministic clean rerun | identical source checksum and database-derived hash over 17 groups / 89 rows | PASS |
+| Financial database guards | atomic projection; type/detail/amount; exact reversal; audited anchor probes PASS | PASS |
+| Sanitized migration evidence | 22/22 hash match; 0 secret leak; update/delete/reclassification rejected | PASS |
+| Database credential boundary | migration/application identities derived from authenticated URLs; distinct-role fail-closed guard; application positive/negative privileges on disposable PostgreSQL | PASS |
 | V1/API regression | 55 V1 operations; legacy and `/api/v1` parity; V2 health gate PASS | PASS |
-| Full test suite | 11/11 files, 33/33 tests | PASS |
+| Full test suite | 11/11 files, 36/36 tests | PASS |
 | Coverage | statements 84.45%, branches 80.50%, functions 82.08%, lines 87.89% | PASS/supporting |
 
 ## 4. Commands and evidence
@@ -68,6 +71,9 @@ yarn prisma:seed
 yarn db:verify:wave2-schema
 yarn db:dry-run:wave2
 yarn db:verify:wave2-financial-guards
+yarn db:verify:wave2-migration-evidence
+yarn db:provision:wave2-roles
+yarn db:verify:wave2-privileges
 yarn verify:package-manager
 yarn verify:phase1
 yarn lint
@@ -77,7 +83,7 @@ prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --
 git diff --check
 ```
 
-All final commands PASS. The first sandboxed `yarn test` attempt could not access Docker; the authorized Testcontainers rerun executed all 33 tests and passed. `git diff --check` emits Windows LF/CRLF notices only.
+All final local/disposable commands PASS. The authorized Testcontainers rerun executed all 36 tests and passed. `git diff --check` emits Windows LF/CRLF notices only. Role provisioning was executed and verified with disposable credentials through the integration harness; it never creates roles or mutates Supabase automatically. Migration/application identifiers are derived from authenticated `current_user`, so no parallel role-name configuration is required.
 
 ## 5. Data-quality and dry-run conclusion
 
@@ -86,13 +92,16 @@ All final commands PASS. The first sandboxed `yarn test` attempt could not acces
 - Six rows are explicitly routed to archive-only lanes; nothing is silently skipped.
 - No migration anchor was created. `MIGRATION_EQUITY` exists as an active definition only and requires audited discrepancy/evidence/approval.
 - Source checksum: `7695a5af5504c4c684d81bcfb4bb3cfa88e7cfee4556d10f0fc5b277609dd074`.
-- Target hash: `591684e02e2b2c74e0382c740f6402b6728209d5368a0131b167ea9d506d176e`.
+- Target hash: `9c743816ebd15e71aa57dc76fe6eb3198b2ec49709b7bb904e4f6a0fa43417eb` over 17 canonical PostgreSQL groups / 89 persisted rows.
+- Sanitized source evidence: 22/22 hashes match, zero secret leak, immutable update/delete/terminal-transition probes rejected.
 
 ## 6. Blockers and retained decisions
 
 There is no unresolved blocker inside Wave 2 exit criteria. `OPEN-005` (production PostgreSQL hosting/connection/RPO/RTO) remains intentionally open for Phase 10B and does not block the Phase 3 design freeze.
 
 Retained later gates are not Wave 2 defects: final cutover requires an immutable production snapshot and at least three rehearsals; full financial command implementation/tests belong to Wave 3; Supabase staging was not mutated by this local controlled dry-run.
+
+Before the next controlled Supabase schema deployment, operators run `yarn db:provision:wave2-roles` and `yarn db:verify:wave2-privileges` with the existing `POSTGRESQL_DIRECT_URL` and `POSTGRESQL_DATABASE_URL`. Both commands authenticate the URLs, derive their actual `current_user` identities and fail if the roles are equal. Job/readonly profiles remain in the physical specification and receive dedicated URL credentials plus grants only when those PostgreSQL consumers are introduced; Agenda currently uses its isolated MongoDB store.
 
 Prisma reports expected warnings for CHECK constraints and deferrable FKs it cannot fully express. Raw versioned migration is authoritative for those constraints, partial indexes, triggers and grants; live database -> Prisma diff is empty after introspection.
 

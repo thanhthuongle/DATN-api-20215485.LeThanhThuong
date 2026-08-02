@@ -47,11 +47,17 @@ const expectedTables = [
   'user_notifications',
   'users'
 ]
+const expectedViews = [
+  'v2_readonly_discrepancy_summary',
+  'v2_readonly_financial_transactions',
+  'v2_readonly_ledger_accounts',
+  'v2_readonly_migration_runs'
+]
 
-const connectionString = process.env.POSTGRESQL_DATABASE_URL || process.env.POSTGRESQL_DIRECT_URL
+const connectionString = process.env.POSTGRESQL_DIRECT_URL
 
 if (!connectionString) {
-  throw new Error('POSTGRESQL_DATABASE_URL or POSTGRESQL_DIRECT_URL is required')
+  throw new Error('POSTGRESQL_DIRECT_URL is required for schema verification')
 }
 
 const assert = (condition, message) => {
@@ -78,6 +84,14 @@ const run = async () => {
       JSON.stringify(actualTables) === JSON.stringify([...expectedTables].sort()),
       `Expected exactly ${expectedTables.length} Wave 2 tables, received ${actualTables.length}`
     )
+    const viewResult = await client.query(`
+      SELECT table_name
+      FROM information_schema.views
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `)
+    const actualViews = viewResult.rows.map(({ table_name: tableName }) => tableName)
+    assert(JSON.stringify(actualViews) === JSON.stringify(expectedViews), `Expected exactly ${expectedViews.length} safe views, received ${actualViews.length}`)
 
     const enumCount = await scalar(
       client,
@@ -102,8 +116,8 @@ const run = async () => {
 
     assert(enumCount === 52, `Expected 52 enums, received ${enumCount}`)
     assert(foreignKeyCount === 105, `Expected 105 foreign keys, received ${foreignKeyCount}`)
-    assert(checkCount >= 65, `Expected at least 65 checks, received ${checkCount}`)
-    assert(triggerCount >= 39, `Expected at least 39 triggers, received ${triggerCount}`)
+    assert(checkCount >= 70, `Expected at least 70 checks, received ${checkCount}`)
+    assert(triggerCount >= 50, `Expected at least 50 triggers, received ${triggerCount}`)
     assert(publicGrantCount === 0, `Expected no PUBLIC table grants, received ${publicGrantCount}`)
 
     await client.query('BEGIN')
@@ -124,7 +138,7 @@ const run = async () => {
     assert(immutabilityGuarded, 'Append-only audit trigger did not reject update')
 
     process.stdout.write(
-      `Wave 2 schema verification PASS: tables=${actualTables.length}, enums=${enumCount}, foreign_keys=${foreignKeyCount}, checks=${checkCount}, triggers=${triggerCount}, public_grants=${publicGrantCount}, append_only=PASS\n`
+      `Wave 2 schema verification PASS: tables=${actualTables.length}, safe_views=${actualViews.length}, enums=${enumCount}, foreign_keys=${foreignKeyCount}, checks=${checkCount}, triggers=${triggerCount}, public_grants=${publicGrantCount}, append_only=PASS\n`
     )
   } finally {
     await client.end()

@@ -693,7 +693,7 @@ model migration_anchor_details {
   financial_transaction_id BigInt                 @unique
   ledger_account_id        BigInt
   migration_run_id         BigInt
-  discrepancy_case_id      BigInt?
+  discrepancy_case_id      BigInt
   source_legacy_balance    BigInt
   reconstructed_balance    BigInt
   difference_amount        BigInt
@@ -703,7 +703,7 @@ model migration_anchor_details {
   approved_at              DateTime               @db.Timestamptz(6)
   created_at               DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   users                    users                  @relation(fields: [approval_actor_user_id], references: [id], onUpdate: NoAction, map: "migration_anchor_approver_id_fkey")
-  discrepancy_cases        discrepancy_cases?     @relation(fields: [discrepancy_case_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "migration_anchor_discrepancy_id_fkey")
+  discrepancy_cases        discrepancy_cases      @relation(fields: [discrepancy_case_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "migration_anchor_discrepancy_id_fkey")
   ledger_accounts          ledger_accounts        @relation(fields: [ledger_account_id], references: [id], onUpdate: NoAction, map: "migration_anchor_ledger_id_fkey")
   migration_runs           migration_runs         @relation(fields: [migration_run_id], references: [id], onUpdate: NoAction, map: "migration_anchor_run_id_fkey")
   financial_transactions   financial_transactions @relation(fields: [financial_transaction_id], references: [id], onUpdate: NoAction, map: "migration_anchor_transaction_id_fkey")
@@ -770,6 +770,9 @@ model migration_source_records {
   source_legacy_id  String                       @db.Char(24)
   source_hash       String                       @db.Char(64)
   raw_document      Json
+  sanitized_document_hash String                  @db.Char(64)
+  sanitization_policy_version String              @default("migration-redaction-v1") @db.VarChar(32)
+  redaction_manifest Json                         @default("[]")
   disposition       migration_record_disposition @default(STAGED)
   target_type       String?                      @db.VarChar(64)
   target_public_id  String?                      @db.Uuid
@@ -864,6 +867,8 @@ model posting_template_definitions {
   public_id                    String                         @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   code                         String                         @unique(map: "posting_template_definitions_current_approved_key", where: raw("(status = 'APPROVED'::posting_template_status)")) @db.VarChar(64)
   version                      Int
+  transaction_type             financial_transaction_type
+  semantic_rule_code           String                         @db.VarChar(64)
   status                       posting_template_status
   definition_hash              String                         @db.Char(64)
   effective_at                 DateTime                       @db.Timestamptz(6)
@@ -874,6 +879,7 @@ model posting_template_definitions {
 
   @@unique([code, version])
   @@index([status, effective_at])
+  @@index([transaction_type, status], map: "posting_template_definitions_transaction_type_idx")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

@@ -3,9 +3,9 @@ import { createHash } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../src/generated/prisma/client'
 
-const connectionString = process.env.POSTGRESQL_DATABASE_URL
+const connectionString = process.env.POSTGRESQL_DIRECT_URL
 if (!connectionString) {
-  throw new Error('POSTGRESQL_DATABASE_URL is required for the Wave 2 system seed')
+  throw new Error('POSTGRESQL_DIRECT_URL is required for the Wave 2 system seed')
 }
 
 const adapter = new PrismaPg({ connectionString })
@@ -25,6 +25,45 @@ const systemAccounts = [
 
 type AccountKind = 'USER_BALANCE' | 'SYSTEM'
 type SignRule = 'POSITIVE' | 'NEGATIVE' | 'VARIABLE'
+type TransactionType =
+  | 'ACCOUNT_OPENING'
+  | 'ACCUMULATION_OPENING'
+  | 'INCOME'
+  | 'EXPENSE'
+  | 'TRANSFER'
+  | 'CONTRIBUTION'
+  | 'LOAN_DISBURSEMENT'
+  | 'BORROWING'
+  | 'REPAYMENT'
+  | 'COLLECTION'
+  | 'ACCUMULATION_CLOSE'
+  | 'SAVING_DEPOSIT'
+  | 'SAVING_INTEREST_MONTHLY'
+  | 'SAVING_INTEREST_MATURITY'
+  | 'SAVING_CLOSE'
+  | 'SAVING_ROLLOVER_PRINCIPAL'
+  | 'SAVING_ROLLOVER_PRINCIPAL_INTEREST'
+
+const transactionTypeByTemplate: Record<string, TransactionType> = {
+  OPENING_BALANCE: 'ACCOUNT_OPENING',
+  ACCUMULATION_OPENING: 'ACCUMULATION_OPENING',
+  INCOME: 'INCOME',
+  EXPENSE: 'EXPENSE',
+  TRANSFER: 'TRANSFER',
+  CONTRIBUTION_OUT: 'CONTRIBUTION',
+  CONTRIBUTION_IN: 'CONTRIBUTION',
+  LOAN_DISBURSEMENT: 'LOAN_DISBURSEMENT',
+  BORROWING: 'BORROWING',
+  REPAYMENT: 'REPAYMENT',
+  COLLECTION: 'COLLECTION',
+  ACCUMULATION_CLOSE: 'ACCUMULATION_CLOSE',
+  SAVING_DEPOSIT: 'SAVING_DEPOSIT',
+  SAVING_INTEREST_MONTHLY: 'SAVING_INTEREST_MONTHLY',
+  SAVING_INTEREST_MATURITY: 'SAVING_INTEREST_MATURITY',
+  SAVING_CLOSE: 'SAVING_CLOSE',
+  SAVING_ROLLOVER_PRINCIPAL: 'SAVING_ROLLOVER_PRINCIPAL',
+  SAVING_ROLLOVER_PRINCIPAL_INTEREST: 'SAVING_ROLLOVER_PRINCIPAL_INTEREST'
+}
 
 type EntryRole = {
   entryRole: string
@@ -147,6 +186,12 @@ const canonicalTemplate = (template: (typeof templates)[number]) => ({
 const definitionHash = (template: (typeof templates)[number]) =>
   createHash('sha256').update(JSON.stringify(canonicalTemplate(template))).digest('hex')
 
+const transactionTypeFor = (code: string) => {
+  const transactionType = transactionTypeByTemplate[code]
+  if (!transactionType) throw new Error(`Missing transaction type for posting template ${code}`)
+  return transactionType
+}
+
 const run = async () => {
   await prisma.$transaction(async (transaction) => {
     await transaction.system_account_definitions.createMany({
@@ -178,10 +223,17 @@ const run = async () => {
 
     for (const template of templates) {
       const hash = definitionHash(template)
+      const transactionType = transactionTypeFor(template.code)
       const existing = await transaction.posting_template_definitions.findUnique({
         where: { code_version: { code: template.code, version: 1 } }
       })
-      if (existing && (existing.definition_hash !== hash || existing.status !== 'APPROVED')) {
+      if (
+        existing &&
+        (existing.definition_hash !== hash ||
+          existing.status !== 'APPROVED' ||
+          existing.transaction_type !== transactionType ||
+          existing.semantic_rule_code !== template.code)
+      ) {
         throw new Error(`Existing posting template ${template.code}@1 differs from the approved seed`)
       }
       const definition =
@@ -190,6 +242,8 @@ const run = async () => {
           data: {
             code: template.code,
             version: 1,
+            transaction_type: transactionType,
+            semantic_rule_code: template.code,
             status: 'APPROVED',
             definition_hash: hash,
             effective_at: effectiveAt

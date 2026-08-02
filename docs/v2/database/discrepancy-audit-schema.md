@@ -35,6 +35,9 @@ Unique `(source_snapshot_id,source_checksum,mapping_version,schema_version,run_t
 | `source_legacy_id` | `CHAR(24)` | NOT NULL | Source `_id`. |
 | `source_hash` | `CHAR(64)` | NOT NULL | Canonical raw record hash. |
 | `raw_document` | `JSONB` | NOT NULL | Sanitized immutable raw document; password/token values redacted/encrypted-out-of-band according to export policy. |
+| `sanitized_document_hash` | `CHAR(64)` | NOT NULL/database-derived | SHA-256 of the exact stored JSONB representation; detects any evidence drift independently from the original source hash. |
+| `sanitization_policy_version` | `VARCHAR(32)` | NOT NULL | Redaction policy used before staging. |
+| `redaction_manifest` | `JSONB` array | NOT NULL, `[]` | Redacted JSON paths only; never stores the removed secret values. |
 | `disposition` | `migration_record_disposition` | NOT NULL, `STAGED` | Staged/loaded/archived/rejected. |
 | `target_type` | `VARCHAR(64)` | NULL | Loaded aggregate type. |
 | `target_public_id` | `UUID` | NULL | Loaded identity/tombstone. |
@@ -42,7 +45,7 @@ Unique `(source_snapshot_id,source_checksum,mapping_version,schema_version,run_t
 | `processed_at` | `TIMESTAMPTZ` | NULL | Transform time. |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL/default | Database time. |
 
-Unique `(migration_run_id,source_collection,source_legacy_id)`; indexes `(migration_run_id,source_collection,disposition,id)`, `(target_type,target_public_id)`. Same snapshot/hash is immutable; update limited to disposition/result fields through migration role. No application access to raw documents.
+Unique `(migration_run_id,source_collection,source_legacy_id)`; indexes `(migration_run_id,source_collection,disposition,id)`, `(target_type,target_public_id)`. Source identity/hash, sanitized document/hash/policy/manifest and creation time are immutable; delete is denied. Only `STAGED -> LOADED|ARCHIVED|REJECTED` is allowed and terminal records cannot be reclassified. State-specific checks require target identity for `LOADED`, `ARCHIVE_ONLY` for `ARCHIVED`, reject code for `REJECTED`, and processed time for every terminal state. Application/job/readonly roles have no raw-table access. Correction creates a new migration run and retains the prior evidence.
 
 ## `migration_checkpoints`
 

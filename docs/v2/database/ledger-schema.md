@@ -41,6 +41,8 @@ The seed creates these eight global definitions, not a balance-bearing `ledger_a
 | `public_id` | `UUID` | NOT NULL/default | Unique. |
 | `code` | `VARCHAR(64)` | NOT NULL | Stable template code. |
 | `version` | `INTEGER` | NOT NULL | Check >=1. |
+| `transaction_type` | `financial_transaction_type` | NOT NULL | Immutable transaction type allowed to use this definition; both contribution definitions map to `CONTRIBUTION`. |
+| `semantic_rule_code` | `VARCHAR(64)` | NOT NULL | Immutable database validation rule selected at the deferred posting boundary. |
 | `status` | `posting_template_status` | NOT NULL | `APPROVED`, `RETIRED`; no DRAFT row may seed Wave 2 exit. |
 | `definition_hash` | `CHAR(64)` | NOT NULL | SHA-256 canonical approved matrix row. |
 | `effective_at` | `TIMESTAMPTZ` | NOT NULL | Approval/effective time. |
@@ -123,8 +125,9 @@ Versioned SQL migration installs deferrable constraint triggers:
 2. At transaction end, every touched `financial_transactions` row must not remain `DRAFT`.
 3. A `POSTED` row has at least two ledger entries and `SUM(ledger_entries.amount)=0` exactly.
 4. All entries share transaction space, their `posted_at` equals parent `posted_at`, and their roles/kinds/signs/counts match `posting_template_entry_roles` for the transaction's immutable template version.
-5. A reversal has one original, exact opposite entry set/account/amount, and unique `reverses_transaction_id` prevents a second full reversal.
-6. Posted transaction business fields and all ledger entries reject update/delete. Status may change `POSTED -> REVERSED` only when the linked reversal is POSTED in the same boundary.
+5. Template transaction type, required typed-detail row, detail-owned accounts, header amount and exact entry magnitudes match the immutable `semantic_rule_code`; sign/cardinality alone is insufficient.
+6. A reversal has one original, exact opposite entry set/account/amount, and unique `reverses_transaction_id` prevents a second full reversal.
+7. Posted transaction business fields and all ledger entries reject update/delete. Status may change `POSTED -> REVERSED` only when the linked reversal is POSTED in the same boundary.
 
 Phase 4 core still verifies invariants before the status transition; database constraints are the final guard, not a postings API for arbitrary service input.
 

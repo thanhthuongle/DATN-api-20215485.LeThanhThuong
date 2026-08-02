@@ -47,12 +47,21 @@ Object.assign(fixture, {
 
 const stable = (value) => {
   if (Array.isArray(value)) return value.map(stable)
+  if (value instanceof Date) return value.toISOString()
+  if (typeof value === 'bigint') return value.toString()
   if (value && typeof value === 'object') {
     return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]))
   }
   return value
 }
 const hash = (value) => createHash('sha256').update(JSON.stringify(stable(value))).digest('hex')
+const redactedPaths = (value, path = '$') => {
+  if (Array.isArray(value)) return value.flatMap((item, index) => redactedPaths(item, `${path}[${index}]`))
+  if (value && typeof value === 'object') {
+    return Object.entries(value).flatMap(([key, item]) => redactedPaths(item, `${path}.${key}`))
+  }
+  return value === '[REDACTED]' ? [path] : []
+}
 const uuid = (value) => {
   const bytes = createHash('sha256').update(`hey-money-v2:${value}`).digest().subarray(0, 16)
   bytes[6] = (bytes[6] & 0x0f) | 0x50
@@ -61,8 +70,8 @@ const uuid = (value) => {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
-const connectionString = process.env.POSTGRESQL_DATABASE_URL
-if (!connectionString) throw new Error('POSTGRESQL_DATABASE_URL is required')
+const connectionString = process.env.POSTGRESQL_DIRECT_URL
+if (!connectionString) throw new Error('POSTGRESQL_DIRECT_URL is required for the controlled migration dry-run')
 
 const snapshotId = 'wave2-sanitized-sample-v1'
 const sourceManifest = sourceCollections.map((collection) => ({ collection, records: fixture[collection] }))
@@ -91,9 +100,11 @@ const run = async () => {
     for (const collection of sourceCollections) {
       for (const document of fixture[collection]) {
         const result = await client.query(
-          `INSERT INTO migration_source_records (migration_run_id,source_collection,source_legacy_id,source_hash,raw_document)
-           VALUES ($1,$2,$3,$4,$5::jsonb) RETURNING id`,
-          [migrationRun.id, collection, document._id, hash(document), JSON.stringify(stable(document))]
+          `INSERT INTO migration_source_records (
+             migration_run_id,source_collection,source_legacy_id,source_hash,raw_document,
+             sanitization_policy_version,redaction_manifest
+           ) VALUES ($1,$2,$3,$4,$5::jsonb,'migration-redaction-v1',$6::jsonb) RETURNING id`,
+          [migrationRun.id, collection, document._id, hash(document), JSON.stringify(stable(document)), JSON.stringify(redactedPaths(document))]
         )
         staged.set(`${collection}:${document._id}`, result.rows[0].id)
       }
@@ -264,10 +275,6 @@ const run = async () => {
       ['incomes', id(13), 'TransactionIncomeDetail', incomeDetailPublicId], ['expenses', id(14), 'TransactionExpenseDetail', expenseDetailPublicId], ['transfers', id(15), 'TransactionTransferDetail', transferDetailPublicId]
     ]) await loaded(collection, legacyIdValue, targetType, publicId)
 
-    for (const [ledgerId, balance] of balances) {
-      await client.query(`UPDATE ledger_accounts SET current_balance=$1,current_sequence=$2,updated_at=clock_timestamp() WHERE id=$3`, [balance.toString(), sequences.get(ledgerId).toString(), ledgerId])
-    }
-
     const notificationPublicId = uuid(`notification:${id(16)}`)
     const notificationId = (await client.query(`INSERT INTO notifications (public_id,legacy_mongo_id,type,title,message,created_at) VALUES ($1,$2,'TEXT','Sample notice','Sanitized dry-run notification',$3) RETURNING id`, [notificationPublicId, id(16), at])).rows[0].id
     await loaded('notifications', id(16), 'Notification', notificationPublicId)
@@ -287,25 +294,65 @@ const run = async () => {
     }
 
     const unbalanced = Number((await client.query(`SELECT count(*) FROM (SELECT financial_transaction_id FROM ledger_entries GROUP BY financial_transaction_id HAVING sum(amount)<>0) x`)).rows[0].count)
-    const mismatches = []
-    for (const account of fixture.accounts) {
-      const actual = balances.get(String(ledgerIds.get(`account:${account._id}`)))
-      if (actual !== BigInt(account.balance)) mismatches.push({ legacyId: account._id, stored: String(account.balance), reconstructed: actual.toString() })
+    const projectionMismatches = Number((await client.query(`
+      SELECT count(*) FROM ledger_accounts account
+      LEFT JOIN LATERAL (
+        SELECT coalesce(sum(entry.amount),0)::bigint balance,
+               coalesce(max(entry.account_sequence),0)::bigint sequence,
+               count(*)::bigint entry_count
+        FROM ledger_entries entry WHERE entry.ledger_account_id=account.id
+      ) projection ON true
+      WHERE account.financial_space_id=$1
+        AND (account.current_balance<>projection.balance OR account.current_sequence<>projection.sequence OR projection.sequence<>projection.entry_count)
+    `, [spaceId])).rows[0].count)
+    const actualBalanceRows = (await client.query(`
+      SELECT coalesce(account.legacy_mongo_id, accumulation.legacy_mongo_id) legacy_id,
+             coalesce(account.legacy_stored_balance, accumulation.legacy_stored_balance)::text stored_balance,
+             ledger.current_balance::text reconstructed_balance
+      FROM ledger_accounts ledger
+      LEFT JOIN accounts account ON account.id=ledger.account_id
+      LEFT JOIN accumulations accumulation ON accumulation.id=ledger.accumulation_id
+      WHERE ledger.financial_space_id=$1 AND (account.id IS NOT NULL OR accumulation.id IS NOT NULL)
+      ORDER BY legacy_id
+    `, [spaceId])).rows
+    const mismatches = actualBalanceRows
+      .filter((row) => row.stored_balance !== row.reconstructed_balance)
+      .map((row) => ({ legacyId: row.legacy_id, stored: row.stored_balance, reconstructed: row.reconstructed_balance }))
+    if (unbalanced || projectionMismatches || mismatches.length) {
+      throw new Error(`RECONCILIATION_FAILED unbalanced=${unbalanced} projection=${projectionMismatches} mismatches=${JSON.stringify(mismatches)}`)
     }
-    if (unbalanced || mismatches.length) throw new Error(`RECONCILIATION_FAILED unbalanced=${unbalanced} mismatches=${JSON.stringify(mismatches)}`)
 
     const dispositionCounts = (await client.query(`SELECT disposition::text,count(*)::int count FROM migration_source_records WHERE migration_run_id=$1 GROUP BY disposition ORDER BY disposition`, [migrationRun.id])).rows
     const loadedCount = dispositionCounts.find((row) => row.disposition === 'LOADED')?.count ?? 0
     const archivedCount = dispositionCounts.find((row) => row.disposition === 'ARCHIVED')?.count ?? 0
-    const targetHash = hash({
-      accounts: fixture.accounts.map((account) => ({ legacyId: account._id, balance: account.balance })),
-      ledgerTotal: [...balances.values()].reduce((total, value) => total + value, 0n).toString(),
-      transactions: fixture.transactions.map((transaction) => ({ legacyId: transaction._id, amount: transaction.amount, type: transaction.type }))
-    })
+    const queryRows = async (sql, parameters = []) => (await client.query(sql, parameters)).rows
+    const targetSnapshot = {
+      users: await queryRows(`SELECT public_id,legacy_mongo_id,email_normalized,username_normalized,display_name,status FROM users WHERE public_id=$1 ORDER BY public_id`, [userPublicId]),
+      financialSpaces: await queryRows(`SELECT public_id,kind,name,status FROM financial_spaces WHERE id=$1 ORDER BY public_id`, [spaceId]),
+      memberships: await queryRows(`SELECT membership.public_id,space.public_id financial_space_public_id,user_row.public_id user_public_id,membership.role,membership.status,membership.source_ref FROM financial_space_memberships membership JOIN financial_spaces space ON space.id=membership.financial_space_id JOIN users user_row ON user_row.id=membership.user_id WHERE membership.financial_space_id=$1 ORDER BY membership.public_id`, [spaceId]),
+      banks: await queryRows(`SELECT public_id,legacy_mongo_id,code,name FROM banks WHERE public_id=$1 ORDER BY public_id`, [bankPublicId]),
+      categories: await queryRows(`SELECT public_id,legacy_mongo_id,name,transaction_type FROM categories WHERE financial_space_id=$1 ORDER BY public_id`, [spaceId]),
+      accounts: await queryRows(`SELECT account.public_id,account.legacy_mongo_id,bank.public_id bank_public_id,account.type,account.name,account.status,account.legacy_initial_balance::text,account.legacy_stored_balance::text FROM accounts account LEFT JOIN banks bank ON bank.id=account.bank_id WHERE account.financial_space_id=$1 ORDER BY account.public_id`, [spaceId]),
+      accumulations: await queryRows(`SELECT public_id,legacy_mongo_id,name,target_amount::text,legacy_stored_balance::text,status FROM accumulations WHERE financial_space_id=$1 ORDER BY public_id`, [spaceId]),
+      ledgerAccounts: await queryRows(`SELECT ledger.public_id,ledger.kind,ledger.normal_side,ledger.system_role,account.public_id account_public_id,accumulation.public_id accumulation_public_id,saving.public_id saving_public_id,ledger.name,ledger.current_balance::text,ledger.current_sequence::text,ledger.allows_negative_balance,ledger.status FROM ledger_accounts ledger LEFT JOIN accounts account ON account.id=ledger.account_id LEFT JOIN accumulations accumulation ON accumulation.id=ledger.accumulation_id LEFT JOIN savings_accounts saving ON saving.id=ledger.saving_account_id WHERE ledger.financial_space_id=$1 ORDER BY ledger.public_id`, [spaceId]),
+      financialTransactions: await queryRows(`SELECT transaction.public_id,transaction.legacy_mongo_id,template.code template_code,transaction.type,transaction.status,user_row.public_id responsible_user_public_id,category.public_id category_public_id,transaction.name,transaction.description,transaction.amount::text,transaction.occurred_at,transaction.business_snapshot,transaction.snapshot_schema_version,transaction.correlation_id FROM financial_transactions transaction JOIN posting_template_definitions template ON template.id=transaction.posting_template_definition_id JOIN users user_row ON user_row.id=transaction.responsible_user_id LEFT JOIN categories category ON category.id=transaction.category_id WHERE transaction.financial_space_id=$1 ORDER BY transaction.public_id`, [spaceId]),
+      ledgerEntries: await queryRows(`SELECT entry.public_id,transaction.public_id transaction_public_id,ledger.public_id ledger_account_public_id,entry.account_sequence::text,entry.amount::text,entry.balance_before::text,entry.balance_after::text,entry.entry_role FROM ledger_entries entry JOIN financial_transactions transaction ON transaction.id=entry.financial_transaction_id JOIN ledger_accounts ledger ON ledger.id=entry.ledger_account_id WHERE transaction.financial_space_id=$1 ORDER BY transaction.public_id,ledger.public_id,entry.account_sequence`, [spaceId]),
+      incomeDetails: await queryRows(`SELECT detail.public_id,detail.legacy_mongo_id,transaction.public_id transaction_public_id,ledger.public_id target_ledger_public_id FROM transaction_income_details detail JOIN financial_transactions transaction ON transaction.id=detail.financial_transaction_id JOIN ledger_accounts ledger ON ledger.id=detail.target_ledger_account_id WHERE transaction.financial_space_id=$1 ORDER BY detail.public_id`, [spaceId]),
+      expenseDetails: await queryRows(`SELECT detail.public_id,detail.legacy_mongo_id,transaction.public_id transaction_public_id,ledger.public_id source_ledger_public_id FROM transaction_expense_details detail JOIN financial_transactions transaction ON transaction.id=detail.financial_transaction_id JOIN ledger_accounts ledger ON ledger.id=detail.source_ledger_account_id WHERE transaction.financial_space_id=$1 ORDER BY detail.public_id`, [spaceId]),
+      transferDetails: await queryRows(`SELECT detail.public_id,detail.legacy_mongo_id,transaction.public_id transaction_public_id,source.public_id source_ledger_public_id,target.public_id target_ledger_public_id,detail.fee_amount::text FROM transaction_transfer_details detail JOIN financial_transactions transaction ON transaction.id=detail.financial_transaction_id JOIN ledger_accounts source ON source.id=detail.source_ledger_account_id JOIN ledger_accounts target ON target.id=detail.target_ledger_account_id WHERE transaction.financial_space_id=$1 ORDER BY detail.public_id`, [spaceId]),
+      notifications: await queryRows(`SELECT public_id,legacy_mongo_id,type,title,message,link FROM notifications WHERE public_id=$1 ORDER BY public_id`, [notificationPublicId]),
+      userNotifications: await queryRows(`SELECT user_notification.public_id,user_notification.legacy_mongo_id,user_row.public_id user_public_id,notification.public_id notification_public_id,user_notification.is_read,user_notification.received_at,user_notification.read_at FROM user_notifications user_notification JOIN users user_row ON user_row.id=user_notification.user_id JOIN notifications notification ON notification.id=user_notification.notification_id WHERE user_notification.public_id=$1 ORDER BY user_notification.public_id`, [userNotificationPublicId]),
+      migrationRoutes: await queryRows(`SELECT source_collection,source_legacy_id,source_hash,sanitized_document_hash,sanitization_policy_version,redaction_manifest,disposition,target_type,target_public_id,reject_code FROM migration_source_records WHERE migration_run_id=$1 ORDER BY source_collection,source_legacy_id`, [migrationRun.id]),
+      checkpoints: await queryRows(`SELECT graph_level,source_collection,status,processed_count::text,loaded_count::text,rejected_count::text,canonical_hash FROM migration_checkpoints WHERE migration_run_id=$1 ORDER BY graph_level,source_collection`, [migrationRun.id])
+    }
+    const targetRowsHashed = Object.values(targetSnapshot).reduce((count, rows) => count + rows.length, 0)
+    const targetHash = hash(targetSnapshot)
     const summary = {
       fixture: snapshotId,
       sourceChecksum,
       targetHash,
+      targetTablesHashed: Object.keys(targetSnapshot).length,
+      targetRowsHashed,
       collectionsRouted: sourceCollections.length,
       sourceCount,
       loadedCount,
@@ -314,7 +361,8 @@ const run = async () => {
       unclassifiedErrors: 0,
       blockingDiscrepancies: 0,
       unbalancedTransactions: unbalanced,
-      balanceHoldersCompared: fixture.accounts.length + fixture.accumulations.length,
+      ledgerProjectionMismatches: projectionMismatches,
+      balanceHoldersCompared: actualBalanceRows.length,
       balanceMismatches: mismatches.length,
       toleranceVnd: 0,
       transferFeeLedgerEffectVnd: 0

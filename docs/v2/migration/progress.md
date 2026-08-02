@@ -57,7 +57,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 
 ## Wave/phase đang hoạt động
 
-Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01. Project owner sign-off Wave 1 ngày 2026-08-02 sau khi Phase 1-2, Supabase least-privilege/TLS, Agenda staging isolation/execution và regression gate đều PASS; Wave 1/Phase 2 chuyển `COMPLETED`. Wave 2 W2-01..W2-08 đã hoàn tất tuần tự và hiện `READY_FOR_REVIEW`, chờ project-owner sign-off trước khi chuyển `COMPLETED`. Chưa triển khai business endpoint, transaction core hoặc mở Phase 4/Wave 3.
+Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01. Project owner sign-off Wave 1 ngày 2026-08-02 sau khi Phase 1-2, Supabase least-privilege/TLS, Agenda staging isolation/execution và regression gate đều PASS; Wave 1/Phase 2 chuyển `COMPLETED`. Wave 2 W2-01..W2-08 và sáu corrective task W2-FIX-01..06 đã hoàn tất tuần tự; clean/full gate cuối PASS và Wave 2 trở lại `READY_FOR_REVIEW`, chưa `COMPLETED` trước project-owner sign-off. Chưa triển khai business endpoint, transaction core hoặc mở Phase 4/Wave 3.
 
 ## Wave 2 task register
 
@@ -74,6 +74,14 @@ Task Wave 2 tuân thủ thứ tự bắt buộc. Task kế tiếp chỉ được
 | W2-06 | Phase 3C | System seed, `MIGRATION_EQUITY` và system accounts | COMPLETED | Reviewed idempotent seed: 8/8 system definitions, 18/18 physical definitions for 17 business templates, 43/43 entry roles, 0 non-APPROVED template; rerun PASS |
 | W2-07 | Phase 3D | Controlled data profile/dry-run, reconciliation và reject classification | COMPLETED | Reviewed two independent clean runs: identical source/target hashes; 26/26 routes, 22=16 loaded+6 archived+0 rejected, 0 unclassified/blocking/unbalanced, 3/3 balances exact at 0 VND |
 | W2-08 | Exit gate | Clean migration, schema validation, tests, evidence và Wave 2 review | COMPLETED | `wave-2-review.md`: all Phase 3 exit gates PASS; Wave 2 READY_FOR_REVIEW pending owner sign-off; no Phase 4/Wave 3 start |
+| W2-FIX-01 | Corrective | Atomic ledger chain và cached projection | COMPLETED | New versioned migration locks the account row, derives sequence/before/after, advances the cached projection atomically and rejects inactive/cross-space/negative postings; local migrate + seed + dry-run + reversal/projection guard PASS |
+| W2-FIX-02 | Corrective | Template/type/detail/amount posting semantics | COMPLETED | Immutable template type/rule metadata and deferred semantic guard cover all 18 physical definitions; valid income accepted; wrong type, missing detail and header/entry amount mismatch rejected; seed rerun and Prisma validation PASS |
+| W2-FIX-03 | Corrective | Audited `MIGRATION_EQUITY` anchor | COMPLETED | New migration makes discrepancy mandatory, enforces equity-role XOR and exact run/checksum/account/difference/resolved-case/approval evidence, and makes anchors immutable; valid rollback-only anchor accepted and missing-anchor posting rejected |
+| W2-FIX-04 | Corrective | PostgreSQL credential boundary and least-privilege grants | COMPLETED | Seed/dry-run/schema/financial verification require direct migration credentials; provision/verification scripts derive identities from the two URLs and enforce the application matrix without role-name variables; job/readonly remain approved deferred profiles |
+| W2-FIX-05 | Corrective | Database-derived dry-run target hash | COMPLETED | Dry-run now re-queries 17 canonical PostgreSQL target groups, hashes stable public/legacy identities and business/ledger fields, reconciles cached projection from database rows, and produces the same hash on two independent clean Testcontainers; integration 11/11 PASS |
+| W2-FIX-06 | Corrective | Immutable sanitized migration evidence | COMPLETED | New migration adds database-derived sanitized hash, policy version, redaction manifest, state-consistency constraints, one-way terminal transitions and immutable update/delete guard; 22 local records verified with 0 hash mismatch/secret leak and all mutation probes rejected |
+| W2-FIX-GATE | Exit re-review | Clean migration, drift, deterministic dry-run, privileges, V1 regression and full tests after six fixes | COMPLETED | 7/7 clean migrations; drift empty; 45 tables/4 views/52 enums/105 FK/70 CHECK/50 triggers; two clean hashes identical; current suite 36/36 tests; coverage baseline retained; Wave 2 `READY_FOR_REVIEW` |
+| W2-FIX-04A | Corrective review | Remove redundant PostgreSQL role-name configuration | COMPLETED | Four role-name variables removed; migration/application identities derived from authenticated `current_user`; equal-role URLs rejected; job/readonly grants deferred; focused integration 6/6 and full suite 36/36 PASS |
 
 ### Wave 2 verification log
 
@@ -106,6 +114,14 @@ Task Wave 2 tuân thủ thứ tự bắt buộc. Task kế tiếp chỉ được
 | W2-08 | `yarn test` outside Docker-restricted sandbox | PASS: 11/11 files, 33/33 tests including PostgreSQL/MongoDB/Redis Testcontainers and V1 startup |
 | W2-08 | `yarn test:coverage` | PASS: statements 84.45%, branches 80.50%, functions 82.08%, lines 87.89% |
 | W2-08 | Final Prisma validate/drift/schema/script/diff audit | PASS: schema valid, drift empty, 45/52/105/65/39/0 metrics, scripts parse, whitespace clean |
+| W2-FIX-01 | Local corrective migration + controlled seed/dry-run + financial guard | PASS: migration 3/3 applied; dry-run 22 records and 3/3 balances exact; ledger projection query 0 mismatch; exact reversal accepted and invalid reversal rejected with all probes rolled back |
+| W2-FIX-02 | Posting semantic migration + seed + negative database probes | PASS: 18/18 definitions mapped to immutable transaction type/rule; valid posting accepted; type mismatch, missing detail and amount mismatch rejected; Prisma schema valid |
+| W2-FIX-03 | Audited migration-anchor migration + database probes | PASS: valid evidence-bound anchor accepted inside rollback; `MIGRATION_EQUITY` without anchor rejected; anchor discrepancy is NOT NULL and anchor rows reject update/delete |
+| W2-FIX-04 | Clean Testcontainer migration + application role provisioning | PASS at original gate; superseded by W2-FIX-04A identity-discovery rerun |
+| W2-FIX-05 | Two independent clean Testcontainer migrate/seed/dry-run executions | PASS: identical source checksum and database-derived target hash; 17 canonical target groups; 0 unbalanced transaction, projection mismatch or balance mismatch |
+| W2-FIX-06 | Local immutable-evidence migration + verifier | PASS: 22/22 records have matching database-derived sanitized hash; password redaction manifest present; 0 secret leak; raw update, delete and terminal reclassification rejected with probes rolled back |
+| W2-FIX-GATE | Final aggregate verification | PASS: package manager, build, Phase 1 55-operation parity, lint, Prisma validate/generate/status/drift, schema/financial/evidence guards, current 11/11 files and 36/36 tests, coverage baseline 84.45/80.50/82.08/87.89 |
+| W2-FIX-04A | Configuration/search, CLI and regression review | PASS: 0 role-name configuration references; no job/readonly credential variable; URL identities discovered as distinct, equal-role case rejected, privilege CLI PASS, focused 6/6 and full 36/36 tests, lint PASS |
 
 W2-01 output: `docs/v2/database/logical-data-model.md`. Review chốt normalized ownership qua `FinancialSpace`, aggregate boundaries và các invariant logic; OPEN-006..011 được containment rõ ràng và vẫn là gate của W2-04. Không có database hoặc source runtime nào bị thay đổi.
 

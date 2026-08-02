@@ -316,7 +316,7 @@ Columns: `financial_transaction_id BIGINT NOT NULL UNIQUE`; `saving_account_id B
 
 ### `migration_anchor_details` — `GENERATED_ENTITY`
 
-Columns: `financial_transaction_id BIGINT NOT NULL UNIQUE`; `ledger_account_id BIGINT NOT NULL`; `migration_run_id BIGINT NOT NULL`; `discrepancy_case_id BIGINT NULL`; `source_legacy_balance BIGINT NOT NULL`; `reconstructed_balance BIGINT NOT NULL`; `difference_amount BIGINT NOT NULL`; `source_checksum CHAR(64) NOT NULL`; `approval_actor_user_id BIGINT NOT NULL`; `approval_reason TEXT NOT NULL`; `approved_at TIMESTAMPTZ NOT NULL`; all FKs `RESTRICT`. Check difference = source - reconstructed and nonzero. Every anchor posts against `MIGRATION_EQUITY`; no implicit row creation.
+Columns: `financial_transaction_id BIGINT NOT NULL UNIQUE`; `ledger_account_id BIGINT NOT NULL`; `migration_run_id BIGINT NOT NULL`; `discrepancy_case_id BIGINT NOT NULL`; `source_legacy_balance BIGINT NOT NULL`; `reconstructed_balance BIGINT NOT NULL`; `difference_amount BIGINT NOT NULL`; `source_checksum CHAR(64) NOT NULL`; `approval_actor_user_id BIGINT NOT NULL`; `approval_reason TEXT NOT NULL`; `approved_at TIMESTAMPTZ NOT NULL`; all FKs `RESTRICT`. Check difference = source - reconstructed and nonzero. A deferred XOR/evidence guard requires exactly one `OPENING_EQUITY` or `MIGRATION_EQUITY` counter-entry; the migration path additionally requires a matching resolved `BLOCKING` discrepancy with `MIGRATION_EQUITY_APPROVED`, source checksum, run, account, signed difference, approver and reason. Every anchor is immutable; no implicit row creation.
 
 ## 6. Notifications
 
@@ -384,6 +384,8 @@ No financial, audit, discrepancy, outbox, idempotency or migration-evidence FK u
 | Discrepancy/audit | DDL/load | case workflow insert/update; audit insert only | owned case/audit insert | redacted read |
 
 Migration SQL must `REVOKE CREATE ON SCHEMA public FROM PUBLIC`, revoke all table/sequence privileges from PUBLIC, set safe default privileges, and grant sequences only where insert is allowed. Neither runtime role owns tables, creates schema/database/roles, bypasses row security nor has superuser. Initial release uses application authorization plus same-space constraints rather than PostgreSQL per-user RLS; service credentials are never exposed to frontend.
+
+Role identifiers are not duplicated in environment variables. `scripts/provision-postgresql-roles.cjs` authenticates both URLs and derives the migration/application identities from PostgreSQL `current_user`; it rejects equal identities, never creates roles, and applies the reviewed application table/column/sequence matrix through `POSTGRESQL_DIRECT_URL`. `scripts/verify-postgresql-privileges.cjs` independently repeats identity discovery and verifies positive and negative application privileges. System seed, controlled migration dry-run, schema verification and financial guard probes use `POSTGRESQL_DIRECT_URL`; `POSTGRESQL_DATABASE_URL` is runtime/health only. The `job_role` and `readonly_role` remain approved physical-design profiles, but no credentials or grants are instantiated until dedicated PostgreSQL consumers exist; the four payload-safe readonly views are schema foundation only at this stage.
 
 ## 10. W2-03 review record
 

@@ -15,20 +15,23 @@ Ngày chạy/review: 2026-08-02. Target: hai PostgreSQL local database sạch đ
 | Blocking discrepancies | 0 | 0 | PASS |
 | Posted transactions | 5 | 5 | PASS |
 | Unbalanced transactions | 0 | 0 | PASS |
+| Ledger projection mismatches | 0 | 0 | PASS |
 | Balance holders compared | 3/3 | 3/3 | PASS |
 | Balance mismatch tolerance | 0 VND | 0 VND | PASS |
 | Balance mismatches | 0 | 0 | PASS |
 | Transfer fee ledger effect | 0 VND | 0 VND | PASS, DEC-065 |
-| Schema verification | 45 tables / 52 enums / 105 FK / 65 CHECK / 39 triggers | same | PASS |
+| Database-derived target snapshot | 17 canonical groups / 89 rows | same | PASS |
+| Sanitized migration evidence | 22 hashes / 0 mismatch / 0 secret leak | same | PASS |
+| Schema verification | 45 tables / 4 safe views / 52 enums / 105 FK / 70 CHECK / 50 triggers | same | PASS |
 
 Deterministic evidence:
 
 ```text
 sourceChecksum = 7695a5af5504c4c684d81bcfb4bb3cfa88e7cfee4556d10f0fc5b277609dd074
-targetHash     = 591684e02e2b2c74e0382c740f6402b6728209d5368a0131b167ea9d506d176e
+targetHash     = 9c743816ebd15e71aa57dc76fe6eb3198b2ec49709b7bb904e4f6a0fa43417eb
 ```
 
-Both hashes matched on the independent clean rerun.
+Both hashes matched on the independent clean rerun. `targetHash` is derived by re-querying 89 persisted rows across 17 stable PostgreSQL target groups; internal identities and volatile database timestamps are excluded.
 
 ## Data-quality classification
 
