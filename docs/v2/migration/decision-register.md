@@ -68,18 +68,18 @@ Tệp này ghi lại các quyết định đã thống nhất. Thay đổi quy�
 | DEC-062 | Biến kết nối PostgreSQL dùng tên tường minh `POSTGRESQL_DATABASE_URL` cho pooled runtime và `POSTGRESQL_DIRECT_URL` cho direct migration; giá trị thật chỉ được nạp từ ignored `.env`/secret manager. Không giữ alias tên cũ để tránh cấu hình nhầm. | Accepted by project owner 2026-08-01 |
 | DEC-063 | Agenda V2 chỉ yêu cầu hai biến cấu hình `AGENDA_MONGODB_URI` và `AGENDA_DATABASE_NAME`. Collection là hằng nội bộ `v2_jobs`; worker identity tự sinh từ hostname/process. Quy tắc database/credential tách khỏi V1 của DEC-045/061 vẫn giữ nguyên. | Accepted by project owner 2026-08-01 |
 | DEC-064 | `DEPLOYMENT_ENV=production` là ranh giới duy nhất cấm mount API V2. Khi `ENABLE_API_V2=true`, mọi giá trị `DEPLOYMENT_ENV` khác `production` được xem là non-production và có thể bật V2; local/dev và staging không khác nhau về semantics feature gate. Staging vẫn là shared deployment target duy nhất trước cutover, còn V2 write flags tiếp tục mặc định tắt. | Accepted by project owner 2026-08-01 |
+| DEC-065 | `transfers.fee` được giữ làm metadata và không tạo balance/ledger effect trong cutover scope, đúng hành vi V1. Muốn thu phí sau này phải có approved API difference, system-account/posting template và migration riêng. | Accepted by project owner 2026-08-02; resolves OPEN-006 |
+| DEC-066 | V2 ban đầu chỉ hỗ trợ collection/repayment tất toán toàn phần phần principal còn lại. Không tự tính/post interest; legacy debt rate `UNSPECIFIED` chỉ là metadata. Partial settlement hoặc interest accrual cần decision/template/migration mới. | Accepted by project owner 2026-08-02; resolves OPEN-007 |
+| DEC-067 | Financial command tạo money movement phải có amount lớn hơn 0. Account opening vẫn có thể bằng 0 hoặc âm theo DEC-031; accumulation opening bằng 0 không tạo posting. Legacy zero-amount history nếu có được archive/discrepancy, không tạo zero ledger entry. | Accepted by project owner 2026-08-02; resolves OPEN-008 |
+| DEC-068 | Giữ family endpoints trong cutover scope vì project owner xác nhận frontend sử dụng toàn bộ V1 endpoints; V2 triển khai semantics đúng và không sao chép lỗi subtype argument dispatcher của V1. Khác biệt sửa lỗi phải nằm trong approved-difference/contract tests. | Accepted by project owner 2026-08-02; resolves OPEN-009 |
+| DEC-069 | Không suy luận legacy saving interest được cộng trực tiếp nếu thiếu evidence xác định period, principal, rate và amount. Record không chứng minh được là `BLOCKING`; snapshot Wave 0 hiện có 0 saving record. Không tạo synthetic interest/adjustment. | Accepted by project owner 2026-08-02; resolves OPEN-010 |
+| DEC-070 | Transfer thông thường chỉ được phép trong cùng financial space. Contribution personal-to-family được phép khi actor sở hữu nguồn và có membership active ở family; hạch toán nguyên tử bằng hai transaction liên kết, mỗi space cân bằng qua `INTERSPACE_CLEARING`. Reversal phải đảo cả nhóm nguyên tử. | Accepted by project owner 2026-08-02; resolves OPEN-011 |
 
 ## Quyết định đang mở
 
 | ID | Nội dung | Thời điểm chốt |
 |---|---|---|
 | OPEN-005 | Chọn PostgreSQL hosting và cấu hình production sau giai đoạn Supabase staging. | Trước Phase 10B |
-| OPEN-006 | Chốt semantics của `transfers.fee`: chỉ lưu metadata như hành vi balance V1, trừ thêm từ nguồn, hay post vào system account riêng. Evidence: `src/services/transferService.js` và `src/models/transferModel.js`. | Trước khi approve template `TRANSFER` ở Phase 3 |
-| OPEN-007 | Chốt repayment/collection chỉ hỗ trợ tất toán toàn phần hay hỗ trợ trả một phần; đồng thời chốt cách biểu diễn principal/interest. Evidence: `src/services/repaymentService.js`, `src/services/collectionSevice.js`. | Trước khi approve debt templates ở Phase 3 |
-| OPEN-008 | Chốt V2 có từ chối amount bằng 0 hay giữ contract V1 đang cho phép `min(0)`. Evidence: validators trong các transaction services và `src/utils/constants.js`. | Trước contract/schema freeze Phase 3 |
-| OPEN-009 | Chốt giữ, sửa hay deprecate các family transaction endpoints sau khi có frontend/traffic evidence; V1 generic dispatcher truyền subtype arguments không tương thích. Evidence: `src/routes/familyRoute.js`, `src/controllers/familyController.js`, transaction services. | Trước API baseline sign-off/Phase 3 |
-| OPEN-010 | Chốt quy tắc tái dựng các khoản lãi saving được cộng balance trực tiếp, không có transaction riêng. Evidence: `src/services/savingService.js` và profiler/reconstruction report. | Trước data migration rule approval |
-| OPEN-011 | Chốt chính sách transfer/contribution qua owner hoặc financial space khác nhau. Evidence: `src/services/transferService.js`, `src/services/contributionService.js`, account ownership fields. | Trước authorization/posting approval Phase 3 |
 
 ## Quyết định mở đã đóng
 
@@ -87,3 +87,9 @@ Tệp này ghi lại các quyết định đã thống nhất. Thay đổi quy�
 |---|---|---|
 | OPEN-012 | Resolved by DEC-058: Yarn 1.22.22 và `yarn.lock` là canonical. | `packageManager`, install guard, single-lock verification và frozen install PASS. |
 | OPEN-013 | Resolved by DEC-059: nâng lên Prisma 7.9.1 ngay trong Wave 1. | validate/generate/migrate/seed/health, full build, V1 startup regression và 29/29 tests PASS. |
+| OPEN-006 | Resolved by DEC-065: fee metadata-only trong cutover scope. | V1 `transferService` mutates source/target by amount only; owner accepted recommendation 2026-08-02. |
+| OPEN-007 | Resolved by DEC-066: full principal settlement only, no automatic interest. | V1 permits arbitrary single settlement but has no evidenced interest allocation; owner accepted safe initial scope. |
+| OPEN-008 | Resolved by DEC-067: money-moving commands require amount >0; opening exceptions explicit. | V1 Joi permits zero but zero posting has no financial meaning; owner accepted recommendation. |
+| OPEN-009 | Resolved by DEC-068: retain/fix family V2 endpoints. | Owner states all V1 endpoints are frontend-used; V1 dispatcher defect remains evidence for corrected V2 semantics. |
+| OPEN-010 | Resolved by DEC-069: no unsupported legacy saving-interest inference. | Wave 0 has 0 saving rows; evidence-deficient future row is blocking. |
+| OPEN-011 | Resolved by DEC-070: same-space transfer; controlled personal-to-family contribution via linked clearing transactions. | Owner accepted recommendation; physical schema/posting matrix updated before W2-04 approval. |

@@ -1,14 +1,1572 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  previewFeatures        = ["partialIndexes"]
   generatedFileExtension = "ts"
   importFileExtension    = ""
+  moduleFormat           = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-// Phase 2 contains infrastructure only. Business models begin after the
-// reviewed Phase 3 logical/physical schema and posting-template gate.
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model account_balance_snapshots {
+  id                              BigInt                      @id @default(autoincrement())
+  public_id                       String                      @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshot_run_id                 BigInt
+  ledger_account_id               BigInt
+  financial_space_id              BigInt
+  business_date                   DateTime                    @db.Date
+  period_start_utc                DateTime                    @db.Timestamptz(6)
+  period_end_utc                  DateTime                    @db.Timestamptz(6)
+  opening_balance                 BigInt
+  total_inflow                    BigInt
+  total_outflow                   BigInt
+  closing_balance                 BigInt
+  first_entry_sequence            BigInt?
+  last_entry_sequence             BigInt?
+  cutoff_sequence                 BigInt
+  cutoff_posted_at                DateTime                    @db.Timestamptz(6)
+  entry_count                     Int
+  calculation_version             Int
+  checksum                        String                      @db.Char(64)
+  status                          balance_snapshot_status
+  is_current                      Boolean                     @default(false)
+  superseded_by_id                BigInt?
+  superseded_at                   DateTime?                   @db.Timestamptz(6)
+  generated_at                    DateTime                    @db.Timestamptz(6)
+  created_at                      DateTime                    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                      DateTime                    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  ledger_accounts                 ledger_accounts             @relation(fields: [ledger_account_id], references: [id], onUpdate: NoAction, map: "balance_snapshots_ledger_id_fkey")
+  balance_snapshot_runs           balance_snapshot_runs       @relation(fields: [snapshot_run_id], references: [id], onUpdate: NoAction, map: "balance_snapshots_run_id_fkey")
+  financial_spaces                financial_spaces            @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "balance_snapshots_space_id_fkey")
+  account_balance_snapshots       account_balance_snapshots?  @relation("account_balance_snapshotsToaccount_balance_snapshots", fields: [superseded_by_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "balance_snapshots_superseded_id_fkey")
+  other_account_balance_snapshots account_balance_snapshots[] @relation("account_balance_snapshotsToaccount_balance_snapshots")
+
+  @@unique([ledger_account_id, business_date], map: "account_balance_snapshots_current_key", where: raw("is_current"))
+  @@unique([ledger_account_id, business_date, calculation_version])
+  @@index([financial_space_id, business_date])
+  @@index([snapshot_run_id])
+  @@index([status, business_date])
+  @@index([superseded_by_id])
+}
+
+model accounts {
+  id                     BigInt           @id @default(autoincrement())
+  public_id              String           @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id        String?          @unique @db.Char(24)
+  financial_space_id     BigInt
+  bank_id                BigInt?
+  type                   account_type
+  name                   String           @db.VarChar(256)
+  description            String?
+  icon                   String?
+  status                 account_status   @default(ACTIVE)
+  legacy_initial_balance BigInt
+  legacy_stored_balance  BigInt
+  closed_at              DateTime?        @db.Timestamptz(6)
+  created_at             DateTime         @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at             DateTime?        @db.Timestamptz(6)
+  deleted_at             DateTime?        @db.Timestamptz(6)
+  banks                  banks?           @relation(fields: [bank_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  financial_spaces       financial_spaces @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "accounts_space_id_fkey")
+  ledger_accounts        ledger_accounts?
+
+  @@index([bank_id])
+  @@index([financial_space_id, status, created_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model accumulations {
+  id                    BigInt              @id @default(autoincrement())
+  public_id             String              @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id       String?             @unique @db.Char(24)
+  financial_space_id    BigInt
+  name                  String              @db.VarChar(256)
+  description           String?
+  target_amount         BigInt
+  legacy_stored_balance BigInt
+  starts_at             DateTime            @db.Timestamptz(6)
+  ends_at               DateTime            @db.Timestamptz(6)
+  status                accumulation_status @default(ACTIVE)
+  finished_at           DateTime?           @db.Timestamptz(6)
+  created_at            DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at            DateTime?           @db.Timestamptz(6)
+  deleted_at            DateTime?           @db.Timestamptz(6)
+  financial_spaces      financial_spaces    @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "accumulations_space_id_fkey")
+  ledger_accounts       ledger_accounts?
+
+  @@index([financial_space_id, status, ends_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model attachments {
+  id                                                                       BigInt                  @id @default(autoincrement())
+  public_id                                                                String                  @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  asset_id                                                                 BigInt
+  financial_space_id                                                       BigInt?
+  user_avatar_user_id                                                      BigInt?                 @unique(map: "attachments_active_avatar_key", where: raw("((status = 'ACTIVE'::attachment_status) AND (user_avatar_user_id IS NOT NULL))"))
+  space_background_space_id                                                BigInt?                 @unique(map: "attachments_active_background_key", where: raw("((status = 'ACTIVE'::attachment_status) AND (space_background_space_id IS NOT NULL))"))
+  bank_logo_bank_id                                                        BigInt?                 @unique(map: "attachments_active_bank_logo_key", where: raw("((status = 'ACTIVE'::attachment_status) AND (bank_logo_bank_id IS NOT NULL))"))
+  financial_transaction_id                                                 BigInt?
+  role                                                                     String                  @db.VarChar(64)
+  source_ordinal                                                           Int                     @default(0)
+  status                                                                   attachment_status       @default(PENDING)
+  linked_by_user_id                                                        BigInt
+  finalize_outbox_event_id                                                 BigInt?
+  activated_at                                                             DateTime?               @db.Timestamptz(6)
+  removed_at                                                               DateTime?               @db.Timestamptz(6)
+  created_at                                                               DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                               DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  temporary_assets                                                         temporary_assets        @relation(fields: [asset_id], references: [id], onUpdate: NoAction)
+  users_attachments_user_avatar_user_idTousers                             users?                  @relation("attachments_user_avatar_user_idTousers", fields: [user_avatar_user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "attachments_avatar_user_id_fkey")
+  financial_spaces_attachments_space_background_space_idTofinancial_spaces financial_spaces?       @relation("attachments_space_background_space_idTofinancial_spaces", fields: [space_background_space_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "attachments_background_space_id_fkey")
+  banks                                                                    banks?                  @relation(fields: [bank_logo_bank_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "attachments_bank_logo_id_fkey")
+  outbox_events                                                            outbox_events?          @relation(fields: [finalize_outbox_event_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "attachments_finalize_outbox_id_fkey")
+  users_attachments_linked_by_user_idTousers                               users                   @relation("attachments_linked_by_user_idTousers", fields: [linked_by_user_id], references: [id], onUpdate: NoAction, map: "attachments_linked_by_id_fkey")
+  financial_spaces_attachments_financial_space_idTofinancial_spaces        financial_spaces?       @relation("attachments_financial_space_idTofinancial_spaces", fields: [financial_space_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "attachments_space_id_fkey")
+  financial_transactions                                                   financial_transactions? @relation(fields: [financial_transaction_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "attachments_transaction_id_fkey")
+  financial_spaces_financial_spaces_background_attachment_idToattachments  financial_spaces[]      @relation("financial_spaces_background_attachment_idToattachments")
+  users_users_avatar_attachment_idToattachments                            users[]                 @relation("users_avatar_attachment_idToattachments")
+
+  @@unique([financial_transaction_id, role, source_ordinal], map: "attachments_active_transaction_role_key", where: raw("((status = 'ACTIVE'::attachment_status) AND (financial_transaction_id IS NOT NULL))"))
+  @@index([asset_id, status])
+  @@index([bank_logo_bank_id])
+  @@index([financial_space_id, financial_transaction_id])
+  @@index([space_background_space_id])
+  @@index([status, created_at])
+  @@index([user_avatar_user_id])
+}
+
+model audit_events {
+  id                 BigInt            @id @default(autoincrement())
+  public_id          String            @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actor_type         audit_actor_type
+  actor_public_id    String?           @db.Uuid
+  action             String            @db.VarChar(96)
+  resource_type      String            @db.VarChar(64)
+  resource_public_id String?           @db.Uuid
+  financial_space_id BigInt?
+  correlation_id     String            @db.Uuid
+  reason             String?
+  before_data        Json?
+  after_data         Json?
+  evidence           Json?
+  occurred_at        DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_at         DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  financial_spaces   financial_spaces? @relation(fields: [financial_space_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "audit_events_space_id_fkey")
+
+  @@index([actor_public_id, occurred_at(sort: Desc)])
+  @@index([financial_space_id, occurred_at(sort: Desc)])
+  @@index([resource_type, resource_public_id, occurred_at(sort: Desc), id(sort: Desc)])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model balance_snapshot_runs {
+  id                        BigInt                      @id @default(autoincrement())
+  public_id                 String                      @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_space_id        BigInt
+  business_date             DateTime                    @db.Date
+  trigger_type              snapshot_trigger_type
+  status                    snapshot_run_status
+  calculation_version       Int
+  idempotency_key           String                      @unique @db.VarChar(200)
+  started_at                DateTime?                   @db.Timestamptz(6)
+  completed_at              DateTime?                   @db.Timestamptz(6)
+  accounts_total            Int                         @default(0)
+  accounts_succeeded        Int                         @default(0)
+  accounts_failed           Int                         @default(0)
+  error_summary             Json?
+  created_at                DateTime                    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                DateTime                    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  account_balance_snapshots account_balance_snapshots[]
+  financial_spaces          financial_spaces            @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "snapshot_runs_space_id_fkey")
+
+  @@unique([financial_space_id, business_date, calculation_version, trigger_type])
+  @@index([status, business_date, id])
+}
+
+model banks {
+  id               BigInt             @id @default(autoincrement())
+  public_id        String             @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id  String?            @unique @db.Char(24)
+  code             String             @unique @db.VarChar(60)
+  name             String             @db.VarChar(120)
+  logo_url         String?
+  is_active        Boolean            @default(true)
+  created_at       DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at       DateTime?          @db.Timestamptz(6)
+  deleted_at       DateTime?          @db.Timestamptz(6)
+  accounts         accounts[]
+  attachments      attachments?
+  savings_accounts savings_accounts[]
+
+  @@index([is_active, code])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model budget_allocations {
+  id                     BigInt     @id @default(autoincrement())
+  public_id              String     @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  budget_id              BigInt
+  category_id            BigInt
+  source_ordinal         Int
+  category_name_snapshot String     @db.VarChar(256)
+  icon_snapshot          String?
+  amount                 BigInt
+  repeat_enabled         Boolean    @default(false)
+  source_ref             Json?
+  created_at             DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at             DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  budgets                budgets    @relation(fields: [budget_id], references: [id], onUpdate: NoAction)
+  categories             categories @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+
+  @@unique([budget_id, category_id])
+  @@unique([budget_id, source_ordinal])
+  @@index([category_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model budgets {
+  id                 BigInt               @id @default(autoincrement())
+  public_id          String               @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id    String?              @unique @db.Char(24)
+  financial_space_id BigInt
+  starts_at          DateTime             @db.Timestamptz(6)
+  ends_at            DateTime             @db.Timestamptz(6)
+  status             budget_status        @default(ACTIVE)
+  created_at         DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at         DateTime?            @db.Timestamptz(6)
+  deleted_at         DateTime?            @db.Timestamptz(6)
+  budget_allocations budget_allocations[]
+  financial_spaces   financial_spaces     @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "budgets_space_id_fkey")
+
+  @@index([financial_space_id, status, starts_at, ends_at, id])
+}
+
+model categories {
+  id                                                           BigInt                    @id @default(autoincrement())
+  public_id                                                    String                    @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id                                              String?                   @unique @db.Char(24)
+  financial_space_id                                           BigInt
+  name                                                         String                    @db.VarChar(256)
+  transaction_type                                             category_transaction_type
+  is_system_locked                                             Boolean                   @default(false)
+  icon                                                         String?
+  created_at                                                   DateTime                  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                   DateTime?                 @db.Timestamptz(6)
+  deleted_at                                                   DateTime?                 @db.Timestamptz(6)
+  budget_allocations                                           budget_allocations[]
+  financial_spaces                                             financial_spaces          @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "categories_space_id_fkey")
+  category_edges_category_edges_child_category_idTocategories  category_edges[]          @relation("category_edges_child_category_idTocategories")
+  category_edges_category_edges_parent_category_idTocategories category_edges[]          @relation("category_edges_parent_category_idTocategories")
+  financial_transactions                                       financial_transactions[]
+
+  @@index([financial_space_id, transaction_type, deleted_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model category_edges {
+  id                                                       BigInt           @id @default(autoincrement())
+  public_id                                                String           @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_space_id                                       BigInt
+  parent_category_id                                       BigInt
+  child_category_id                                        BigInt
+  source_ref                                               Json?
+  created_at                                               DateTime         @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                               DateTime         @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  categories_category_edges_child_category_idTocategories  categories       @relation("category_edges_child_category_idTocategories", fields: [child_category_id], references: [id], onUpdate: NoAction, map: "category_edges_child_id_fkey")
+  categories_category_edges_parent_category_idTocategories categories       @relation("category_edges_parent_category_idTocategories", fields: [parent_category_id], references: [id], onUpdate: NoAction, map: "category_edges_parent_id_fkey")
+  financial_spaces                                         financial_spaces @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "category_edges_space_id_fkey")
+
+  @@unique([parent_category_id, child_category_id])
+  @@index([child_category_id])
+  @@index([financial_space_id, parent_category_id])
+}
+
+model contacts {
+  id                 BigInt            @id @default(autoincrement())
+  public_id          String            @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id    String?           @unique @db.Char(24)
+  financial_space_id BigInt
+  name               String            @db.VarChar(120)
+  trust_level        trust_level       @default(NORMAL)
+  created_at         DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at         DateTime?         @db.Timestamptz(6)
+  deleted_at         DateTime?         @db.Timestamptz(6)
+  financial_spaces   financial_spaces  @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "contacts_space_id_fkey")
+  debt_agreements    debt_agreements[]
+
+  @@index([financial_space_id, deleted_at, name, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model debt_agreements {
+  id                                                                      BigInt                 @id @default(autoincrement())
+  public_id                                                               String                 @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id                                                         String?                @unique @db.Char(24)
+  financial_space_id                                                      BigInt
+  origin_transaction_id                                                   BigInt                 @unique
+  direction                                                               debt_direction
+  cash_ledger_account_id                                                  BigInt
+  debt_ledger_account_id                                                  BigInt
+  counterparty_contact_id                                                 BigInt
+  principal_amount                                                        BigInt
+  rate_value                                                              Decimal?               @db.Decimal(7, 4)
+  fixed_interest_amount                                                   BigInt?
+  rate_basis                                                              debt_rate_basis
+  due_at                                                                  DateTime?              @db.Timestamptz(6)
+  trust_level                                                             trust_level            @default(NORMAL)
+  status                                                                  debt_status            @default(OPEN)
+  outstanding_principal                                                   BigInt
+  outstanding_interest                                                    BigInt                 @default(0)
+  settled_at                                                              DateTime?              @db.Timestamptz(6)
+  created_at                                                              DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                              DateTime?              @db.Timestamptz(6)
+  deleted_at                                                              DateTime?              @db.Timestamptz(6)
+  ledger_accounts_debt_agreements_cash_ledger_account_idToledger_accounts ledger_accounts        @relation("debt_agreements_cash_ledger_account_idToledger_accounts", fields: [cash_ledger_account_id], references: [id], onUpdate: NoAction, map: "debt_agreements_cash_ledger_id_fkey")
+  contacts                                                                contacts               @relation(fields: [counterparty_contact_id], references: [id], onUpdate: NoAction, map: "debt_agreements_contact_id_fkey")
+  ledger_accounts_debt_agreements_debt_ledger_account_idToledger_accounts ledger_accounts        @relation("debt_agreements_debt_ledger_account_idToledger_accounts", fields: [debt_ledger_account_id], references: [id], onUpdate: NoAction, map: "debt_agreements_debt_ledger_id_fkey")
+  financial_transactions                                                  financial_transactions @relation(fields: [origin_transaction_id], references: [id], onUpdate: NoAction, map: "debt_agreements_origin_id_fkey")
+  financial_spaces                                                        financial_spaces       @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "debt_agreements_space_id_fkey")
+  debt_settlements                                                        debt_settlements[]
+
+  @@index([cash_ledger_account_id])
+  @@index([counterparty_contact_id, status, id])
+  @@index([debt_ledger_account_id])
+  @@index([financial_space_id, direction, status, due_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model debt_settlements {
+  id                       BigInt                 @id @default(autoincrement())
+  public_id                String                 @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id          String?                @unique @db.Char(24)
+  financial_space_id       BigInt
+  financial_transaction_id BigInt                 @unique
+  debt_agreement_id        BigInt
+  cash_ledger_account_id   BigInt
+  principal_amount         BigInt
+  interest_amount          BigInt                 @default(0)
+  occurred_at              DateTime               @db.Timestamptz(6)
+  created_at               DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at               DateTime?              @db.Timestamptz(6)
+  deleted_at               DateTime?              @db.Timestamptz(6)
+  ledger_accounts          ledger_accounts        @relation(fields: [cash_ledger_account_id], references: [id], onUpdate: NoAction, map: "debt_settlements_cash_ledger_id_fkey")
+  debt_agreements          debt_agreements        @relation(fields: [debt_agreement_id], references: [id], onUpdate: NoAction, map: "debt_settlements_debt_id_fkey")
+  financial_spaces         financial_spaces       @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "debt_settlements_space_id_fkey")
+  financial_transactions   financial_transactions @relation(fields: [financial_transaction_id], references: [id], onUpdate: NoAction, map: "debt_settlements_transaction_id_fkey")
+
+  @@index([cash_ledger_account_id])
+  @@index([debt_agreement_id, occurred_at, id])
+  @@index([financial_space_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model discrepancy_cases {
+  id                                                 BigInt                     @id @default(autoincrement())
+  public_id                                          String                     @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fingerprint                                        String                     @unique(map: "discrepancy_cases_active_fingerprint_key", where: raw("(status = ANY (ARRAY['OPEN'::discrepancy_status, 'INVESTIGATING'::discrepancy_status]))")) @db.Char(64)
+  source                                             discrepancy_source
+  type                                               String                     @db.VarChar(96)
+  severity                                           discrepancy_severity
+  status                                             discrepancy_status         @default(OPEN)
+  version                                            Int                        @default(1)
+  recurrence_count                                   Int                        @default(1)
+  financial_space_id                                 BigInt?
+  migration_run_id                                   BigInt?
+  resource_type                                      String?                    @db.VarChar(64)
+  resource_public_id                                 String?                    @db.Uuid
+  legacy_mongo_id                                    String?                    @db.Char(24)
+  expected_data                                      Json?
+  actual_data                                        Json?
+  evidence                                           Json
+  detected_at                                        DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  assigned_to_user_id                                BigInt?
+  resolution_action                                  String?                    @db.VarChar(96)
+  resolution_note                                    String?
+  resolved_by_user_id                                BigInt?
+  resolved_at                                        DateTime?                  @db.Timestamptz(6)
+  created_at                                         DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                         DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  users_discrepancy_cases_assigned_to_user_idTousers users?                     @relation("discrepancy_cases_assigned_to_user_idTousers", fields: [assigned_to_user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "discrepancy_cases_assignee_id_fkey")
+  users_discrepancy_cases_resolved_by_user_idTousers users?                     @relation("discrepancy_cases_resolved_by_user_idTousers", fields: [resolved_by_user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "discrepancy_cases_resolver_id_fkey")
+  migration_runs                                     migration_runs?            @relation(fields: [migration_run_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "discrepancy_cases_run_id_fkey")
+  financial_spaces                                   financial_spaces?          @relation(fields: [financial_space_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "discrepancy_cases_space_id_fkey")
+  migration_anchor_details                           migration_anchor_details[]
+
+  @@index([migration_run_id])
+  @@index([resource_type, resource_public_id])
+  @@index([source, type, status])
+  @@index([status, severity, detected_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model feature_flag_overrides {
+  id                     BigInt    @id @default(autoincrement())
+  public_id              String    @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deployment_environment String    @db.VarChar(32)
+  flag_key               String    @db.VarChar(96)
+  enabled                Boolean
+  version                Int       @default(1)
+  reason                 String
+  changed_by_user_id     BigInt?
+  effective_at           DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  expires_at             DateTime? @db.Timestamptz(6)
+  created_at             DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at             DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  users                  users?    @relation(fields: [changed_by_user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "feature_flag_overrides_user_id_fkey")
+
+  @@unique([deployment_environment, flag_key], map: "feature_flag_overrides_active_key", where: raw("(expires_at IS NULL)"))
+  @@index([deployment_environment, effective_at, expires_at])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model financial_space_memberships {
+  id                 BigInt            @id @default(autoincrement())
+  public_id          String            @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_space_id BigInt
+  user_id            BigInt
+  role               membership_role
+  status             membership_status @default(ACTIVE)
+  joined_at          DateTime          @db.Timestamptz(6)
+  ended_at           DateTime?         @db.Timestamptz(6)
+  source_ref         Json?
+  created_at         DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at         DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  financial_spaces   financial_spaces  @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "memberships_space_id_fkey")
+  users              users             @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "memberships_user_id_fkey")
+
+  @@unique([financial_space_id, user_id])
+  @@index([user_id, status, role, financial_space_id])
+}
+
+model financial_spaces {
+  id                                                                                                BigInt                        @id @default(autoincrement())
+  public_id                                                                                         String                        @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id                                                                                   String?                       @unique @db.Char(24)
+  kind                                                                                              financial_space_kind
+  name                                                                                              String                        @db.VarChar(256)
+  status                                                                                            financial_space_status        @default(ACTIVE)
+  background_attachment_id                                                                          BigInt?
+  created_at                                                                                        DateTime                      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                                                        DateTime?                     @db.Timestamptz(6)
+  deleted_at                                                                                        DateTime?                     @db.Timestamptz(6)
+  account_balance_snapshots                                                                         account_balance_snapshots[]
+  accounts                                                                                          accounts[]
+  accumulations                                                                                     accumulations[]
+  attachments_attachments_space_background_space_idTofinancial_spaces                               attachments?                  @relation("attachments_space_background_space_idTofinancial_spaces")
+  attachments_attachments_financial_space_idTofinancial_spaces                                      attachments[]                 @relation("attachments_financial_space_idTofinancial_spaces")
+  audit_events                                                                                      audit_events[]
+  balance_snapshot_runs                                                                             balance_snapshot_runs[]
+  budgets                                                                                           budgets[]
+  categories                                                                                        categories[]
+  category_edges                                                                                    category_edges[]
+  contacts                                                                                          contacts[]
+  debt_agreements                                                                                   debt_agreements[]
+  debt_settlements                                                                                  debt_settlements[]
+  discrepancy_cases                                                                                 discrepancy_cases[]
+  financial_space_memberships                                                                       financial_space_memberships[]
+  attachments_financial_spaces_background_attachment_idToattachments                                attachments?                  @relation("financial_spaces_background_attachment_idToattachments", fields: [background_attachment_id], references: [id], onUpdate: NoAction)
+  financial_transactions                                                                            financial_transactions[]
+  idempotency_records                                                                               idempotency_records[]
+  interspace_transfer_groups_interspace_transfer_groups_source_financial_space_idTofinancial_spaces interspace_transfer_groups[]  @relation("interspace_transfer_groups_source_financial_space_idTofinancial_spaces")
+  interspace_transfer_groups_interspace_transfer_groups_target_financial_space_idTofinancial_spaces interspace_transfer_groups[]  @relation("interspace_transfer_groups_target_financial_space_idTofinancial_spaces")
+  ledger_accounts                                                                                   ledger_accounts[]
+  notifications                                                                                     notifications[]
+  outbox_events                                                                                     outbox_events[]
+  savings_accounts                                                                                  savings_accounts[]
+  temporary_assets                                                                                  temporary_assets[]
+
+  @@index([kind, status, id])
+  @@index([status, created_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model financial_transactions {
+  id                                                                                                  BigInt                        @id @default(autoincrement())
+  public_id                                                                                           String                        @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id                                                                                     String?                       @unique @db.Char(24)
+  financial_space_id                                                                                  BigInt
+  posting_template_definition_id                                                                      BigInt
+  type                                                                                                financial_transaction_type
+  status                                                                                              financial_transaction_status  @default(DRAFT)
+  responsible_user_id                                                                                 BigInt
+  category_id                                                                                         BigInt?
+  name                                                                                                String                        @db.VarChar(256)
+  description                                                                                         String?                       @db.VarChar(256)
+  amount                                                                                              BigInt
+  occurred_at                                                                                         DateTime                      @db.Timestamptz(6)
+  posted_at                                                                                           DateTime?                     @db.Timestamptz(6)
+  reverses_transaction_id                                                                             BigInt?                       @unique
+  business_snapshot                                                                                   Json
+  snapshot_schema_version                                                                             Int
+  idempotency_record_id                                                                               BigInt?                       @unique
+  correlation_id                                                                                      String                        @db.Uuid
+  created_at                                                                                          DateTime                      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                                                          DateTime?                     @db.Timestamptz(6)
+  deleted_at                                                                                          DateTime?                     @db.Timestamptz(6)
+  attachments                                                                                         attachments[]
+  debt_agreements                                                                                     debt_agreements?
+  debt_settlements                                                                                    debt_settlements?
+  categories                                                                                          categories?                   @relation(fields: [category_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  idempotency_records                                                                                 idempotency_records?          @relation(fields: [idempotency_record_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "financial_transactions_idempotency_id_fkey")
+  financial_transactions                                                                              financial_transactions?       @relation("financial_transactionsTofinancial_transactions", fields: [reverses_transaction_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "financial_transactions_reversal_id_fkey")
+  other_financial_transactions                                                                        financial_transactions?       @relation("financial_transactionsTofinancial_transactions")
+  financial_spaces                                                                                    financial_spaces              @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "financial_transactions_space_id_fkey")
+  posting_template_definitions                                                                        posting_template_definitions  @relation(fields: [posting_template_definition_id], references: [id], onUpdate: NoAction, map: "financial_transactions_template_id_fkey")
+  users                                                                                               users                         @relation(fields: [responsible_user_id], references: [id], onUpdate: NoAction, map: "financial_transactions_user_id_fkey")
+  interspace_transfer_groups_interspace_transfer_groups_source_transaction_idTofinancial_transactions interspace_transfer_groups?   @relation("interspace_transfer_groups_source_transaction_idTofinancial_transactions")
+  interspace_transfer_groups_interspace_transfer_groups_target_transaction_idTofinancial_transactions interspace_transfer_groups?   @relation("interspace_transfer_groups_target_transaction_idTofinancial_transactions")
+  ledger_entries                                                                                      ledger_entries[]
+  migration_anchor_details                                                                            migration_anchor_details?
+  saving_periods                                                                                      saving_periods[]
+  transaction_expense_details                                                                         transaction_expense_details?
+  transaction_income_details                                                                          transaction_income_details?
+  transaction_saving_details                                                                          transaction_saving_details?
+  transaction_transfer_details                                                                        transaction_transfer_details?
+
+  @@index([financial_space_id, category_id, occurred_at(sort: Desc), id(sort: Desc)])
+  @@index([financial_space_id, occurred_at(sort: Desc), id(sort: Desc)])
+  @@index([financial_space_id, type, occurred_at(sort: Desc), id(sort: Desc)])
+  @@index([posted_at, id])
+  @@index([posting_template_definition_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model idempotency_records {
+  id                         BigInt                      @id @default(autoincrement())
+  public_id                  String                      @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_space_id         BigInt
+  actor_type                 idempotency_actor_type
+  actor_id                   String                      @db.VarChar(128)
+  operation                  String                      @db.VarChar(96)
+  idempotency_key            String                      @db.VarChar(200)
+  request_hash               String                      @db.Char(64)
+  status                     idempotency_status
+  resource_type              String?                     @db.VarChar(64)
+  resource_public_id         String?                     @db.Uuid
+  response_status            Int?                        @db.SmallInt
+  response_body              Json?
+  error_code                 String?                     @db.VarChar(96)
+  lease_owner                String?                     @db.VarChar(128)
+  lease_expires_at           DateTime?                   @db.Timestamptz(6)
+  completed_at               DateTime?                   @db.Timestamptz(6)
+  response_purge_after       DateTime?                   @db.Timestamptz(6)
+  created_at                 DateTime                    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                 DateTime                    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  financial_transactions     financial_transactions?
+  financial_spaces           financial_spaces            @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "idempotency_records_space_id_fkey")
+  interspace_transfer_groups interspace_transfer_groups?
+
+  @@unique([financial_space_id, actor_type, actor_id, operation, idempotency_key])
+  @@index([resource_type, resource_public_id])
+  @@index([status, lease_expires_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model inbox_receipts {
+  id                   BigInt   @id @default(autoincrement())
+  public_id            String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  consumer             String   @db.VarChar(96)
+  event_public_id      String   @db.Uuid
+  event_schema_version Int
+  payload_hash         String   @db.Char(64)
+  processed_at         DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  result               Json?
+
+  @@unique([consumer, event_public_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model interspace_transfer_groups {
+  id                                                                                              BigInt                     @id @default(autoincrement())
+  public_id                                                                                       String                     @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id                                                                                 String?                    @unique @db.Char(24)
+  source_financial_space_id                                                                       BigInt
+  target_financial_space_id                                                                       BigInt
+  actor_user_id                                                                                   BigInt
+  source_ledger_account_id                                                                        BigInt
+  target_ledger_account_id                                                                        BigInt
+  source_transaction_id                                                                           BigInt                     @unique
+  target_transaction_id                                                                           BigInt                     @unique
+  amount                                                                                          BigInt
+  status                                                                                          interspace_transfer_status @default(DRAFT)
+  idempotency_record_id                                                                           BigInt                     @unique
+  legacy_transaction_mongo_id                                                                     String?                    @unique @db.Char(24)
+  legacy_contribution_request_id                                                                  String?                    @db.Char(24)
+  correlation_id                                                                                  String                     @db.Uuid
+  created_at                                                                                      DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                                                      DateTime?                  @db.Timestamptz(6)
+  deleted_at                                                                                      DateTime?                  @db.Timestamptz(6)
+  users                                                                                           users                      @relation(fields: [actor_user_id], references: [id], onUpdate: NoAction, map: "interspace_actor_id_fkey")
+  idempotency_records                                                                             idempotency_records        @relation(fields: [idempotency_record_id], references: [id], onUpdate: NoAction, map: "interspace_idempotency_id_fkey")
+  ledger_accounts_interspace_transfer_groups_source_ledger_account_idToledger_accounts            ledger_accounts            @relation("interspace_transfer_groups_source_ledger_account_idToledger_accounts", fields: [source_ledger_account_id], references: [id], onUpdate: NoAction, map: "interspace_source_ledger_id_fkey")
+  financial_spaces_interspace_transfer_groups_source_financial_space_idTofinancial_spaces         financial_spaces           @relation("interspace_transfer_groups_source_financial_space_idTofinancial_spaces", fields: [source_financial_space_id], references: [id], onUpdate: NoAction, map: "interspace_source_space_id_fkey")
+  financial_transactions_interspace_transfer_groups_source_transaction_idTofinancial_transactions financial_transactions     @relation("interspace_transfer_groups_source_transaction_idTofinancial_transactions", fields: [source_transaction_id], references: [id], onUpdate: NoAction, map: "interspace_source_transaction_id_fkey")
+  ledger_accounts_interspace_transfer_groups_target_ledger_account_idToledger_accounts            ledger_accounts            @relation("interspace_transfer_groups_target_ledger_account_idToledger_accounts", fields: [target_ledger_account_id], references: [id], onUpdate: NoAction, map: "interspace_target_ledger_id_fkey")
+  financial_spaces_interspace_transfer_groups_target_financial_space_idTofinancial_spaces         financial_spaces           @relation("interspace_transfer_groups_target_financial_space_idTofinancial_spaces", fields: [target_financial_space_id], references: [id], onUpdate: NoAction, map: "interspace_target_space_id_fkey")
+  financial_transactions_interspace_transfer_groups_target_transaction_idTofinancial_transactions financial_transactions     @relation("interspace_transfer_groups_target_transaction_idTofinancial_transactions", fields: [target_transaction_id], references: [id], onUpdate: NoAction, map: "interspace_target_transaction_id_fkey")
+
+  @@index([actor_user_id, created_at, id])
+  @@index([source_financial_space_id, created_at, id])
+  @@index([source_ledger_account_id])
+  @@index([target_financial_space_id, created_at, id])
+  @@index([target_ledger_account_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model ledger_accounts {
+  id                                                                                                  BigInt                         @id @default(autoincrement())
+  public_id                                                                                           String                         @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_space_id                                                                                  BigInt
+  kind                                                                                                ledger_account_kind
+  normal_side                                                                                         ledger_normal_side
+  system_role                                                                                         String?                        @db.VarChar(64)
+  account_id                                                                                          BigInt?                        @unique
+  accumulation_id                                                                                     BigInt?                        @unique
+  saving_account_id                                                                                   BigInt?                        @unique
+  name                                                                                                String                         @db.VarChar(256)
+  current_balance                                                                                     BigInt                         @default(0)
+  current_sequence                                                                                    BigInt                         @default(0)
+  allows_negative_balance                                                                             Boolean                        @default(false)
+  status                                                                                              ledger_account_status          @default(ACTIVE)
+  closed_at                                                                                           DateTime?                      @db.Timestamptz(6)
+  created_at                                                                                          DateTime                       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                                                          DateTime                       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  account_balance_snapshots                                                                           account_balance_snapshots[]
+  debt_agreements_debt_agreements_cash_ledger_account_idToledger_accounts                             debt_agreements[]              @relation("debt_agreements_cash_ledger_account_idToledger_accounts")
+  debt_agreements_debt_agreements_debt_ledger_account_idToledger_accounts                             debt_agreements[]              @relation("debt_agreements_debt_ledger_account_idToledger_accounts")
+  debt_settlements                                                                                    debt_settlements[]
+  interspace_transfer_groups_interspace_transfer_groups_source_ledger_account_idToledger_accounts     interspace_transfer_groups[]   @relation("interspace_transfer_groups_source_ledger_account_idToledger_accounts")
+  interspace_transfer_groups_interspace_transfer_groups_target_ledger_account_idToledger_accounts     interspace_transfer_groups[]   @relation("interspace_transfer_groups_target_ledger_account_idToledger_accounts")
+  accounts                                                                                            accounts?                      @relation(fields: [account_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  accumulations                                                                                       accumulations?                 @relation(fields: [accumulation_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  savings_accounts_ledger_accounts_saving_account_idTosavings_accounts                                savings_accounts?              @relation("ledger_accounts_saving_account_idTosavings_accounts", fields: [saving_account_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "ledger_accounts_saving_id_fkey")
+  financial_spaces                                                                                    financial_spaces               @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "ledger_accounts_space_id_fkey")
+  system_account_definitions                                                                          system_account_definitions?    @relation(fields: [system_role], references: [code], onDelete: Restrict, onUpdate: NoAction)
+  ledger_entries                                                                                      ledger_entries[]
+  migration_anchor_details                                                                            migration_anchor_details[]
+  savings_accounts_savings_accounts_funding_ledger_account_idToledger_accounts                        savings_accounts[]             @relation("savings_accounts_funding_ledger_account_idToledger_accounts")
+  savings_accounts_savings_accounts_interest_target_ledger_account_idToledger_accounts                savings_accounts[]             @relation("savings_accounts_interest_target_ledger_account_idToledger_accounts")
+  transaction_expense_details                                                                         transaction_expense_details[]
+  transaction_income_details                                                                          transaction_income_details[]
+  transaction_saving_details_transaction_saving_details_source_ledger_account_idToledger_accounts     transaction_saving_details[]   @relation("transaction_saving_details_source_ledger_account_idToledger_accounts")
+  transaction_saving_details_transaction_saving_details_target_ledger_account_idToledger_accounts     transaction_saving_details[]   @relation("transaction_saving_details_target_ledger_account_idToledger_accounts")
+  transaction_transfer_details_transaction_transfer_details_source_ledger_account_idToledger_accounts transaction_transfer_details[] @relation("transaction_transfer_details_source_ledger_account_idToledger_accounts")
+  transaction_transfer_details_transaction_transfer_details_target_ledger_account_idToledger_accounts transaction_transfer_details[] @relation("transaction_transfer_details_target_ledger_account_idToledger_accounts")
+
+  @@unique([financial_space_id, system_role])
+  @@index([financial_space_id, kind, system_role])
+  @@index([financial_space_id, status, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model ledger_entries {
+  id                       BigInt                 @id @default(autoincrement())
+  public_id                String                 @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_transaction_id BigInt
+  ledger_account_id        BigInt
+  account_sequence         BigInt
+  amount                   BigInt
+  balance_before           BigInt
+  balance_after            BigInt
+  posted_at                DateTime               @db.Timestamptz(6)
+  entry_role               String                 @db.VarChar(64)
+  created_at               DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  ledger_accounts          ledger_accounts        @relation(fields: [ledger_account_id], references: [id], onUpdate: NoAction, map: "ledger_entries_account_id_fkey")
+  financial_transactions   financial_transactions @relation(fields: [financial_transaction_id], references: [id], onUpdate: NoAction, map: "ledger_entries_transaction_id_fkey")
+
+  @@unique([financial_transaction_id, ledger_account_id, entry_role])
+  @@unique([ledger_account_id, account_sequence])
+  @@index([financial_transaction_id, id])
+  @@index([ledger_account_id, posted_at, account_sequence])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model migration_anchor_details {
+  id                       BigInt                 @id @default(autoincrement())
+  public_id                String                 @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_transaction_id BigInt                 @unique
+  ledger_account_id        BigInt
+  migration_run_id         BigInt
+  discrepancy_case_id      BigInt
+  source_legacy_balance    BigInt
+  reconstructed_balance    BigInt
+  difference_amount        BigInt
+  source_checksum          String                 @db.Char(64)
+  approval_actor_user_id   BigInt
+  approval_reason          String
+  approved_at              DateTime               @db.Timestamptz(6)
+  created_at               DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  users                    users                  @relation(fields: [approval_actor_user_id], references: [id], onUpdate: NoAction, map: "migration_anchor_approver_id_fkey")
+  discrepancy_cases        discrepancy_cases      @relation(fields: [discrepancy_case_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "migration_anchor_discrepancy_id_fkey")
+  ledger_accounts          ledger_accounts        @relation(fields: [ledger_account_id], references: [id], onUpdate: NoAction, map: "migration_anchor_ledger_id_fkey")
+  migration_runs           migration_runs         @relation(fields: [migration_run_id], references: [id], onUpdate: NoAction, map: "migration_anchor_run_id_fkey")
+  financial_transactions   financial_transactions @relation(fields: [financial_transaction_id], references: [id], onUpdate: NoAction, map: "migration_anchor_transaction_id_fkey")
+
+  @@index([discrepancy_case_id])
+  @@index([ledger_account_id])
+  @@index([migration_run_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model migration_checkpoints {
+  id                    BigInt            @id @default(autoincrement())
+  public_id             String            @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  migration_run_id      BigInt
+  graph_level           Int               @db.SmallInt
+  source_collection     String            @db.VarChar(96)
+  last_source_legacy_id String?           @db.Char(24)
+  status                checkpoint_status
+  processed_count       BigInt            @default(0)
+  loaded_count          BigInt            @default(0)
+  rejected_count        BigInt            @default(0)
+  canonical_hash        String?           @db.Char(64)
+  started_at            DateTime?         @db.Timestamptz(6)
+  completed_at          DateTime?         @db.Timestamptz(6)
+  created_at            DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at            DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  migration_runs        migration_runs    @relation(fields: [migration_run_id], references: [id], onUpdate: NoAction, map: "migration_checkpoints_run_id_fkey")
+
+  @@unique([migration_run_id, graph_level, source_collection])
+  @@index([migration_run_id, status, graph_level])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model migration_runs {
+  id                       BigInt                     @id @default(autoincrement())
+  public_id                String                     @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  run_type                 migration_run_type
+  source_snapshot_id       String                     @db.VarChar(200)
+  source_checksum          String                     @db.Char(64)
+  mapping_version          String                     @db.VarChar(64)
+  schema_version           String                     @db.VarChar(64)
+  status                   migration_run_status
+  started_at               DateTime?                  @db.Timestamptz(6)
+  completed_at             DateTime?                  @db.Timestamptz(6)
+  source_count             BigInt                     @default(0)
+  loaded_count             BigInt                     @default(0)
+  rejected_count           BigInt                     @default(0)
+  summary                  Json?
+  created_at               DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  discrepancy_cases        discrepancy_cases[]
+  migration_anchor_details migration_anchor_details[]
+  migration_checkpoints    migration_checkpoints[]
+  migration_source_records migration_source_records[]
+
+  @@unique([source_snapshot_id, source_checksum, mapping_version, schema_version, run_type])
+  @@index([status, created_at(sort: Desc)])
+}
+
+model migration_source_records {
+  id                BigInt                       @id @default(autoincrement())
+  migration_run_id  BigInt
+  source_collection String                       @db.VarChar(96)
+  source_legacy_id  String                       @db.Char(24)
+  source_hash       String                       @db.Char(64)
+  raw_document      Json
+  sanitized_document_hash String                  @db.Char(64)
+  sanitization_policy_version String              @default("migration-redaction-v1") @db.VarChar(32)
+  redaction_manifest Json                         @default("[]")
+  disposition       migration_record_disposition @default(STAGED)
+  target_type       String?                      @db.VarChar(64)
+  target_public_id  String?                      @db.Uuid
+  reject_code       String?                      @db.VarChar(96)
+  processed_at      DateTime?                    @db.Timestamptz(6)
+  created_at        DateTime                     @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  migration_runs    migration_runs               @relation(fields: [migration_run_id], references: [id], onUpdate: NoAction, map: "migration_source_records_run_id_fkey")
+
+  @@unique([migration_run_id, source_collection, source_legacy_id])
+  @@index([migration_run_id, source_collection, disposition, id])
+  @@index([target_type, target_public_id])
+}
+
+model notifications {
+  id                     BigInt               @id @default(autoincrement())
+  public_id              String               @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id        String?              @unique @db.Char(24)
+  type                   notification_type
+  title                  String               @db.VarChar(256)
+  message                String
+  link                   String?
+  financial_space_id     BigInt?
+  source_outbox_event_id BigInt?
+  created_at             DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at             DateTime?            @db.Timestamptz(6)
+  deleted_at             DateTime?            @db.Timestamptz(6)
+  outbox_events          outbox_events?       @relation(fields: [source_outbox_event_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "notifications_outbox_id_fkey")
+  financial_spaces       financial_spaces?    @relation(fields: [financial_space_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "notifications_space_id_fkey")
+  user_notifications     user_notifications[]
+
+  @@index([financial_space_id, created_at(sort: Desc), id(sort: Desc)])
+  @@index([source_outbox_event_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model outbox_delivery_attempts {
+  id                       BigInt                  @id @default(autoincrement())
+  public_id                String                  @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  outbox_event_id          BigInt
+  attempt_number           Int
+  provider                 String                  @db.VarChar(64)
+  provider_idempotency_key String                  @db.VarChar(200)
+  status                   delivery_attempt_status
+  started_at               DateTime                @db.Timestamptz(6)
+  finished_at              DateTime?               @db.Timestamptz(6)
+  error_code               String?                 @db.VarChar(96)
+  error_summary            String?
+  provider_receipt         Json?
+  outbox_events            outbox_events           @relation(fields: [outbox_event_id], references: [id], onUpdate: NoAction, map: "outbox_attempts_event_id_fkey")
+
+  @@unique([outbox_event_id, attempt_number])
+  @@unique([provider, provider_idempotency_key, attempt_number])
+  @@index([status, started_at])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model outbox_events {
+  id                       BigInt                     @id @default(autoincrement())
+  public_id                String                     @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_space_id       BigInt?
+  aggregate_type           String                     @db.VarChar(64)
+  aggregate_public_id      String                     @db.Uuid
+  aggregate_sequence       BigInt
+  event_type               String                     @db.VarChar(96)
+  event_schema_version     Int
+  payload                  Json
+  status                   outbox_status              @default(PENDING)
+  attempt_count            Int                        @default(0)
+  next_attempt_at          DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  lease_owner              String?                    @db.VarChar(128)
+  lease_expires_at         DateTime?                  @db.Timestamptz(6)
+  last_error_code          String?                    @db.VarChar(96)
+  last_error_summary       String?
+  delivered_at             DateTime?                  @db.Timestamptz(6)
+  created_at               DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  attachments              attachments[]
+  notifications            notifications[]
+  outbox_delivery_attempts outbox_delivery_attempts[]
+  financial_spaces         financial_spaces?          @relation(fields: [financial_space_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "outbox_events_space_id_fkey")
+
+  @@unique([aggregate_type, aggregate_public_id, aggregate_sequence])
+  @@index([aggregate_type, aggregate_public_id, aggregate_sequence])
+  @@index([lease_expires_at])
+  @@index([lease_expires_at], map: "outbox_events_processing_lease_idx", where: raw("(status = 'PROCESSING'::outbox_status)"))
+  @@index([status, next_attempt_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model posting_template_definitions {
+  id                           BigInt                         @id @default(autoincrement())
+  public_id                    String                         @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                         String                         @unique(map: "posting_template_definitions_current_approved_key", where: raw("(status = 'APPROVED'::posting_template_status)")) @db.VarChar(64)
+  version                      Int
+  transaction_type             financial_transaction_type
+  semantic_rule_code           String                         @db.VarChar(64)
+  status                       posting_template_status
+  definition_hash              String                         @db.Char(64)
+  effective_at                 DateTime                       @db.Timestamptz(6)
+  retired_at                   DateTime?                      @db.Timestamptz(6)
+  created_at                   DateTime                       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  financial_transactions       financial_transactions[]
+  posting_template_entry_roles posting_template_entry_roles[]
+
+  @@unique([code, version])
+  @@index([status, effective_at])
+  @@index([transaction_type, status], map: "posting_template_definitions_transaction_type_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model posting_template_entry_roles {
+  id                             BigInt                       @id @default(autoincrement())
+  posting_template_definition_id BigInt
+  entry_role                     String                       @db.VarChar(64)
+  required_account_kind          ledger_account_kind
+  required_system_role           String?                      @db.VarChar(64)
+  sign_rule                      posting_sign_rule
+  minimum_occurrences            Int                          @default(1) @db.SmallInt
+  maximum_occurrences            Int                          @default(1) @db.SmallInt
+  created_at                     DateTime                     @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  posting_template_definitions   posting_template_definitions @relation(fields: [posting_template_definition_id], references: [id], onUpdate: NoAction, map: "template_entry_roles_definition_id_fkey")
+  system_account_definitions     system_account_definitions?  @relation(fields: [required_system_role], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "template_entry_roles_system_role_fkey")
+
+  @@unique([posting_template_definition_id, entry_role])
+  @@index([required_system_role])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model saving_periods {
+  id                         BigInt                       @id @default(autoincrement())
+  public_id                  String                       @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  saving_account_id          BigInt
+  period_ordinal             Int
+  action                     saving_period_action
+  due_at                     DateTime                     @db.Timestamptz(6)
+  status                     saving_period_status         @default(PENDING)
+  financial_transaction_id   BigInt?
+  idempotency_key            String                       @unique @db.VarChar(200)
+  completed_at               DateTime?                    @db.Timestamptz(6)
+  created_at                 DateTime                     @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                 DateTime                     @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  savings_accounts           savings_accounts             @relation(fields: [saving_account_id], references: [id], onUpdate: NoAction, map: "saving_periods_saving_id_fkey")
+  financial_transactions     financial_transactions?      @relation(fields: [financial_transaction_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "saving_periods_transaction_id_fkey")
+  transaction_saving_details transaction_saving_details[]
+
+  @@unique([saving_account_id, period_ordinal, action])
+  @@index([financial_transaction_id])
+  @@index([status, due_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model savings_accounts {
+  id                                                                                  BigInt                        @id @default(autoincrement())
+  public_id                                                                           String                        @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id                                                                     String?                       @unique @db.Char(24)
+  financial_space_id                                                                  BigInt
+  bank_id                                                                             BigInt
+  name                                                                                String                        @db.VarChar(256)
+  description                                                                         String?
+  principal_amount                                                                    BigInt
+  legacy_stored_balance                                                               BigInt
+  annual_rate                                                                         Decimal                       @db.Decimal(7, 4)
+  non_term_annual_rate                                                                Decimal                       @db.Decimal(7, 4)
+  day_count_convention                                                                interest_day_count_convention @default(ACTUAL_365)
+  rounding_mode                                                                       money_rounding_mode           @default(HALF_UP)
+  starts_at                                                                           DateTime                      @db.Timestamptz(6)
+  term_months                                                                         Int
+  interest_schedule                                                                   saving_interest_schedule
+  maturity_action                                                                     saving_maturity_action
+  funding_ledger_account_id                                                           BigInt
+  interest_target_ledger_account_id                                                   BigInt?
+  parent_saving_id                                                                    BigInt?
+  status                                                                              saving_status                 @default(ACTIVE)
+  closed_at                                                                           DateTime?                     @db.Timestamptz(6)
+  created_at                                                                          DateTime                      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                                          DateTime?                     @db.Timestamptz(6)
+  deleted_at                                                                          DateTime?                     @db.Timestamptz(6)
+  ledger_accounts_ledger_accounts_saving_account_idTosavings_accounts                 ledger_accounts?              @relation("ledger_accounts_saving_account_idTosavings_accounts")
+  saving_periods                                                                      saving_periods[]
+  banks                                                                               banks                         @relation(fields: [bank_id], references: [id], onUpdate: NoAction, map: "savings_bank_id_fkey")
+  ledger_accounts_savings_accounts_funding_ledger_account_idToledger_accounts         ledger_accounts               @relation("savings_accounts_funding_ledger_account_idToledger_accounts", fields: [funding_ledger_account_id], references: [id], onUpdate: NoAction, map: "savings_funding_ledger_id_fkey")
+  ledger_accounts_savings_accounts_interest_target_ledger_account_idToledger_accounts ledger_accounts?              @relation("savings_accounts_interest_target_ledger_account_idToledger_accounts", fields: [interest_target_ledger_account_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "savings_interest_ledger_id_fkey")
+  savings_accounts                                                                    savings_accounts?             @relation("savings_accountsTosavings_accounts", fields: [parent_saving_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "savings_parent_id_fkey")
+  other_savings_accounts                                                              savings_accounts[]            @relation("savings_accountsTosavings_accounts")
+  financial_spaces                                                                    financial_spaces              @relation(fields: [financial_space_id], references: [id], onUpdate: NoAction, map: "savings_space_id_fkey")
+  transaction_saving_details                                                          transaction_saving_details[]
+
+  @@index([bank_id])
+  @@index([financial_space_id, status, starts_at, id])
+  @@index([funding_ledger_account_id])
+  @@index([interest_target_ledger_account_id])
+  @@index([parent_saving_id])
+  @@index([status, starts_at, term_months])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sessions {
+  id                     BigInt         @id @default(autoincrement())
+  public_id              String         @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  token_family_id        BigInt
+  user_id                BigInt
+  refresh_token_hash     String         @unique @db.Char(64)
+  status                 session_status @default(ACTIVE)
+  expires_at             DateTime       @db.Timestamptz(6)
+  last_used_at           DateTime?      @db.Timestamptz(6)
+  replaced_by_session_id BigInt?        @unique
+  revoked_at             DateTime?      @db.Timestamptz(6)
+  revoked_reason         String?        @db.VarChar(256)
+  csrf_secret_hash       String?        @db.Char(64)
+  created_at             DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at             DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  sessions               sessions?      @relation("sessionsTosessions", fields: [replaced_by_session_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  other_sessions         sessions?      @relation("sessionsTosessions")
+  token_families         token_families @relation(fields: [token_family_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                  users          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status, expires_at])
+  @@index([token_family_id, status, created_at(sort: Desc)])
+  @@index([user_id, status, expires_at])
+}
+
+model system_account_definitions {
+  id                           BigInt                         @id @default(autoincrement())
+  public_id                    String                         @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                         String                         @unique @db.VarChar(64)
+  normal_side                  ledger_normal_side
+  allows_negative_balance      Boolean
+  description                  String
+  is_active                    Boolean                        @default(true)
+  created_at                   DateTime                       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                   DateTime                       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  ledger_accounts              ledger_accounts[]
+  posting_template_entry_roles posting_template_entry_roles[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model temporary_assets {
+  id                     BigInt                 @id @default(autoincrement())
+  public_id              String                 @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id        String?                @unique @db.Char(24)
+  owner_user_id          BigInt
+  financial_space_id     BigInt?
+  upload_session_id      String                 @db.Uuid
+  provider               asset_provider
+  provider_public_id     String?                @db.VarChar(512)
+  provider_resource_type String?                @db.VarChar(64)
+  secure_url             String
+  checksum_sha256        String?                @db.Char(64)
+  content_type           String?                @db.VarChar(128)
+  size_bytes             BigInt?
+  status                 temporary_asset_status @default(TEMPORARY)
+  expires_at             DateTime?              @db.Timestamptz(6)
+  activated_at           DateTime?              @db.Timestamptz(6)
+  deleted_at             DateTime?              @db.Timestamptz(6)
+  source_provenance      Json?
+  created_at             DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at             DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  attachments            attachments[]
+  users                  users                  @relation(fields: [owner_user_id], references: [id], onUpdate: NoAction, map: "temporary_assets_owner_id_fkey")
+  financial_spaces       financial_spaces?      @relation(fields: [financial_space_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "temporary_assets_space_id_fkey")
+
+  @@unique([provider, provider_public_id], map: "temporary_assets_provider_identity_key", where: raw("(provider_public_id IS NOT NULL)"))
+  @@unique([owner_user_id, upload_session_id, checksum_sha256], map: "temporary_assets_upload_checksum_key", where: raw("(checksum_sha256 IS NOT NULL)"))
+  @@index([financial_space_id, status, id])
+  @@index([status, expires_at, id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model token_families {
+  id              BigInt              @id @default(autoincrement())
+  public_id       String              @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         BigInt
+  status          token_family_status @default(ACTIVE)
+  created_ip_hash String?             @db.Char(64)
+  user_agent_hash String?             @db.Char(64)
+  revoked_reason  String?             @db.VarChar(256)
+  revoked_at      DateTime?           @db.Timestamptz(6)
+  created_at      DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at      DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  sessions        sessions[]
+  users           users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status, revoked_at])
+  @@index([user_id, status, created_at(sort: Desc)])
+}
+
+model transaction_expense_details {
+  id                       BigInt                 @id @default(autoincrement())
+  public_id                String                 @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id          String?                @unique @db.Char(24)
+  financial_transaction_id BigInt                 @unique
+  source_ledger_account_id BigInt
+  created_at               DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at               DateTime?              @db.Timestamptz(6)
+  deleted_at               DateTime?              @db.Timestamptz(6)
+  ledger_accounts          ledger_accounts        @relation(fields: [source_ledger_account_id], references: [id], onUpdate: NoAction, map: "expense_details_ledger_id_fkey")
+  financial_transactions   financial_transactions @relation(fields: [financial_transaction_id], references: [id], onUpdate: NoAction, map: "expense_details_transaction_id_fkey")
+
+  @@index([source_ledger_account_id])
+}
+
+model transaction_income_details {
+  id                       BigInt                 @id @default(autoincrement())
+  public_id                String                 @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id          String?                @unique @db.Char(24)
+  financial_transaction_id BigInt                 @unique
+  target_ledger_account_id BigInt
+  created_at               DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at               DateTime?              @db.Timestamptz(6)
+  deleted_at               DateTime?              @db.Timestamptz(6)
+  ledger_accounts          ledger_accounts        @relation(fields: [target_ledger_account_id], references: [id], onUpdate: NoAction, map: "income_details_ledger_id_fkey")
+  financial_transactions   financial_transactions @relation(fields: [financial_transaction_id], references: [id], onUpdate: NoAction, map: "income_details_transaction_id_fkey")
+
+  @@index([target_ledger_account_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model transaction_saving_details {
+  id                                                                                   BigInt                    @id @default(autoincrement())
+  public_id                                                                            String                    @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  financial_transaction_id                                                             BigInt                    @unique
+  saving_account_id                                                                    BigInt
+  saving_period_id                                                                     BigInt?
+  action                                                                               saving_transaction_action
+  source_ledger_account_id                                                             BigInt?
+  target_ledger_account_id                                                             BigInt?
+  principal_amount                                                                     BigInt                    @default(0)
+  interest_amount                                                                      BigInt                    @default(0)
+  calculation_snapshot                                                                 Json
+  calculation_version                                                                  Int
+  created_at                                                                           DateTime                  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                                           DateTime                  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  saving_periods                                                                       saving_periods?           @relation(fields: [saving_period_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "saving_details_period_id_fkey")
+  savings_accounts                                                                     savings_accounts          @relation(fields: [saving_account_id], references: [id], onUpdate: NoAction, map: "saving_details_saving_id_fkey")
+  ledger_accounts_transaction_saving_details_source_ledger_account_idToledger_accounts ledger_accounts?          @relation("transaction_saving_details_source_ledger_account_idToledger_accounts", fields: [source_ledger_account_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "saving_details_source_ledger_id_fkey")
+  ledger_accounts_transaction_saving_details_target_ledger_account_idToledger_accounts ledger_accounts?          @relation("transaction_saving_details_target_ledger_account_idToledger_accounts", fields: [target_ledger_account_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "saving_details_target_ledger_id_fkey")
+  financial_transactions                                                               financial_transactions    @relation(fields: [financial_transaction_id], references: [id], onUpdate: NoAction, map: "saving_details_transaction_id_fkey")
+
+  @@unique([saving_period_id, action])
+  @@index([saving_account_id, action, id])
+  @@index([source_ledger_account_id])
+  @@index([target_ledger_account_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model transaction_transfer_details {
+  id                                                                                     BigInt                 @id @default(autoincrement())
+  public_id                                                                              String                 @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id                                                                        String?                @unique @db.Char(24)
+  financial_transaction_id                                                               BigInt                 @unique
+  source_ledger_account_id                                                               BigInt
+  target_ledger_account_id                                                               BigInt
+  fee_amount                                                                             BigInt?
+  created_at                                                                             DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                                             DateTime?              @db.Timestamptz(6)
+  deleted_at                                                                             DateTime?              @db.Timestamptz(6)
+  ledger_accounts_transaction_transfer_details_source_ledger_account_idToledger_accounts ledger_accounts        @relation("transaction_transfer_details_source_ledger_account_idToledger_accounts", fields: [source_ledger_account_id], references: [id], onUpdate: NoAction, map: "transfer_details_source_ledger_id_fkey")
+  ledger_accounts_transaction_transfer_details_target_ledger_account_idToledger_accounts ledger_accounts        @relation("transaction_transfer_details_target_ledger_account_idToledger_accounts", fields: [target_ledger_account_id], references: [id], onUpdate: NoAction, map: "transfer_details_target_ledger_id_fkey")
+  financial_transactions                                                                 financial_transactions @relation(fields: [financial_transaction_id], references: [id], onUpdate: NoAction, map: "transfer_details_transaction_id_fkey")
+
+  @@index([source_ledger_account_id])
+  @@index([target_ledger_account_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model user_notifications {
+  id              BigInt        @id @default(autoincrement())
+  public_id       String        @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id String?       @unique @db.Char(24)
+  user_id         BigInt
+  notification_id BigInt
+  is_read         Boolean       @default(false)
+  received_at     DateTime      @db.Timestamptz(6)
+  read_at         DateTime?     @db.Timestamptz(6)
+  created_at      DateTime      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  deleted_at      DateTime?     @db.Timestamptz(6)
+  notifications   notifications @relation(fields: [notification_id], references: [id], onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@unique([user_id, notification_id])
+  @@index([notification_id])
+  @@index([user_id, is_read, received_at(sort: Desc), id(sort: Desc)])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                                                             BigInt                        @id @default(autoincrement())
+  public_id                                                      String                        @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacy_mongo_id                                                String?                       @unique @db.Char(24)
+  email                                                          String                        @db.VarChar(320)
+  email_normalized                                               String                        @unique @db.VarChar(320)
+  password_hash                                                  String                        @db.VarChar(255)
+  username                                                       String                        @db.VarChar(64)
+  username_normalized                                            String                        @unique @db.VarChar(64)
+  display_name                                                   String                        @db.VarChar(256)
+  status                                                         user_status                   @default(INACTIVE)
+  avatar_attachment_id                                           BigInt?
+  language_code                                                  String                        @default("vi") @db.VarChar(16)
+  currency_code                                                  String                        @default("VND") @db.Char(3)
+  timezone                                                       String                        @default("Asia/Ho_Chi_Minh") @db.VarChar(64)
+  reminder_enabled                                               Boolean                       @default(true)
+  reminder_local_time                                            DateTime?                     @db.Time(0)
+  week_start                                                     week_day                      @default(MONDAY)
+  month_start_day                                                Int                           @default(1) @db.SmallInt
+  auth_version                                                   Int                           @default(2)
+  created_at                                                     DateTime                      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                     DateTime?                     @db.Timestamptz(6)
+  deleted_at                                                     DateTime?                     @db.Timestamptz(6)
+  attachments_attachments_user_avatar_user_idTousers             attachments?                  @relation("attachments_user_avatar_user_idTousers")
+  attachments_attachments_linked_by_user_idTousers               attachments[]                 @relation("attachments_linked_by_user_idTousers")
+  discrepancy_cases_discrepancy_cases_assigned_to_user_idTousers discrepancy_cases[]           @relation("discrepancy_cases_assigned_to_user_idTousers")
+  discrepancy_cases_discrepancy_cases_resolved_by_user_idTousers discrepancy_cases[]           @relation("discrepancy_cases_resolved_by_user_idTousers")
+  feature_flag_overrides                                         feature_flag_overrides[]
+  financial_space_memberships                                    financial_space_memberships[]
+  financial_transactions                                         financial_transactions[]
+  interspace_transfer_groups                                     interspace_transfer_groups[]
+  migration_anchor_details                                       migration_anchor_details[]
+  sessions                                                       sessions[]
+  temporary_assets                                               temporary_assets[]
+  token_families                                                 token_families[]
+  user_notifications                                             user_notifications[]
+  attachments_users_avatar_attachment_idToattachments            attachments?                  @relation("users_avatar_attachment_idToattachments", fields: [avatar_attachment_id], references: [id], onUpdate: NoAction)
+
+  @@index([status, id])
+}
+
+enum account_status {
+  ACTIVE
+  BLOCKED
+  CLOSED
+  ARCHIVED
+}
+
+enum account_type {
+  WALLET
+  BANK
+  OTHER
+}
+
+enum accumulation_status {
+  ACTIVE
+  FINISHED
+  ARCHIVED
+}
+
+enum asset_provider {
+  CLOUDINARY
+  LEGACY_EXTERNAL
+  TEST
+}
+
+enum attachment_status {
+  PENDING
+  ACTIVE
+  REPLACED
+  REMOVED
+  REQUIRES_REVIEW
+}
+
+enum audit_actor_type {
+  USER
+  ADMIN
+  JOB
+  MIGRATION
+  SYSTEM
+}
+
+enum balance_snapshot_status {
+  VALID
+  FAILED
+  STALE
+  REBUILDING
+  SUPERSEDED
+}
+
+enum budget_status {
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum category_transaction_type {
+  EXPENSE
+  INCOME
+  LOAN
+  COLLECT
+  BORROWING
+  REPAYMENT
+  TRANSFER
+  CONTRIBUTION
+}
+
+enum checkpoint_status {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum debt_direction {
+  RECEIVABLE
+  PAYABLE
+}
+
+enum debt_rate_basis {
+  ANNUAL_PERCENT
+  MONTHLY_PERCENT
+  FIXED_AMOUNT
+  UNSPECIFIED
+}
+
+enum debt_status {
+  OPEN
+  PARTIALLY_SETTLED
+  SETTLED
+  WRITTEN_OFF
+  ARCHIVED
+}
+
+enum delivery_attempt_status {
+  STARTED
+  SUCCEEDED
+  FAILED
+  UNKNOWN
+}
+
+enum discrepancy_severity {
+  BLOCKING
+  REQUIRES_REVIEW
+  AUTO_FIX_SAFE
+  INFO
+}
+
+enum discrepancy_source {
+  MIGRATION
+  RECONCILIATION
+  SNAPSHOT
+  OUTBOX
+  JOB
+}
+
+enum discrepancy_status {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  IGNORED
+}
+
+enum financial_space_kind {
+  PERSONAL
+  FAMILY
+}
+
+enum financial_space_status {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum financial_transaction_status {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+enum financial_transaction_type {
+  ACCOUNT_OPENING
+  ACCUMULATION_OPENING
+  INCOME
+  EXPENSE
+  TRANSFER
+  CONTRIBUTION
+  LOAN_DISBURSEMENT
+  BORROWING
+  REPAYMENT
+  COLLECTION
+  ACCUMULATION_CLOSE
+  SAVING_DEPOSIT
+  SAVING_INTEREST_MONTHLY
+  SAVING_INTEREST_MATURITY
+  SAVING_CLOSE
+  SAVING_ROLLOVER_PRINCIPAL
+  SAVING_ROLLOVER_PRINCIPAL_INTEREST
+  REVERSAL
+}
+
+enum idempotency_actor_type {
+  USER
+  JOB
+  ADMIN
+  MIGRATION
+}
+
+enum idempotency_status {
+  IN_PROGRESS
+  COMPLETED
+  FAILED_FINAL
+}
+
+enum interest_day_count_convention {
+  ACTUAL_365
+}
+
+enum interspace_transfer_status {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+enum ledger_account_kind {
+  USER_BALANCE
+  SYSTEM
+}
+
+enum ledger_account_status {
+  ACTIVE
+  BLOCKED
+  CLOSED
+  ARCHIVED
+}
+
+enum ledger_normal_side {
+  DEBIT
+  CREDIT
+}
+
+enum membership_role {
+  OWNER
+  MANAGER
+  MEMBER
+}
+
+enum membership_status {
+  ACTIVE
+  SUSPENDED
+  LEFT
+}
+
+enum migration_record_disposition {
+  STAGED
+  LOADED
+  ARCHIVED
+  REJECTED
+}
+
+enum migration_run_status {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  BLOCKED
+}
+
+enum migration_run_type {
+  SAMPLE
+  DRY_RUN
+  REHEARSAL
+  FINAL
+}
+
+enum money_rounding_mode {
+  HALF_UP
+}
+
+enum notification_type {
+  LINK
+  TEXT
+  INVITATION
+}
+
+enum outbox_status {
+  PENDING
+  PROCESSING
+  DELIVERED
+  DEAD_LETTER
+  REQUIRES_REVIEW
+}
+
+enum posting_sign_rule {
+  POSITIVE
+  NEGATIVE
+  VARIABLE
+}
+
+enum posting_template_status {
+  APPROVED
+  RETIRED
+}
+
+enum saving_interest_schedule {
+  MATURITY
+  MONTHLY
+}
+
+enum saving_maturity_action {
+  CLOSE_ACCOUNT
+  ROLL_OVER_PRINCIPAL
+  ROLL_OVER_PRINCIPAL_AND_INTEREST
+}
+
+enum saving_period_action {
+  MONTHLY_INTEREST
+  MATURITY_INTEREST
+  CLOSE
+  ROLLOVER_PRINCIPAL
+  ROLLOVER_PRINCIPAL_INTEREST
+}
+
+enum saving_period_status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REQUIRES_REVIEW
+}
+
+enum saving_status {
+  ACTIVE
+  CLOSED
+  ROLLED_OVER
+  ARCHIVED
+}
+
+enum saving_transaction_action {
+  DEPOSIT
+  MONTHLY_INTEREST
+  MATURITY_INTEREST
+  CLOSE
+  ROLLOVER_PRINCIPAL
+  ROLLOVER_PRINCIPAL_INTEREST
+}
+
+enum session_status {
+  ACTIVE
+  ROTATED
+  REVOKED
+  EXPIRED
+}
+
+enum snapshot_run_status {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  REQUIRES_REVIEW
+}
+
+enum snapshot_trigger_type {
+  SCHEDULED
+  MANUAL
+  CATCH_UP
+  REBUILD
+}
+
+enum temporary_asset_status {
+  TEMPORARY
+  LINKED
+  ACTIVE
+  EXPIRED
+  QUARANTINED
+  DELETED
+  REQUIRES_REVIEW
+}
+
+enum token_family_status {
+  ACTIVE
+  REVOKED
+  COMPROMISED
+  EXPIRED
+}
+
+enum trust_level {
+  NORMAL
+  GOOD
+  WARNING
+  BAD
+}
+
+enum user_status {
+  ACTIVE
+  INACTIVE
+  LOCKED
+  DELETED
+}
+
+enum week_day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
