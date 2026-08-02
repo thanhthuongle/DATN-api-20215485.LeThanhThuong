@@ -1,6 +1,6 @@
 # Wave 1 Review — API and Staging Foundation
 
-Review date: 2026-08-01. Scope: Phase 1 and Phase 2 only. Current result after full re-audit, TLS and code-review remediation: **READY_FOR_REVIEW, not yet COMPLETED**. Functional/local/role/Agenda gates pass and both Supabase client connections now use encrypted transport; project-owner sign-off remains.
+Review date: 2026-08-01; project-owner sign-off: 2026-08-02. Scope: Phase 1 and Phase 2 only. Final result after full re-audit, TLS and code-review remediation: **COMPLETED**. Functional/local/role/Agenda gates pass, both Supabase client connections use encrypted transport, and the project owner explicitly approved closing Wave 1 before opening Wave 2.
 
 ## Entry gate and documents read
 
@@ -67,4 +67,4 @@ Review date: 2026-08-01. Scope: Phase 1 and Phase 2 only. Current result after f
 - `DEC-064` records the project-owner decision that only `DEPLOYMENT_ENV=production` forbids the V2 mount; any other label is non-production. Staging remains the only shared V2 deployment target before cutover.
 - `W1-CODE-REVIEW-001` (`RESOLVED` 2026-08-01): nested secret redaction, MongoDB-enforced concurrent stable-key uniqueness and registry-only Agenda concurrency/lock policy were implemented and passed focused plus full verification.
 
-Phase 2 and Wave 1 are `READY_FOR_REVIEW`, not `COMPLETED`; project-owner sign-off remains required. Wave 2 has not started.
+Phase 2 and Wave 1 are `COMPLETED` by project-owner sign-off on 2026-08-02. Wave 2 may start only from its documented entry gate and mandatory task order.

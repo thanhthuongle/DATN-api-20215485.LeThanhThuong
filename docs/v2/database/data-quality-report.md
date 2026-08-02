@@ -115,6 +115,16 @@ W0-04 acceptance is reached for the profiled production snapshot: all 6 active b
 
 Production profile version 2 was reviewed at `2026-08-01T04:03:52.238Z`. The database is live, not a frozen cutover snapshot; counts can change and must be rerun at final freeze.
 
+## Wave 2 controlled transform/load dry-run
+
+Phase 3D ran the approved mapper/load boundary twice from clean local PostgreSQL databases using sanitized fixture `wave2-sanitized-sample-v1`. Both runs produced identical source checksum `7695a5af5504c4c684d81bcfb4bb3cfa88e7cfee4556d10f0fc5b277609dd074` and target hash `591684e02e2b2c74e0382c740f6402b6728209d5368a0131b167ea9d506d176e`.
+
+- 26/26 collection routes and checkpoints; 22 source rows = 16 loaded + 6 explicitly archived + 0 rejected.
+- Missing/orphan/duplicate/unsafe-money/unclassified counts: 0; invalid-rate count 0 over 0 saving rows, matching the Wave 0 source population characteristic.
+- Five posted transactions, ten ledger entries, zero unbalanced posting.
+- Three balance holders compared, zero mismatch at tolerance 0 VND; no `MIGRATION_EQUITY` anchor created.
+- Zero production/provider writes. Full evidence and retained limitations: `docs/v2/migration/wave-2-dry-run-report.md`.
+
 - 15 live collections; 26 source-declared collections, of which 11 are absent/empty: `families`, `savings_accounts`, `transfers`, `contributions`, `borrowings`, `collections`, `repayments`, `contribution_requests`, `group_payouts`, `invitations`, `proposal_expenses`.
 - 16 indexes across live collections; 0 non-`_id` unique indexes. Agenda contributes the additional internal index beyond the 15 default `_id` indexes.
 - 124 active transaction headers/details: 118 expense, 4 income and 2 loan; every header has its expected detail.
