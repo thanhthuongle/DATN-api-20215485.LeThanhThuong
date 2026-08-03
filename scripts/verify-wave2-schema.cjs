@@ -117,7 +117,7 @@ const run = async () => {
     assert(enumCount === 52, `Expected 52 enums, received ${enumCount}`)
     assert(foreignKeyCount === 105, `Expected 105 foreign keys, received ${foreignKeyCount}`)
     assert(checkCount >= 70, `Expected at least 70 checks, received ${checkCount}`)
-    assert(triggerCount >= 50, `Expected at least 50 triggers, received ${triggerCount}`)
+    assert(triggerCount === 108, `Expected exactly 108 trigger events, received ${triggerCount}`)
     assert(publicGrantCount === 0, `Expected no PUBLIC table grants, received ${publicGrantCount}`)
 
     await client.query('BEGIN')

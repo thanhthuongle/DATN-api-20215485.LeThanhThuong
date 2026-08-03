@@ -18,7 +18,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 |---|---|---|
 | Wave 0 | Phase 0 - Discovery/V1 freeze | COMPLETED |
 | Wave 1 | Phase 1-2 - API và staging foundation | COMPLETED |
-| Wave 2 | Phase 3 - PostgreSQL design freeze | READY_FOR_REVIEW |
+| Wave 2 | Phase 3 - PostgreSQL design freeze | IN_PROGRESS |
 | Wave 3 | Phase 4-4B - Financial kernel | NOT_STARTED |
 | Wave 4A | Phase 5 - Foundation modules | NOT_STARTED |
 | Wave 4B | Phase 6 - Sources/accounts | NOT_STARTED |
@@ -39,7 +39,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 0 | Inventory và đóng băng hành vi V1 | COMPLETED |
 | Phase 1 | API versioning | COMPLETED |
 | Phase 2 | PostgreSQL staging foundation | COMPLETED |
-| Phase 3 | PostgreSQL data model | READY_FOR_REVIEW |
+| Phase 3 | PostgreSQL data model | IN_PROGRESS |
 | Phase 4 | Transaction core | NOT_STARTED |
 | Phase 4B | Periodic balance snapshot core | NOT_STARTED |
 | Phase 5 | Các module nền tảng | NOT_STARTED |
@@ -57,7 +57,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 
 ## Wave/phase đang hoạt động
 
-Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01. Project owner sign-off Wave 1 ngày 2026-08-02 sau khi Phase 1-2, Supabase least-privilege/TLS, Agenda staging isolation/execution và regression gate đều PASS; Wave 1/Phase 2 chuyển `COMPLETED`. Wave 2 W2-01..W2-08 và sáu corrective task W2-FIX-01..06 đã hoàn tất tuần tự; clean/full gate cuối PASS và Wave 2 trở lại `READY_FOR_REVIEW`, chưa `COMPLETED` trước project-owner sign-off. Chưa triển khai business endpoint, transaction core hoặc mở Phase 4/Wave 3.
+Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01. Project owner sign-off Wave 1 ngày 2026-08-02 sau khi Phase 1-2, Supabase least-privilege/TLS, Agenda staging isolation/execution và regression gate đều PASS; Wave 1/Phase 2 chuyển `COMPLETED`. Wave 2 database/local fixture gates pass, but Wave 2 remains `IN_PROGRESS` because Phase 3D lacks the required read-only staging-copy run (`W2-STAGING-COPY-001`). Chưa triển khai business endpoint, transaction core hoặc mở Phase 4/Wave 3.
 
 ## Wave 2 task register
 
@@ -72,15 +72,15 @@ Task Wave 2 tuân thủ thứ tự bắt buộc. Task kế tiếp chỉ được
 | W2-04 | Phase 3B2 | Financial invariant/posting templates và migration rules final approval | COMPLETED | Owner accepted all recommendations; DEC-065..070; 17/17 templates APPROVED, 26/26 migration rules approved, 0 TBD/DRAFT marker |
 | W2-05 | Phase 3C | Prisma schema và versioned migrations | COMPLETED | Reviewed: Prisma 7 schema 45/45 models and 52/52 enums; clean local deploy 2/2 migrations; 105 FK, 65 CHECK, 39 triggers, 0 PUBLIC table grants; schema drift empty; append-only probe and build PASS |
 | W2-06 | Phase 3C | System seed, `MIGRATION_EQUITY` và system accounts | COMPLETED | Reviewed idempotent seed: 8/8 system definitions, 18/18 physical definitions for 17 business templates, 43/43 entry roles, 0 non-APPROVED template; rerun PASS |
-| W2-07 | Phase 3D | Controlled data profile/dry-run, reconciliation và reject classification | COMPLETED | Reviewed two independent clean runs: identical source/target hashes; 26/26 routes, 22=16 loaded+6 archived+0 rejected, 0 unclassified/blocking/unbalanced, 3/3 balances exact at 0 VND |
-| W2-08 | Exit gate | Clean migration, schema validation, tests, evidence và Wave 2 review | COMPLETED | `wave-2-review.md`: all Phase 3 exit gates PASS; Wave 2 READY_FOR_REVIEW pending owner sign-off; no Phase 4/Wave 3 start |
+| W2-07 | Phase 3D | Staging-copy data profile/dry-run, reconciliation và reject classification | IN_PROGRESS | Local fixture determinism passes, but required read-only staging-copy source manifest, classified rejects and load/reconciliation evidence are missing (`W2-STAGING-COPY-001`) |
+| W2-08 | Exit gate | Clean migration, schema validation, tests, evidence và Wave 2 review | BLOCKED | Database/local gates pass; Phase 3D staging-copy evidence remains gating; no Phase 4/Wave 3 start |
 | W2-FIX-01 | Corrective | Atomic ledger chain và cached projection | COMPLETED | New versioned migration locks the account row, derives sequence/before/after, advances the cached projection atomically and rejects inactive/cross-space/negative postings; local migrate + seed + dry-run + reversal/projection guard PASS |
 | W2-FIX-02 | Corrective | Template/type/detail/amount posting semantics | COMPLETED | Immutable template type/rule metadata and deferred semantic guard cover all 18 physical definitions; valid income accepted; wrong type, missing detail and header/entry amount mismatch rejected; seed rerun and Prisma validation PASS |
 | W2-FIX-03 | Corrective | Audited `MIGRATION_EQUITY` anchor | COMPLETED | New migration makes discrepancy mandatory, enforces equity-role XOR and exact run/checksum/account/difference/resolved-case/approval evidence, and makes anchors immutable; valid rollback-only anchor accepted and missing-anchor posting rejected |
 | W2-FIX-04 | Corrective | PostgreSQL credential boundary and least-privilege grants | COMPLETED | Seed/dry-run/schema/financial verification require direct migration credentials; provision/verification scripts derive identities from the two URLs and enforce the application matrix without role-name variables; job/readonly remain approved deferred profiles |
 | W2-FIX-05 | Corrective | Database-derived dry-run target hash | COMPLETED | Dry-run now re-queries 17 canonical PostgreSQL target groups, hashes stable public/legacy identities and business/ledger fields, reconciles cached projection from database rows, and produces the same hash on two independent clean Testcontainers; integration 11/11 PASS |
 | W2-FIX-06 | Corrective | Immutable sanitized migration evidence | COMPLETED | New migration adds database-derived sanitized hash, policy version, redaction manifest, state-consistency constraints, one-way terminal transitions and immutable update/delete guard; 22 local records verified with 0 hash mismatch/secret leak and all mutation probes rejected |
-| W2-FIX-GATE | Exit re-review | Clean migration, drift, deterministic dry-run, privileges, V1 regression and full tests after six fixes | COMPLETED | 7/7 clean migrations; drift empty; 45 tables/4 views/52 enums/105 FK/70 CHECK/50 triggers; two clean hashes identical; current suite 36/36 tests; coverage baseline retained; Wave 2 `READY_FOR_REVIEW` |
+| W2-FIX-GATE | Local exit re-review | Clean migration, drift, deterministic local fixture, privileges, V1 regression and full tests after six fixes | COMPLETED | Local/database gates passed; this evidence does not replace the open Phase 3D staging-copy gate |
 | W2-FIX-04A | Corrective review | Remove redundant PostgreSQL role-name configuration | COMPLETED | Four role-name variables removed; migration/application identities derived from authenticated `current_user`; equal-role URLs rejected; job/readonly grants deferred; focused integration 6/6 and full suite 36/36 PASS |
 
 ### Wave 2 verification log
@@ -120,7 +120,7 @@ Task Wave 2 tuân thủ thứ tự bắt buộc. Task kế tiếp chỉ được
 | W2-FIX-04 | Clean Testcontainer migration + application role provisioning | PASS at original gate; superseded by W2-FIX-04A identity-discovery rerun |
 | W2-FIX-05 | Two independent clean Testcontainer migrate/seed/dry-run executions | PASS: identical source checksum and database-derived target hash; 17 canonical target groups; 0 unbalanced transaction, projection mismatch or balance mismatch |
 | W2-FIX-06 | Local immutable-evidence migration + verifier | PASS: 22/22 records have matching database-derived sanitized hash; password redaction manifest present; 0 secret leak; raw update, delete and terminal reclassification rejected with probes rolled back |
-| W2-FIX-GATE | Final aggregate verification | PASS: package manager, build, Phase 1 55-operation parity, lint, Prisma validate/generate/status/drift, schema/financial/evidence guards, current 11/11 files and 36/36 tests, coverage baseline 84.45/80.50/82.08/87.89 |
+| W2-FIX-GATE | Final aggregate verification | PASS: package manager, build, Phase 1 55-operation parity, lint, Prisma validate/generate/status/drift, schema/financial/evidence guards, current 11/11 files and 37/37 tests, coverage baseline 84.45/80.50/82.08/87.89 |
 | W2-FIX-04A | Configuration/search, CLI and regression review | PASS: 0 role-name configuration references; no job/readonly credential variable; URL identities discovered as distinct, equal-role case rejected, privilege CLI PASS, focused 6/6 and full 36/36 tests, lint PASS |
 
 W2-01 output: `docs/v2/database/logical-data-model.md`. Review chốt normalized ownership qua `FinancialSpace`, aggregate boundaries và các invariant logic; OPEN-006..011 được containment rõ ràng và vẫn là gate của W2-04. Không có database hoặc source runtime nào bị thay đổi.
@@ -135,9 +135,9 @@ W2-05 outputs: `prisma/schema.prisma`, `prisma/migrations/20260802091444_wave2_p
 
 W2-06 output: `prisma/seed.ts` now owns only immutable system metadata. It creates eight system-account definitions and 18 version-1 approved physical posting definitions (43 role rows) for the 17 approved business templates. It does not create users, financial spaces, ledger balances or transactions. Existing mismatched hashes/policies fail the seed instead of being overwritten.
 
-W2-07 outputs: `scripts/run-wave2-controlled-dry-run.cjs`, `reconciliation-specification.md`, `wave-2-dry-run-report.md` and the Phase 3D section in `data-quality-report.md`. The controlled fixture routes all 26 collections, explicitly archives six schema/envelope/Agenda rows, loads 16 rows and reconstructs three balance holders without mismatch. Independent clean rerun produced the same source checksum and target hash. No production connection or external side effect was used.
+W2-07 supporting outputs: `scripts/run-wave2-controlled-dry-run.cjs`, `reconciliation-specification.md` and `wave-2-dry-run-report.md`. The controlled fixture validates all 26 routes and deterministic database behavior, but it is not a staging-copy run. `W2-STAGING-COPY-001` remains open until an authorized read-only staging export is transformed/loaded with retained manifests, classified rejects and reconciliation evidence. No production connection or external side effect was used.
 
-W2-08 output: `docs/v2/migration/wave-2-review.md`. Exit audit found and closed the missing exact-opposite reversal guard before the final clean migration rerun. All Wave 2 gates now pass; Wave 2/Phase 3 is `READY_FOR_REVIEW` and requires project-owner sign-off before `COMPLETED`.
+W2-08 output: `docs/v2/migration/wave-2-review.md`. Database guard issues are covered by the current hardening migration and disposable-PostgreSQL probes. Wave 2/Phase 3 remains `IN_PROGRESS` until `W2-STAGING-COPY-001` is evidenced and independently reviewed.
 
 ## Wave 1 task register
 

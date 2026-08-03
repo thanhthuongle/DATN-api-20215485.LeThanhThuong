@@ -31,7 +31,7 @@
     "db:local:health": "cross-env POSTGRESQL_DATABASE_URL=postgresql://hey_money_v2:hey_money_v2_local_only@localhost:5432/hey_money_v2?schema=public POSTGRESQL_DIRECT_URL=postgresql://hey_money_v2:hey_money_v2_local_only@localhost:5432/hey_money_v2?schema=public yarn db:health:v2",
     "db:verify:wave2-schema": "node scripts/verify-wave2-schema.cjs",
     "db:dry-run:wave2": "node scripts/run-wave2-controlled-dry-run.cjs",
-    "db:verify:wave2-financial-guards": "node scripts/verify-wave2-financial-guards.cjs",
+    "db:verify:wave2-financial-guards:disposable": "node scripts/verify-wave2-financial-guards.cjs",
     "db:verify:wave2-migration-evidence": "node scripts/verify-wave2-migration-evidence.cjs",
     "db:provision:wave2-roles": "node scripts/provision-postgresql-roles.cjs",
     "db:verify:wave2-privileges": "node scripts/verify-postgresql-privileges.cjs",

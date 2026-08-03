@@ -36,7 +36,7 @@ Constraints/indexes: unique `public_id`; unique `(provider,provider_public_id)` 
 | `id` | identity `BIGINT` | PK | Internal. |
 | `public_id` | `UUID` | NOT NULL/default | API attachment ID, unique. |
 | `asset_id` | `BIGINT` | NOT NULL | FK temporary asset `RESTRICT`. |
-| `financial_space_id` | `BIGINT` | NULL | FK space `RESTRICT`; must agree with resource/asset. |
+| `financial_space_id` | `BIGINT` | NULL only for global presentation resources | FK space `RESTRICT`; transaction evidence and space backgrounds require a non-null exact match across attachment, asset and business resource. Avatar/bank-logo assets may remain global when their owning contract permits it. |
 | `user_avatar_user_id` | `BIGINT` | NULL | Explicit FK users `RESTRICT`. |
 | `space_background_space_id` | `BIGINT` | NULL | Explicit FK financial spaces `RESTRICT`. |
 | `bank_logo_bank_id` | `BIGINT` | NULL | Explicit FK banks `RESTRICT`. |
@@ -51,7 +51,7 @@ Constraints/indexes: unique `public_id`; unique `(provider,provider_public_id)` 
 | `created_at` | `TIMESTAMPTZ` | NOT NULL/default | Same transaction as resource link. |
 | `updated_at` | `TIMESTAMPTZ` | NOT NULL/default | Lifecycle time. |
 
-Check exactly one of the four explicit resource FKs is non-null. Unique active `(financial_transaction_id,role,source_ordinal)` plus unique active avatar/background/logo per explicit FK; indexes `(asset_id,status)`, `(financial_space_id,financial_transaction_id)`, `(status,created_at)`. Space/asset/resource ownership is enforced by constraint trigger and IDOR tests; no generic polymorphic resource key exists.
+Check exactly one of the four explicit resource FKs is non-null. Unique active `(financial_transaction_id,role,source_ordinal)` plus unique active avatar/background/logo per explicit FK; indexes `(asset_id,status)`, `(financial_space_id,financial_transaction_id)`, `(status,created_at)`. Space/asset/resource ownership is enforced by constraint trigger and IDOR tests; a null-space/global asset cannot be attached to a financial transaction or space background. No generic polymorphic resource key exists.
 
 ## Lifecycle guarantees
 

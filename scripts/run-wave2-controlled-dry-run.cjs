@@ -216,7 +216,7 @@ const run = async () => {
       sequences.set(String(target.rows[0].id), 0n)
     }
 
-    const post = async ({ code, type, amount, occurredAt, legacyId, categoryId, name, entries }) => {
+    const post = async ({ code, type, amount, occurredAt, legacyId, categoryId, name, entries, insertDetail }) => {
       const template = await client.query(`SELECT id FROM posting_template_definitions WHERE code=$1 AND status='APPROVED'`, [code])
       const publicId = uuid(`transaction:${legacyId || `${code}:${name}`}`)
       const target = await client.query(
@@ -238,6 +238,7 @@ const run = async () => {
         balances.set(key, after)
         sequences.set(key, sequence)
       }
+      if (insertDetail) await insertDetail(target.rows[0].id)
       await client.query(`UPDATE financial_transactions SET status='POSTED' WHERE id=$1`, [target.rows[0].id])
       return { id: target.rows[0].id, publicId }
     }
@@ -250,25 +251,30 @@ const run = async () => {
       { ledgerId: ledgerIds.get(`account:${id(8)}`), amount: 500, role: 'ACCOUNT' },
       { ledgerId: ledgerIds.get('system:OPENING_EQUITY'), amount: -500, role: 'OPENING_EQUITY' }
     ] })
+    const incomeDetailPublicId = uuid(`income:${id(13)}`)
+    const expenseDetailPublicId = uuid(`expense:${id(14)}`)
+    const transferDetailPublicId = uuid(`transfer:${id(15)}`)
     const income = await post({ code: 'INCOME', type: 'INCOME', amount: 200, occurredAt: fixture.transactions[0].transactionTime, legacyId: id(10), categoryId: categoryIds.get(id(3)), name: 'Sample income', entries: [
       { ledgerId: ledgerIds.get(`account:${id(7)}`), amount: 200, role: 'TARGET' },
       { ledgerId: ledgerIds.get('system:INCOME_CLEARING'), amount: -200, role: 'INCOME_CLEARING' }
-    ] })
+    ], insertDetail: transactionId => client.query(
+      `INSERT INTO transaction_income_details (public_id,legacy_mongo_id,financial_transaction_id,target_ledger_account_id) VALUES ($1,$2,$3,$4)`,
+      [incomeDetailPublicId, id(13), transactionId, ledgerIds.get(`account:${id(7)}`)]
+    ) })
     const expense = await post({ code: 'EXPENSE', type: 'EXPENSE', amount: 100, occurredAt: fixture.transactions[1].transactionTime, legacyId: id(11), categoryId: categoryIds.get(id(4)), name: 'Sample expense', entries: [
       { ledgerId: ledgerIds.get(`account:${id(7)}`), amount: -100, role: 'SOURCE' },
       { ledgerId: ledgerIds.get('system:EXPENSE_CLEARING'), amount: 100, role: 'EXPENSE_CLEARING' }
-    ] })
+    ], insertDetail: transactionId => client.query(
+      `INSERT INTO transaction_expense_details (public_id,legacy_mongo_id,financial_transaction_id,source_ledger_account_id) VALUES ($1,$2,$3,$4)`,
+      [expenseDetailPublicId, id(14), transactionId, ledgerIds.get(`account:${id(7)}`)]
+    ) })
     const transfer = await post({ code: 'TRANSFER', type: 'TRANSFER', amount: 50, occurredAt: fixture.transactions[2].transactionTime, legacyId: id(12), categoryId: categoryIds.get(id(5)), name: 'Sample transfer', entries: [
       { ledgerId: ledgerIds.get(`account:${id(7)}`), amount: -50, role: 'SOURCE' },
       { ledgerId: ledgerIds.get(`account:${id(8)}`), amount: 50, role: 'TARGET' }
-    ] })
-
-    const incomeDetailPublicId = uuid(`income:${id(13)}`)
-    await client.query(`INSERT INTO transaction_income_details (public_id,legacy_mongo_id,financial_transaction_id,target_ledger_account_id) VALUES ($1,$2,$3,$4)`, [incomeDetailPublicId, id(13), income.id, ledgerIds.get(`account:${id(7)}`)])
-    const expenseDetailPublicId = uuid(`expense:${id(14)}`)
-    await client.query(`INSERT INTO transaction_expense_details (public_id,legacy_mongo_id,financial_transaction_id,source_ledger_account_id) VALUES ($1,$2,$3,$4)`, [expenseDetailPublicId, id(14), expense.id, ledgerIds.get(`account:${id(7)}`)])
-    const transferDetailPublicId = uuid(`transfer:${id(15)}`)
-    await client.query(`INSERT INTO transaction_transfer_details (public_id,legacy_mongo_id,financial_transaction_id,source_ledger_account_id,target_ledger_account_id,fee_amount) VALUES ($1,$2,$3,$4,$5,25)`, [transferDetailPublicId, id(15), transfer.id, ledgerIds.get(`account:${id(7)}`), ledgerIds.get(`account:${id(8)}`)])
+    ], insertDetail: transactionId => client.query(
+      `INSERT INTO transaction_transfer_details (public_id,legacy_mongo_id,financial_transaction_id,source_ledger_account_id,target_ledger_account_id,fee_amount) VALUES ($1,$2,$3,$4,$5,25)`,
+      [transferDetailPublicId, id(15), transactionId, ledgerIds.get(`account:${id(7)}`), ledgerIds.get(`account:${id(8)}`)]
+    ) })
 
     for (const [collection, legacyIdValue, targetType, publicId] of [
       ['transactions', id(10), 'FinancialTransaction', income.publicId], ['transactions', id(11), 'FinancialTransaction', expense.publicId], ['transactions', id(12), 'FinancialTransaction', transfer.publicId],
