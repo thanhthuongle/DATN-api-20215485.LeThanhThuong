@@ -1,6 +1,10 @@
-# Wave 2 Controlled Dry-run Report
+# Wave 2 Local Fixture Validation Report
 
 Ngày chạy/review: 2026-08-02. Target: hai PostgreSQL local database sạch độc lập. Source: fixture sanitize bất biến trong `scripts/run-wave2-controlled-dry-run.cjs`. Không kết nối hoặc ghi production database/provider.
+
+Important scope correction: this is a deterministic local pipeline/schema validation only. It is not the Phase 3D dry run required by `master-plan.md`, because it does not export or transform a read-only copy of staging data. Phase 3D remains `IN_PROGRESS` until an authorized staging-copy run produces a source manifest, classified reject manifest, load/reconciliation report, and retained checksums.
+
+Fixture-only identity exception: this local harness supplies deterministic UUIDs so two clean fixture databases can be compared byte-for-byte. That is not an approved staging loader behavior. The real staging-copy loader must omit `public_id` so PostgreSQL generates it, preserve `legacy_mongo_id` for traceability, and use source/business keys rather than generated UUIDs for deterministic reconciliation. The application role cannot insert `id`, `public_id` or legacy provenance columns.
 
 ## Result
 
@@ -56,4 +60,4 @@ Two accounts were reconstructed from signed opening balances plus one income, on
 - Production Wave 0 profile remains the actual live-data evidence: 6/6 balance holders matched at 0 VND, 0 saving rows, four provider orphans and four unversioned Agenda payloads already classified.
 - Final cutover must rerun against an immutable snapshot, exercise the full source population, retain provider manifest evidence and complete at least three deterministic rehearsals.
 
-W2-07 outcome: **PASS after review**. There is no unclassified error or unresolved `BLOCKING` discrepancy in the controlled run.
+Local fixture outcome: **PASS**. W2-07/Phase 3D outcome: **PENDING_STAGING_EVIDENCE**. There is no unclassified error in this fixture, but that result cannot establish the condition of staging data.

@@ -22,12 +22,12 @@ Ngày review: 2026-08-02. Scope: durable command identity and after-commit deliv
 | `error_code` | `VARCHAR(96)` | NULL | Stable terminal code. |
 | `lease_owner` | `VARCHAR(128)` | NULL | Claim recovery owner. |
 | `lease_expires_at` | `TIMESTAMPTZ` | NULL | Claim recovery timeout. |
-| `completed_at` | `TIMESTAMPTZ` | NULL | Terminal time. |
-| `response_purge_after` | `TIMESTAMPTZ` | NULL | Body can purge; key/hash/tombstone remain. |
+| `completed_at` | `TIMESTAMPTZ` | NULL | Terminal time derived from PostgreSQL clock at the `IN_PROGRESS` -> terminal boundary. |
+| `response_purge_after` | `TIMESTAMPTZ` | NULL | When a response body is retained this is at least `completed_at + 90 days`; body can purge only after this database-time boundary while key/hash/tombstone remain. |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL/default | Database time. |
 | `updated_at` | `TIMESTAMPTZ` | NOT NULL/default | Database time. |
 
-Unique `(financial_space_id,actor_type,actor_id,operation,idempotency_key)`; indexes `(status,lease_expires_at,id)`, `(resource_type,resource_public_id)`. Checks terminal/resource/response coherence. Same key/different hash is a conflict; completed financial rows never delete. FK delete `RESTRICT`.
+Unique `(financial_space_id,actor_type,actor_id,operation,idempotency_key)`; indexes `(status,lease_expires_at,id)`, `(resource_type,resource_public_id)`. Checks terminal/resource/response coherence. The database derives terminal time, rejects caller-selected shortened retention, and permits only the one-way `response_body -> NULL` purge after the boundary. Same key/different hash is a conflict; completed financial rows never delete. FK delete `RESTRICT`.
 
 ## `outbox_events`
 

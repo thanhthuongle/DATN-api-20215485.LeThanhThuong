@@ -304,7 +304,7 @@ Constraint trigger verifies DEC-070 membership, account/space ownership, both tr
 | `outstanding_interest` | `BIGINT` | NOT NULL, `0` | Check >=0; explicit interest only. |
 | `settled_at` | `TIMESTAMPTZ` | NULL | Required for settled. |
 
-Rate-basis checks: annual/monthly require rate and forbid fixed amount; fixed requires fixed amount and forbids rate; unspecified forbids fixed amount and is legacy-only, with any preserved raw rate non-calculating. Index `(financial_space_id,direction,status,due_at,id)`, counterparty/status. Delete `RESTRICT`.
+Rate-basis checks: annual/monthly require rate and forbid fixed amount; fixed requires fixed amount and forbids rate; unspecified forbids fixed amount and is legacy-only, with any preserved raw rate non-calculating. Every non-migration agreement is initialized at the database boundary as `OPEN`, `outstanding_principal = principal_amount`, `outstanding_interest = 0`, `settled_at = NULL`; runtime INSERT grants exclude those four projection/lifecycle fields. The explicit legacy load path is identified by retained `legacy_mongo_id`, but even a legacy-origin transaction cannot become `POSTED` unless its agreement has the correct initial projection and loan/borrowing direction. Index `(financial_space_id,direction,status,due_at,id)`, counterparty/status. Delete `RESTRICT`.
 
 ### `debt_settlements` — `MIGRATED_ENTITY`
 

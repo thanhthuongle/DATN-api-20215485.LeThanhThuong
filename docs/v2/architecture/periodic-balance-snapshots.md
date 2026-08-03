@@ -100,7 +100,7 @@ INDEX(financial_space_id, business_date)
 INDEX(status, business_date)
 ```
 
-Mỗi account/date chỉ có một version `is_current = true` bằng partial unique index. Rebuild không ghi đè lịch sử: version cũ chuyển `SUPERSEDED`, lưu `superseded_by_id/superseded_at`; version mới chỉ thành current sau khi tính và đối soát thành công.
+Mỗi account/date chỉ có một version `is_current = true` bằng partial unique index. Rebuild không ghi đè lịch sử: version cũ chuyển `SUPERSEDED`, bắt buộc `is_current = false` và lưu `superseded_by_id/superseded_at`; successor phải là row khác, cùng account/space/business date, có `calculation_version` lớn hơn và đã `VALID/current`. Sau transition, successor metadata của version cũ bất biến. Version mới chỉ thành current sau khi tính và đối soát thành công.
 
 `first_entry_sequence` và `last_entry_sequence` có thể null với ngày không có giao dịch.
 

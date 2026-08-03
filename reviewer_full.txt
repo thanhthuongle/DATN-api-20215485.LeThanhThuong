@@ -1,0 +1,457 @@
+﻿Iâ€™ll begin by reading the repository guidance and the complete `docs\v2` source of truth, then map the implementation and tests to those contracts. Iâ€™ll keep the workspace read-only and return a prioritized, evidence-backed report.The branch scope is substantial but contained: six SQL migrations, the Prisma schema/seed, operational verification scripts, and one integration suite. Iâ€™m treating `b4f217e` as the pre-Wave-2 comparison point and am now reconciling the Wave 2 gates and database contracts before inspecting implementation details.The schema compiles conceptually, but the key risk is now clear: several reviewed invariants exist only in prose or in happy-path fixture logic, not at the database boundary the documents designate as authoritative. Iâ€™m finishing the audit by checking privilege reachability and the negative-test matrix so the report distinguishes design gaps from immediately exploitable runtime paths.# Round 1 Review Report
+
+## Executive summary
+
+The Wave 2 implementation is not acceptable yet.
+
+- Critical: 0
+- High: 9
+- Medium: 3
+- Low: 1
+- Total: 13
+
+The schema is extensive and the existing automated suite passes, but several financial, ownership, idempotency, and outbox invariants documented as database-authoritative are not enforced. The controlled dry run also does not satisfy the documented Phase 3D staging-copy requirement.
+
+No code or project file was modified. `git status --short` remained clean.
+
+## Scope and documentation reviewed
+
+Reviewed the relevant API V2 source of truth under `docs/v2`, including:
+
+- Architecture: overview, implementation guardrails, transaction core/runtime, security contracts, admin operations, snapshots, scheduler.
+- Database: design/interest rules, logical and physical models, authoritative table specification, ledger, auth/session, outbox/idempotency, assets, discrepancy/audit, MongoDB mapping.
+- Migration: decision register, master plan, execution waves, progress, financial invariants/templates, legacy posting rules, migration catalog/dependency/reconciliation, Wave 2 review and dry-run evidence.
+- Testing and operations requirements.
+
+Implementation reviewed:
+
+- All six Wave 2 SQL migrations and Prisma schema.
+- System seed.
+- Dry-run and verification scripts.
+- PostgreSQL role provisioning/verification.
+- PostgreSQL integration tests and branch diff from `b4f217e`.
+
+Verification performed:
+
+- `yarn prisma:validate`: PASS.
+- `yarn lint`: PASS.
+- `yarn test`: PASS, 11 files / 36 tests.
+- `git diff --check b4f217e..HEAD`: FAIL, five blank-line-at-EOF errors.
+
+## Issues
+
+### W2-R1-001
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/migrations/20260802120000_wave2_ledger_projection_guards/migration.sql`
+  - `prisma/migrations/20260802121000_wave2_posting_semantics/migration.sql`
+- Description: The approved negative normal-account opening policy cannot be represented safely, and a negative opening cannot be reversed.
+- Why it is a problem: The projection trigger rejects any entry producing a negative balance when `allows_negative_balance=false`. Setting it to `true` permits later outgoing operations to drive the account further below zero, contradicting DEC-031. Separately, `financial_transactions_amount_check` requires every `REVERSAL` amount to be positive, while reversal validation requires it to equal the original signed amount. Therefore an `ACCOUNT_OPENING` with a negative amount cannot have a valid full reversal.
+- Recommended solution: Add template-aware database handling that permits a negative balance only for the first approved `OPENING_BALANCE` posting on a normal account while retaining the non-negative rule for subsequent outgoing commands. Change reversal header validation to support the original signed amount or adopt a documented absolute reversal header convention and update exact-reversal validation accordingly. Add negative-opening, later-outgoing, and negative-opening reversal integration tests.
+
+### W2-R1-002
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/migrations/20260802121000_wave2_posting_semantics/migration.sql`
+- Description: DEC-066 full-principal-only repayment and collection are not enforced at the database semantic boundary.
+- Why it is a problem: `debt_settlements_amount_check` only requires a positive total. `v2_validate_debt_settlement` checks that the settlement matches the transaction header, and posting semantics require zero interest, but neither requires the principal to equal the debtâ€™s outstanding/full principal, requires the debt to be open, nor requires the final debt projection to be settled at zero. A partial repayment/collection can consequently be posted with valid balanced ledger entries despite the approved contract.
+- Recommended solution: Enforce the full-only rule against the linked debt, direction, lifecycle, principal, and final projection in the same transaction boundary. Reject a second non-reversed settlement. Add positive and negative tests for partial amount, already-settled debt, wrong direction, nonzero interest, and concurrency.
+
+### W2-R1-003
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/migrations/20260802121000_wave2_posting_semantics/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+- Description: Typed financial facts are not consistently type-bound or immutable after posting.
+- Why it is a problem: Only expense, income, and transfer detail tables have compatibility triggers. `debt_agreements` and `transaction_saving_details` can be inserted after a parent transaction has already posted. A nonzero normal opening can pass with one unrelated debt or saving detail because opening validation only rejects `detail_count > 1`. This permits debt/saving business history unsupported by the immutable posting. Typed facts also lack a general â€œparent must be DRAFT on insert; immutable after POSTEDâ€ guard.
+- Recommended solution: Add common constraint triggers for every typed fact table. Inserts must occur only while the parent is `DRAFT`, the detail must be compatible with the immutable template/type, and update/delete must be rejected after posting. Make opening validation explicitly allow only the appropriate migration-anchor fact, not any single typed detail.
+
+### W2-R1-004
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+- Description: Core financial projections and immutable provenance remain directly mutable through the application role.
+- Why it is a problem: `applicationUpdateTables` grants table-wide update on `debt_agreements`, accounts, accumulations, savings, financial spaces, memberships, idempotency, outbox, and interspace groups. The runtime role can directly change `debt_agreements.outstanding_principal/outstanding_interest`, ownership fields, source balances, public/legacy identities, and other provenance. This bypasses transaction-core-only projection rules and can invalidate ledger/history relationships.
+- Recommended solution: Replace broad update grants with reviewed column-level grants. Financial projections and immutable identities/provenance should only be changed through sanctioned `SECURITY DEFINER` functions or narrowly scoped core paths. Extend privilege tests to every protected financial/provenance column.
+
+### W2-R1-005
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+- Description: The required financial-space ownership cardinality and cross-table ownership stability are absent.
+- Why it is a problem: The physical specification requires one active owner per space and one active personal ownership per user. The migration only creates unique `(financial_space_id,user_id)`; there is no partial owner index or constraint trigger. Multiple active owners and multiple personal spaces for one owner are possible. Additionally, same-space triggers run only when child rows change; broad updates to a parent account/category/contact/space can silently invalidate already-existing ledger, transaction, debt, or category relationships. This weakens the authorization boundary and creates IDOR-prone inconsistent data.
+- Recommended solution: Add concurrency-safe, deferrable ownership guards covering space and membership inserts/updates/deletes, including one active owner and one personal owner-space per user. Make governed `financial_space_id` immutable after creation or add reverse validation triggers on parent changes. Add concurrent owner creation and cross-space mutation tests.
+
+### W2-R1-006
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+- Description: Idempotency identity, request hash, and durable tombstone can be rewritten or reopened.
+- Why it is a problem: The only idempotency check correlates `IN_PROGRESS` with a null completion time. Table-wide runtime update permits changing scope, actor, operation, key, request hash, resource tombstone, and moving `COMPLETED` back to `IN_PROGRESS` after clearing `completed_at`. This defeats permanent command identity and can enable duplicate financial posting after retry/recovery.
+- Recommended solution: Add immutable-column and one-way-state guards. Identity/scope/key/request hash must never change; completed financial resource identity must remain permanent; only explicit claim/recovery transitions should be allowed. Restrict runtime updates to lease/status/result columns and add concurrent claim/reopen tests.
+
+### W2-R1-007
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+- Description: The outbox lifecycle is internally contradictory and event intent is mutable.
+- Why it is a problem: `outbox_delivery_attempts` rejects every update, so a persisted `STARTED` attempt cannot transition to `SUCCEEDED`, `FAILED`, or `UNKNOWN` with `finished_at`. In contrast, `outbox_events` has unrestricted application updates, allowing aggregate identity, ordering, schema version, payload, and terminal status to be rewritten or reopened. This prevents a correct provider-success-before-ack protocol and weakens at-least-once delivery evidence.
+- Recommended solution: Make event identity/payload/order immutable and implement explicit one-way status/lease transitions. Permit an attempt only from `STARTED` to one terminal result while keeping its identity immutable, or redesign attempts as separate start/result records and document that contract. Add success-before-ack, unknown-delivery, lease recovery, ordering, and terminal-reopen tests.
+
+### W2-R1-008
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+- Description: Posted interspace contribution groups are mutable and their lifecycle is reversible without a valid transition guard.
+- Why it is a problem: The application role has full update permission on `interspace_transfer_groups`. The constraint trigger validates the resulting row but does not protect immutable identifiers/linkage, enforce `DRAFT -> POSTED -> REVERSED`, or reject `REVERSED -> POSTED`. A posted group can be rebound to another pair of matching transactions/accounts or reopened, corrupting the atomic contribution/reversal audit chain.
+- Recommended solution: Add an immutable-field and lifecycle trigger for the group. Only the approved transition to `POSTED` and the linked full reversal transition to `REVERSED` should be possible. Restrict runtime update columns and test rebinding/reopening attempts.
+
+### W2-R1-009
+
+- Severity: High
+- Files:
+  - `scripts/run-wave2-controlled-dry-run.cjs`
+  - `tests/integration/postgresFoundation.test.js`
+  - `docs/v2/migration/wave-2-dry-run-report.md`
+  - `docs/v2/migration/wave-2-review.md`
+  - `docs/v2/migration/progress.md`
+- Description: The implementation claims the Phase 3D dry-run gate passed without running against a staging data copy as required by `master-plan.md`.
+- Why it is a problem: The script contains a hand-authored 22-record fixture and loads only account opening, income, expense, and transfer. It does not consume a staging snapshot or execute most approved mappings/templates, including family ownership, contribution, debt, savings, assets, discrepancies, invalid data, or reject paths. Running the same small fixture on two databases proves fixture determinism, not that the 305 mapping decisions work on staging-shaped data. The `READY_FOR_REVIEW`/PASS claim overstates API V2 documentation compliance.
+- Recommended solution: Build a read-only snapshot/export input path and run the transform/load/reconciliation process against a sanitized staging copy. Preserve manifests and classified rejects. Until this evidence exists, change Wave 2/Phase 3 status and review text so Phase 3D is not reported as passed.
+
+### W2-R1-010
+
+- Severity: Medium
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/schema.prisma`
+  - `scripts/postgresql-role-policy.cjs`
+  - `scripts/run-wave2-controlled-dry-run.cjs`
+- Description: Internal IDs are `BIGSERIAL`, and runtime/migration inserts may provide internal IDs and public UUIDs, contrary to the documented database-generated identity contract.
+- Why it is a problem: API V2 guardrails require `BIGINT GENERATED ALWAYS AS IDENTITY` and database-created UUIDs. `BIGSERIAL` accepts caller-supplied IDs, and table-level insert grants accept both `id` and `public_id`. The dry-run explicitly derives deterministic UUIDs from legacy identities, contradicting the mapping documentâ€™s statement that public UUIDs are not derived from ObjectIds. This creates contract drift and permits identity collisions or unreviewed predictability.
+- Recommended solution: Use `GENERATED ALWAYS AS IDENTITY` in a versioned migration and remove runtime insert permission on identity/public UUID columns. Let PostgreSQL generate public UUIDs; determinism should use `legacy_mongo_id` and canonical business keys, not derived public identities. Document any narrowly scoped migration exception if one is truly required.
+
+### W2-R1-011
+
+- Severity: Medium
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/migrations/20260802120000_wave2_ledger_projection_guards/migration.sql`
+- Description: Posting and snapshot time enforcement does not implement the documented UTC/`clock_timestamp()` contract.
+- Why it is a problem: Transaction and entry `posted_at` use `transaction_timestamp()`, although DEC-025 requires the posting cutoff time from `clock_timestamp()`. A long transaction is dated at transaction start rather than actual posting. The snapshot one-day check uses timestamptz `+ INTERVAL '1 day'`, whose result can depend on the session timezone around DST and does not assert UTC-midnight boundaries.
+- Recommended solution: Capture one database `clock_timestamp()` at the actual posting transition and assign that exact value to the transaction and all entries through the trusted boundary. Validate snapshot boundaries explicitly as UTC 00:00 to next UTC 00:00, independent of session `TimeZone`. Add long-transaction, non-UTC-session, and DST-boundary tests.
+
+### W2-R1-012
+
+- Severity: Medium
+- Files:
+  - `tests/integration/postgresFoundation.test.js`
+  - `scripts/verify-wave2-financial-guards.cjs`
+- Description: Database verification is metric-heavy and does not exercise most implemented financial constraints.
+- Why it is a problem: The integration suite checks counts, privileges, and deterministic fixture hashes. Financial probes cover income, reversal, and migration anchor only. No executable negative tests cover the other approved physical templates, negative openings, debt full settlement, contribution state/link immutability, typed-fact post-commit insertion, idempotency transitions, outbox transitions, ownership cardinality, or parent ownership mutation. All 36 tests pass despite the High issues above.
+- Recommended solution: Add disposable-PostgreSQL tests derived from every approved template and every raw-SQL state/ownership guard, emphasizing bypass attempts through the actual application role.
+
+### W2-R1-013
+
+- Severity: Low
+- Files:
+  - `prisma/migrations/20260802120000_wave2_ledger_projection_guards/migration.sql`
+  - `prisma/migrations/20260802121000_wave2_posting_semantics/migration.sql`
+  - `prisma/migrations/20260802122000_wave2_migration_equity_anchor/migration.sql`
+  - `prisma/migrations/20260802123000_wave2_readonly_views/migration.sql`
+  - `scripts/verify-wave2-migration-evidence.cjs`
+  - `docs/v2/migration/wave-2-review.md`
+- Description: The branch fails `git diff --check`, contrary to the review evidence.
+- Why it is a problem: Five files contain a new blank line at EOF, while `wave-2-review.md` reports only Windows line-ending notices. This is minor but makes the recorded verification inaccurate.
+- Recommended solution: Remove the extra EOF blank lines and rerun `git diff --check`; update evidence only from the final result.
+
+## Acceptance verdict
+
+- Critical issues remain: No.
+- High issues remain: Yes â€” 9.
+- Implementation acceptable: No.
+- API V2 documentation compliance: Partial. The schema breadth and basic migration/test tooling are strong, but core database-authoritative invariants and the Phase 3D evidence gate are not compliant.
+- Recommendation: Return all High and reasonably fixable Medium/Low issues to the Fixer, then perform a fresh independent review of all affected schema, privilege, migration, and test code.Round 2 is starting as a fresh audit. Iâ€™ll re-read the affected contracts, inspect the entire new hardening migration and surrounding original guards/grants, then run clean disposable-PostgreSQL verification and targeted checks before deciding each prior issue independently.Round 2 verification is green at the tool level (`prisma:validate`, lint, tests, and diff check), but the contract audit has confirmed multiple High-severity residuals: broad runtime update authority remains on several governed tables, cross-space ownership checks are incomplete, idempotency terminal results remain rewritable, and debt-origin reversal can leave an actionable debt after its originating transaction is reversed. Iâ€™m validating the final evidence and will send the full structured report next.## Round 2 independent review
+
+No code was modified by the Reviewer.
+
+### Verdict
+
+- Critical: 0
+- High code issues: 5
+- Medium code issues: 2
+- Low issues: 1
+- External High acceptance gate: 1
+- Result: **Not acceptable yet**
+- Another Fixer iteration is required.
+
+The documentation now honestly marks Wave 2 as `IN_PROGRESS`; however, several database-contract and authorization defects remain, and the staging-copy acceptance evidence is still unavailable.
+
+## Round 1 issue disposition
+
+| Round 1 issue | Status |
+|---|---|
+| W2-R1-001 negative opening/reversal | Resolved |
+| W2-R1-002 full debt settlement | Resolved |
+| W2-R1-003 typed fact binding | Partially resolved |
+| W2-R1-004 overly broad runtime grants | Unresolved |
+| W2-R1-005 ownership/cardinality integrity | Partially resolved |
+| W2-R1-006 idempotency durability | Partially resolved |
+| W2-R1-007 outbox lifecycle | Resolved |
+| W2-R1-008 interspace lifecycle | Resolved |
+| W2-R1-009 misleading Phase 3D completion | Documentation corrected; external gate remains |
+| W2-R1-010 generated identities | Partially resolved |
+| W2-R1-011 clock/UTC semantics | Resolved |
+| W2-R1-012 test coverage | Partially resolved |
+| W2-R1-013 EOF whitespace | Resolved |
+
+## Remaining and newly discovered issues
+
+### W2-R2-001
+
+- Severity: High
+- Files:
+  - `scripts/postgresql-role-policy.cjs`
+  - `scripts/verify-postgresql-privileges.cjs`
+- Description: The application role still receives table-wide `UPDATE` on numerous governed tables, including accounts, savings, attachments, snapshots, categories, contacts, assets and users. It also receives `DELETE` on `temporary_assets`.
+- Why it is a problem: Table-wide grants allow runtime code to rewrite `public_id`, `legacy_mongo_id`, timestamps, provenance, financial configuration and other fields that are supposed to be generated, immutable or lifecycle-controlled. Hard deletion of temporary assets contradicts the documented tombstone/cleanup model. The privilege verifier checks only a small subset of sensitive columns.
+- Recommended solution: Replace table-level grants with explicit update-column matrices for every governed table, remove runtime asset deletion, add immutable-field triggers where column grants alone are insufficient, and expand negative privilege assertions for public IDs, provenance, ownership, financial terms and timestamps.
+
+### W2-R2-002
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/migrations/20260802121000_wave2_posting_semantics/migration.sql`
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `tests/integration/postgresFoundation.test.js`
+- Description: Several ownership relationships remain enforceable only by application convention:
+  - debt counterparty contact need not belong to the debtâ€™s space;
+  - saving detail can reference a period belonging to another saving account;
+  - temporary asset owner need not be an authorized member of its space;
+  - attachment linking does not establish that `linked_by_user_id` owns or may use the asset;
+  - changing an assetâ€™s space can invalidate existing attachments without reverse validation.
+- Why it is a problem: These gaps permit cross-space references and asset IDOR-style linking despite the API V2 requirement that ownership be enforced by constraint triggers and tested at the database boundary.
+- Recommended solution: Add deferrable ownership triggers covering both insert and update paths, validate reverse dependencies when asset ownership changes, and add cross-user/cross-space negative integration tests.
+
+### W2-R2-003
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+  - `scripts/verify-wave2-financial-guards.cjs`
+- Description: Terminal idempotency results remain rewritable. If a terminal row initially has a null resource, the resource tombstone can be assigned later. Response status/body, error code, completion time and related terminal fields may also be rewritten while status remains unchanged. The documented terminal/resource/response coherence constraint is absent.
+- Why it is a problem: A completed financial command can lack a durable result identity or later point at a different result. That weakens replay safety, crash recovery and authorization assumptions.
+- Recommended solution: Enforce explicit status-specific coherence, make the resource tombstone immutable at the transition to terminal state, freeze terminal response/error/completion facts except for the documented response-body purge operation, and test terminal rows created without valid result data.
+
+### W2-R2-004
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `prisma/migrations/20260802121000_wave2_posting_semantics/migration.sql`
+  - `scripts/verify-wave2-financial-guards.cjs`
+- Description: Reversing a loan or borrowing origin transaction does not reconcile its `debt_agreements` row. The reversal hook only reopens agreements associated with reversed settlements.
+- Why it is a problem: The originating financial transaction can become `REVERSED` while its debt remains `OPEN` or `SETTLED`. Settlement validation also does not require the debtâ€™s origin transaction to remain `POSTED`, leaving lifecycle facts inconsistent with the ledger.
+- Recommended solution: Define the documented debt-origin reversal policy explicitly. Until it can be reconciled atomically, reject such reversals. Also require a settlementâ€™s origin transaction to be `POSTED`. Add reversal tests for both receivable and payable debt, before and after settlement.
+
+### W2-R2-005
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+  - `prisma/schema.prisma`
+- Description: Snapshot ownership and role boundaries remain incomplete. There is no trigger requiring snapshot space to match both its run and ledger account. The application role can insert snapshots and broadly update snapshot runs.
+- Why it is a problem: API V2 assigns snapshot row writes to the job role and requires `financial_space_id` to equal the ledger/run space. Runtime code can currently create cross-space or fabricated checkpoints and mutate run identity metadata.
+- Recommended solution: Add the documented cross-table same-space constraint trigger, protect snapshot rows with controlled transition immutability, and restrict application privileges to read/admin-trigger metadata. Defer row insertion/status work to the job role when that role is provisioned.
+
+### W2-R2-006
+
+- Severity: Medium
+- Files:
+  - `scripts/postgresql-role-policy.cjs`
+  - `scripts/verify-postgresql-privileges.cjs`
+- Description: `ledger_accounts` application insert still accepts caller-supplied `public_id`, `created_at` and `updated_at`.
+- Why it is a problem: The physical contract defines these as database-generated UUID/time values. Caller-controlled identities also make provenance and collision behavior inconsistent with every other generated entity.
+- Recommended solution: Remove those columns from the ledger-account insert grant and assert their absence in privilege verification.
+
+### W2-R2-007
+
+- Severity: Medium
+- Files:
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+- Description: `debt_agreements` uses the typed-parent guard only on insert. Before the original transaction posts, its origin can be rebound without validating the new parentâ€™s transaction type.
+- Why it is a problem: The database does not fully guarantee that the debt fact remains bound to a loan/borrowing transaction throughout the DRAFT lifecycle. This is primarily reachable through controlled/migration authority today, but violates the database-authoritative typed-fact contract.
+- Recommended solution: Validate changes to `origin_transaction_id` on update against both old and new parents while preserving narrowly scoped internal debt-projection updates.
+
+### W2-R2-008
+
+- Severity: Low
+- Files:
+  - `docs/v2/migration/wave-2-review.md`
+  - `scripts/verify-wave2-schema.cjs`
+- Description: The review still reports exactly 50 triggers even though the hardening migration added many triggers. The verifier only asserts `>= 50`.
+- Why it is a problem: Review evidence no longer reflects the schema actually reviewed.
+- Recommended solution: Generate the recorded metric from the disposable verification run and update the report with the real current count.
+
+### W2-R2-GATE-001
+
+- Severity: High â€” external acceptance gate
+- Files:
+  - `docs/v2/migration/progress.md`
+  - `docs/v2/migration/wave-2-review.md`
+  - `docs/v2/migration/wave-2-dry-run-report.md`
+- Description: `W2-STAGING-COPY-001` remains open. Only the synthetic local fixture has been exercised.
+- Why it is a problem: Phase 3D requires an authorized read-only staging-copy transform/load, reject classification, manifests and reconciliation evidence. Local fixture success cannot establish real-data compatibility.
+- Recommended solution: Keep Wave 2 blocked until an authorized operator supplies the staging copy and the evidence is independently reviewed. This cannot safely be synthesized by the Fixer.
+
+## Verification performed
+
+- `yarn prisma:validate`: PASS
+- `yarn lint`: PASS
+- `yarn test`: PASS â€” 11 suites, 36 tests
+- `git diff --check`: PASS
+- Disposable PostgreSQL integration coverage: PASS
+- Standalone `yarn db:verify:wave2-schema`: not runnable in this reviewer environment because `POSTGRESQL_DIRECT_URL` was not supplied.
+
+## API V2 compliance
+
+The hardening migration materially improves signed opening balances, settlement locking, ownership cardinality, state transitions, identity columns and UTC semantics. Nevertheless, runtime least privilege, ownership isolation, durable idempotency, debt reversal lifecycle and snapshot integrity remain non-compliant.
+
+**Reviewer decision: return Round 2 issues to the Fixer.**Iâ€™m starting Round 3 as a fresh contract audit. Iâ€™ll verify every Round 2 finding against the new migrations, privilege matrix, trigger ordering/deferral behavior, and executable tests, then issue separate verdicts for code acceptance and the external staging-copy gate.The primary fixes are present and the static gates pass. Iâ€™m now exercising the disposable PostgreSQL integration path and probing two areas the current tests may not cover: null-space business assets and snapshot supersession/current-state coherence.Round 3 focused PostgreSQL integration passes independently (6/6; 107 trigger events), and most Round 2 defects are fixed. No Critical issue is confirmed. I have confirmed at least one High operational-safety issue: the financial â€œverificationâ€ command commits probe users, spaces, posted debt/settlement transactions, snapshots, idempotency and outbox rows and has no fail-closed disposable-database guard. Iâ€™m finishing the contract classification for residual asset, idempotency-retention, typed-fact and snapshot-state gaps.## Round 3 independent review
+
+No code was modified by the Reviewer.
+
+### Verdicts
+
+- Code implementation acceptance: **Not acceptable**
+- Wave 2 exit acceptance: **Blocked independently by `W2-STAGING-COPY-001`**
+- Critical code issues: 0
+- High code issues: 2
+- Medium code issues: 4
+- Low code issues: 0
+
+Another Fixer iteration is required.
+
+## Round 2 issue disposition
+
+| Round 2 issue | Disposition |
+|---|---|
+| W2-R2-001 broad application grants | Resolved |
+| W2-R2-002 cross-aggregate ownership | Partially resolved; see W2-R3-003 |
+| W2-R2-003 terminal idempotency durability | Partially resolved; see W2-R3-004 |
+| W2-R2-004 debt-origin reversal | Resolved by rejecting unsupported origin reversal and requiring a POSTED origin before settlement |
+| W2-R2-005 snapshot ownership/role boundary | Resolved as scoped; a separate snapshot lifecycle defect remains in W2-R3-006 |
+| W2-R2-006 caller-supplied ledger identity/time | Resolved |
+| W2-R2-007 debt parent rebinding | Resolved for `debt_agreements`; generic typed-fact rebinding remains in W2-R3-005 |
+| W2-R2-008 stale trigger metric | Resolved; 107 trigger events are verified |
+| W2-R2-GATE-001 staging-copy evidence | Remains an honest external gate |
+
+## Round 3 issues
+
+### W2-R3-001
+
+- Severity: High
+- Files:
+  - `scripts/verify-wave2-financial-guards.cjs`
+  - `package.json`
+  - `docs/v2/migration/wave-2-review.md`
+- Description: The financial guard â€œverificationâ€ command commits probe data and has no fail-closed disposable-database check. It commits contacts, users, spaces, memberships, posted debt origins and settlements, ledger history, attachments, savings, snapshots, idempotency rows and outbox rows.
+- Why it is a problem: Running `yarn db:verify:wave2-financial-guards` with an incorrect `POSTGRESQL_DIRECT_URL` would permanently pollute a real database. It also advances existing account ledger sequences and writes probe financial history against fixture/business accounts. Documentation saying the command was run locally does not enforce future operational safety.
+- Recommended solution: Make the command operate only on a database it creates and owns, or require and verify an explicit disposable-database marker before any write. Do not rely only on database naming. Roll back all single-session probes; isolate unavoidable multi-connection commit/concurrency probes in a dedicated disposable database. Add a test proving the command refuses an unmarked database.
+
+### W2-R3-002
+
+- Severity: High
+- Files:
+  - `prisma/migrations/20260802121000_wave2_posting_semantics/migration.sql`
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `scripts/postgresql-role-policy.cjs`
+  - `scripts/verify-wave2-financial-guards.cjs`
+- Description: A newly created loan or borrowing agreement can post with an invalid initial projection. Runtime insert privileges permit caller-supplied `status`, `outstanding_principal`, `outstanding_interest` and `settled_at`; origin posting semantics validate principal, direction and accounts but not the agreement lifecycle state.
+- Why it is a problem: A new borrowing can post its ledger entries while its agreement is already `SETTLED`, `ARCHIVED`, or has zero/partial outstanding principal. The ledger then records a debt that the debt workflow cannot correctly settle or display.
+- Recommended solution: For non-migration/new agreements, require `OPEN`, `outstanding_principal = principal_amount`, `outstanding_interest = 0`, and null `settled_at` at origin posting. Prefer excluding projection/lifecycle fields from application inserts and deriving them in the database boundary. Preserve explicitly validated legacy migration states through a separate controlled migration path. Add negative tests for settled, archived, zero and partial-outstanding origins.
+
+### W2-R3-003
+
+- Severity: Medium
+- Files:
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `docs/v2/database/asset-attachment-schema.md`
+  - `scripts/verify-wave2-financial-guards.cjs`
+- Description: A previously committed temporary asset with null `financial_space_id` can later be attached to a space-owned transaction. The attachment guard compares spaces only when the asset space is non-null.
+- Why it is a problem: API V2 requires a temporary asset used by a space-owned business attachment to carry and agree on that space. The current path allows one null-space asset to be reused across multiple spaces of the same owner, leaking business evidence across ownership contexts. The reverse asset trigger does not run when only a later attachment is inserted.
+- Recommended solution: Require a non-null, matching asset space for financial-transaction and space-background attachments. Keep null-space assets only for genuinely user/global resources such as avatars where documented. Test the typical two-transaction flow: upload/commit null-space asset, then attempt a business attachment.
+
+### W2-R3-004
+
+- Severity: Medium
+- Files:
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `scripts/verify-wave2-financial-guards.cjs`
+  - `docs/v2/architecture/implementation-guardrails.md`
+  - `docs/v2/architecture/transaction-runtime.md`
+- Description: The idempotency guard permits a terminal row to set `response_purge_after` in the past and immediately purge its response body. The verification test explicitly uses a timestamp one second in the past.
+- Why it is a problem: API V2 requires completed financial response bodies to be retained for at least 90 days. Tombstone immutability is fixed, but the retention contract remains unenforced.
+- Recommended solution: Set or validate terminal `completed_at` using database time and require `response_purge_after >= completed_at + interval '90 days'` whenever a response body is retained. Permit purge only after that boundary. Update tests to reject immediate purge and validate an eligible historical record.
+
+### W2-R3-005
+
+- Severity: Medium
+- Files:
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `scripts/verify-wave2-financial-guards.cjs`
+- Description: On generic typed-fact `UPDATE`, the guard inspects only the new parent transaction. A detail belonging to a POSTED transaction can be rebound to a compatible DRAFT transaction under migration authority.
+- Why it is a problem: This can remove an expense, income, transfer, saving detail or debt settlement from immutable posted history without retriggering validation of the old transaction. Application grants currently reduce runtime reachability, but the database-authoritative migration boundary remains incomplete.
+- Recommended solution: On parent-ID changes, lock and validate both old and new parents. Reject any update whose old parent is POSTED or REVERSED, and require the new parent to be compatible and DRAFT. Add tests for every typed-detail family, especially posted debt settlements.
+
+### W2-R3-006
+
+- Severity: Medium
+- Files:
+  - `prisma/migrations/20260802091444_wave2_physical_schema/migration.sql`
+  - `prisma/migrations/20260802125000_wave2_contract_hardening/migration.sql`
+  - `scripts/verify-wave2-financial-guards.cjs`
+- Description: Snapshot state transitions do not fully enforce current/supersession coherence. A snapshot can remain `is_current = true` after becoming `SUPERSEDED`; `superseded_by_id` can reference another account/date/space or itself; and the successor pointer/timestamp can be rewritten while already superseded.
+- Why it is a problem: Snapshot consumers can select an invalid â€œcurrentâ€ checkpoint or follow a cross-account successor chain. This violates the documented controlled supersession state even though application-role snapshot writes are now correctly removed.
+- Recommended solution: Require `SUPERSEDED` to imply `is_current = false`; validate that the successor is a distinct snapshot for the same ledger account, space and business date with a newer calculation version; and freeze successor metadata after transition. Add positive and negative lifecycle tests.
+
+## Verification performed
+
+- `yarn prisma:validate`: PASS
+- `yarn lint`: PASS
+- `yarn build`: PASS
+- `git diff --check`: PASS, with informational LF/CRLF warnings
+- Focused PostgreSQL integration: PASS â€” 1 file, 6 tests, 107 trigger events
+- Full suite: PASS â€” 11 files, 36 tests
+- Reviewer modifications: none
+
+The passing tests do not cover the six paths above.
+
+## Compliance assessment
+
+The implementation now substantially complies with the API V2 contracts for least-privilege column grants, generated identities, debt settlement concurrency, unsupported debt-origin reversal, same-space contact/saving relationships, owner cardinality, terminal tombstone immutability and snapshot role separation.
+
+Compliance remains incomplete for safe verification tooling, new-debt lifecycle initialization, null-space business assets, 90-day idempotency retention, old-parent typed-fact immutability and snapshot supersession coherence.
+
+`W2-STAGING-COPY-001` is correctly documented as `IN_PROGRESS`. It is not a code defect and cannot be synthesized by the Fixer, but it independently prevents Wave 2 from being declared complete even after code acceptance.
