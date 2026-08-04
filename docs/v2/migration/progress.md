@@ -23,7 +23,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 4A | Phase 5 - Foundation modules | COMPLETED |
 | Wave 4B | Phase 6 - Sources/accounts | COMPLETED |
 | Wave 4C | Phase 7 - Income/expense/transfer | COMPLETED |
-| Wave 4D | Phase 7 - Debt/advanced commands | NOT_STARTED |
+| Wave 4D | Phase 7 - Debt/advanced commands | READY_FOR_REVIEW |
 | Wave 4E | Phase 7 - Time-based savings | NOT_STARTED |
 | Wave 5 | Phase 8-9 - Read models/operations | NOT_STARTED |
 | Wave 6 | Phase 10-10B - Migration/differential validation | NOT_STARTED |
@@ -184,6 +184,53 @@ tests/unit/financial/
 ## Wave 4A task register
 
 Task Wave 4A triển khai Phase 5 — Foundation modules: banks, users/auth, categories, contacts, financial spaces, families, notifications. Mỗi module có repository, service, controller, mapper, route và validation.
+## Wave 4D task register
+
+Wave 4D triển khai Phase 7 — Debt/advanced commands: loan, borrowing, repayment, collection, contribution. Tất cả đi qua transaction core với posting template APPROVED.
+
+| Task | Phạm vi | Posting Template | Trạng thái |
+|---|---|---|---|
+| W4D-01 | Loan disbursement | cash -A, LOAN_RECEIVABLE +A | COMPLETED |
+| W4D-02 | Borrowing | cash +A, BORROWING_LIABILITY -A | COMPLETED |
+| W4D-03 | Repayment | cash -P, liability +P (interest=0, DEC-066) | COMPLETED |
+| W4D-04 | Collection | cash +P, receivable -P (interest=0, DEC-066) | COMPLETED |
+| W4D-05 | Contribution (composite) | 2 tx liên kết qua INTERSPACE_CLEARING (DEC-070) | COMPLETED |
+
+### Wave 4D verification log
+
+| Check | Kết quả |
+|---|---|
+| `npx vitest run tests/unit` | PASS: 15 files, 139/139 |
+| `npx vitest run tests/contract` | PASS: 2/2 |
+| `npx vitest run tests/integration/v1StartupRegression` | PASS: 2/2 |
+| Full suite (unit+contract+startup) | PASS: 17 files, 143/143 |
+| V1 source changes | 0 files |
+| `node --check` all 5 new services | PASS (exit 0) |
+| Posting template lookup (APPROVED) | LOAN_DISBURSEMENT, BORROWING, REPAYMENT, COLLECTION, CONTRIBUTION_OUT/IN |
+
+### Files created (Wave 4D)
+
+```
+src/v2/modules/loan/services/loan.service.js
+src/v2/modules/borrowing/services/borrowing.service.js
+src/v2/modules/repayment/services/repayment.service.js
+src/v2/modules/collection/services/collection.service.js
+src/v2/modules/contribution/services/contribution.service.js
+src/api/v2/controllers/{loan,borrowing,repayment,collection,contribution}Controller.js
+src/api/v2/routes/{loan,borrowing,repayment,collection,contribution}Route.js
+src/api/v2/index.js (+5 routes)
+docs/v2/migration/progress.md
+```
+
+### Findings triage (Wave 4D)
+
+| # | Severity | Issue | Status |
+|---|---|---|---|
+| F-01 | P0 | contribution.service.js: missing braces + orphan code | FIXED |
+| F-02 | P2 | contribution dùng global Prisma client cho interspace group writes (cross-space saga; balance vẫn qua core) | Deferred → Wave 5 reconciliation; justification: cross-space coordinate store là saga pattern, không mutate balance trực tiếp |
+| F-03 | P2 | idempotency key được sinh nhưng chưa resolve (giống các wave trước, integration tại API layer) | Deferred → Wave 5 |
+
+
 
 | Task | Phạm vi | Trạng thái | Evidence/review |
 |---|---|---|---|
