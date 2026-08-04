@@ -18,7 +18,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 |---|---|---|
 | Wave 0 | Phase 0 - Discovery/V1 freeze | COMPLETED |
 | Wave 1 | Phase 1-2 - API và staging foundation | COMPLETED |
-| Wave 2 | Phase 3 - PostgreSQL design freeze | IN_PROGRESS |
+| Wave 2 | Phase 3 - PostgreSQL design freeze | READY_FOR_REVIEW |
 | Wave 3 | Phase 4-4B - Financial kernel | NOT_STARTED |
 | Wave 4A | Phase 5 - Foundation modules | NOT_STARTED |
 | Wave 4B | Phase 6 - Sources/accounts | NOT_STARTED |
@@ -39,7 +39,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 0 | Inventory và đóng băng hành vi V1 | COMPLETED |
 | Phase 1 | API versioning | COMPLETED |
 | Phase 2 | PostgreSQL staging foundation | COMPLETED |
-| Phase 3 | PostgreSQL data model | IN_PROGRESS |
+| Phase 3 | PostgreSQL data model | READY_FOR_REVIEW |
 | Phase 4 | Transaction core | NOT_STARTED |
 | Phase 4B | Periodic balance snapshot core | NOT_STARTED |
 | Phase 5 | Các module nền tảng | NOT_STARTED |
@@ -57,7 +57,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 
 ## Wave/phase đang hoạt động
 
-Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01. Project owner sign-off Wave 1 ngày 2026-08-02 sau khi Phase 1-2, Supabase least-privilege/TLS, Agenda staging isolation/execution và regression gate đều PASS; Wave 1/Phase 2 chuyển `COMPLETED`. Wave 2 database/local fixture gates pass, but Wave 2 remains `IN_PROGRESS` because Phase 3D lacks the required read-only staging-copy run (`W2-STAGING-COPY-001`). Chưa triển khai business endpoint, transaction core hoặc mở Phase 4/Wave 3.
+Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01. Project owner sign-off Wave 1 ngày 2026-08-02 sau khi Phase 1-2, Supabase least-privilege/TLS, Agenda staging isolation/execution và regression gate đều PASS; Wave 1/Phase 2 chuyển `COMPLETED`. Wave 2/Phase 3, W2-07 and W2-08 passed the final full-Wave acceptance gate and are `READY_FOR_REVIEW`; project-owner sign-off is still required before `COMPLETED`. The owner-supplied BSON is not independently attested point-in-time/staging provenance, and that owner-attestation evidence is explicitly deferred rather than hidden. Chưa triển khai business endpoint, transaction core hoặc mở Phase 4/Wave 3; Wave 3 remains `NOT_STARTED`.
 
 ## Wave 2 task register
 
@@ -72,8 +72,11 @@ Task Wave 2 tuân thủ thứ tự bắt buộc. Task kế tiếp chỉ được
 | W2-04 | Phase 3B2 | Financial invariant/posting templates và migration rules final approval | COMPLETED | Owner accepted all recommendations; DEC-065..070; 17/17 templates APPROVED, 26/26 migration rules approved, 0 TBD/DRAFT marker |
 | W2-05 | Phase 3C | Prisma schema và versioned migrations | COMPLETED | Reviewed: Prisma 7 schema 45/45 models and 52/52 enums; clean local deploy 2/2 migrations; 105 FK, 65 CHECK, 39 triggers, 0 PUBLIC table grants; schema drift empty; append-only probe and build PASS |
 | W2-06 | Phase 3C | System seed, `MIGRATION_EQUITY` và system accounts | COMPLETED | Reviewed idempotent seed: 8/8 system definitions, 18/18 physical definitions for 17 business templates, 43/43 entry roles, 0 non-APPROVED template; rerun PASS |
-| W2-07 | Phase 3D | Staging-copy data profile/dry-run, reconciliation và reject classification | IN_PROGRESS | Local fixture determinism passes, but required read-only staging-copy source manifest, classified rejects and load/reconciliation evidence are missing (`W2-STAGING-COPY-001`) |
-| W2-08 | Exit gate | Clean migration, schema validation, tests, evidence và Wave 2 review | BLOCKED | Database/local gates pass; Phase 3D staging-copy evidence remains gating; no Phase 4/Wave 3 start |
+| W2-07 | Phase 3D | Staging-copy data profile/dry-run, reconciliation và reject classification | READY_FOR_REVIEW | W2-07A/B1/B2 accepted; actual owner-export load and reconciliation pass on clean Testcontainers. Owner point-in-time/staging attestation is retained as explicit deferred provenance evidence and does not misrepresent this owner-export run. |
+| W2-07A | Phase 3D preparation | Read-only BSON export inventory, immutable fingerprinting and sanitized evidence boundary | COMPLETED | Independently accepted: owner-provided external export has 31 artifacts, 15 present + 11 explicitly absent routes and 763 records. Current hardened policy-v3 evidence is `d1b25339902b9d3f032d6b527e9a3a5ea306e9bd1b80fbb781f3ab7e8a9adc41`; zero detected secret/PII leak. No PostgreSQL load/reconciliation was performed. |
+| W2-07B1 | Phase 3D transform | Pure classification, transform, posting plan and source-balance reconciliation | COMPLETED | Corrective cycle 5 independently accepted: two runs produced plan `054d208dc86819b67551841322ea80b906518d65a81b9ce934ffef7ff06b91fd`; 763 = 756 loaded + 7 archived + 0 rejected; 0 blocking/unclassified; 128 postings/256 entries; 6/6 balances exact; notifications/recipients 134/134 with valid read state. |
+| W2-07B2 | Phase 3D load | Actual clean disposable-PostgreSQL load, reject retention and database-derived reconciliation | COMPLETED | Accepted on two runner-owned PostgreSQL 16 Testcontainers: target hash `e74f8804f6d243ad95b80f2c398fcfeab9e53caef406dc0263c6444eae00048c`; 763 = 756 loaded + 7 archived + 0 rejected; 26 checkpoints; all ledger/balance reconciliation exact; three legacy attachments retained `REQUIRES_REVIEW`. No Supabase/provider/production write. |
+| W2-08 | Exit gate | Clean migration, schema validation, tests, evidence và Wave 2 review | READY_FOR_REVIEW | Final full-Wave gate PASS: lint/tests/V1/package/Prisma/schema/migration evidence/financial guards/export replay all pass; project-owner sign-off remains required; no Phase 4/Wave 3 start |
 | W2-FIX-01 | Corrective | Atomic ledger chain và cached projection | COMPLETED | New versioned migration locks the account row, derives sequence/before/after, advances the cached projection atomically and rejects inactive/cross-space/negative postings; local migrate + seed + dry-run + reversal/projection guard PASS |
 | W2-FIX-02 | Corrective | Template/type/detail/amount posting semantics | COMPLETED | Immutable template type/rule metadata and deferred semantic guard cover all 18 physical definitions; valid income accepted; wrong type, missing detail and header/entry amount mismatch rejected; seed rerun and Prisma validation PASS |
 | W2-FIX-03 | Corrective | Audited `MIGRATION_EQUITY` anchor | COMPLETED | New migration makes discrepancy mandatory, enforces equity-role XOR and exact run/checksum/account/difference/resolved-case/approval evidence, and makes anchors immutable; valid rollback-only anchor accepted and missing-anchor posting rejected |
@@ -109,6 +112,12 @@ Task Wave 2 tuân thủ thứ tự bắt buộc. Task kế tiếp chỉ được
 | W2-07 | `node --check scripts/run-wave2-controlled-dry-run.cjs` | PASS |
 | W2-07 | Two independent clean `yarn db:dry-run:wave2` runs | PASS: source checksum and canonical target hash identical; 26/26 routes, 0 rejects/unclassified/blocking |
 | W2-07 | PostgreSQL reconciliation queries | PASS: run COMPLETED; 22 source = 16 loaded + 6 archived; 26/26 checkpoints; 5 transactions/10 entries; 0 unbalanced; 0 active BLOCKING |
+| W2-07A | External BSON inventory and sanitizer verification | PASS: raw export remained at `D:\Sghb\mongodb-heymoney-data\Heymoney-Data` and was not copied/committed; 31 artifacts, 26 routes, 763 records; raw inventory `767216c179b5b10a27e99e7594ec0d8c6a982a5e52ae7863d3202100df197b8c`; semantic snapshot `a7bbcdf03dc93eef67597e4c503efaa2b0a4fb91fc62f10b7dd727f0f01a0769`; current policy-v3 sanitized evidence `d1b25339902b9d3f032d6b527e9a3a5ea306e9bd1b80fbb781f3ab7e8a9adc41` |
+| W2-07B1 | Transform plan, source reconciliation and independent review | PASS: two independent runs identical; 763 = 756 loaded + 7 archived + 0 rejected; 0 blocking/unclassified; 128 postings/256 entries; 6/6 balances at zero mismatch; 134/134 notification recipients satisfy read-state contract; plan `054d208dc86819b67551841322ea80b906518d65a81b9ce934ffef7ff06b91fd` |
+| W2-07B1 | Focused/full verification | PASS: focused 67/67, full unit 89/89 and full suite 104/104; targeted/full lint, syntax and diff checks PASS; corrective cycle 5 outcome `ACCEPT` |
+| W2-07B2 | `node scripts/run-wave2-export-disposable-load.cjs --testcontainer` on two clean PostgreSQL 16 containers | PASS: migrations twice + seed twice; evidence-recomputing replay; source/evidence/transform/identity hashes retained; identical target hash `e74f8804f6d243ad95b80f2c398fcfeab9e53caef406dc0263c6444eae00048c` |
+| W2-07B2 | Database load and reconciliation | PASS: 763 = 756 loaded + 7 archived + 0 rejected; 26/26 checkpoints; 3 users/spaces/owner memberships; 21 banks; 207 categories/138 edges; 4 accounts; 2 accumulations; 2 contacts; 30 ledgers; 128 postings/256 entries; 124 source transactions; 1 budget; notifications/recipients 134/134; 3 `LEGACY_EXTERNAL` `REQUIRES_REVIEW` attachments; unbalanced/projection/balance mismatch 0 at tolerance 0 VND |
+| W2-08 | Final full-Wave acceptance gate | PASS: `yarn lint`; `yarn test` 17 files/124 tests; `yarn verify:package-manager`; `yarn verify:phase1`; Prisma validate; schema verification 45 tables/4 views/52 enums/105 FK/70 CHECK/108 triggers; controlled migration evidence and financial guards; Docker export load/replay target `e74f8804f6d243ad95b80f2c398fcfeab9e53caef406dc0263c6444eae00048c`; V1 changed paths 0; no Supabase/provider/production write |
 | W2-08 | Full reversal database guard | PASS: exact sign-opposite accepted; balanced but 1 VND non-opposite rejected; both probes rolled back |
 | W2-08 | `yarn verify:package-manager`, `yarn verify:phase1`, `yarn lint` | PASS: Yarn canonical; 55-operation V1 parity/API boundaries; zero lint issue |
 | W2-08 | `yarn test` outside Docker-restricted sandbox | PASS: 11/11 files, 33/33 tests including PostgreSQL/MongoDB/Redis Testcontainers and V1 startup |
@@ -135,9 +144,9 @@ W2-05 outputs: `prisma/schema.prisma`, `prisma/migrations/20260802091444_wave2_p
 
 W2-06 output: `prisma/seed.ts` now owns only immutable system metadata. It creates eight system-account definitions and 18 version-1 approved physical posting definitions (43 role rows) for the 17 approved business templates. It does not create users, financial spaces, ledger balances or transactions. Existing mismatched hashes/policies fail the seed instead of being overwritten.
 
-W2-07 supporting outputs: `scripts/run-wave2-controlled-dry-run.cjs`, `reconciliation-specification.md` and `wave-2-dry-run-report.md`. The controlled fixture validates all 26 routes and deterministic database behavior, but it is not a staging-copy run. `W2-STAGING-COPY-001` remains open until an authorized read-only staging export is transformed/loaded with retained manifests, classified rejects and reconciliation evidence. No production connection or external side effect was used.
+W2-07 supporting outputs: `scripts/run-wave2-controlled-dry-run.cjs`, `scripts/run-wave2-export-disposable-load.cjs`, `reconciliation-specification.md` and `wave-2-dry-run-report.md`. The controlled fixture validates all 26 routes and deterministic database behavior, but it is not a staging-copy run. W2-07A accepted the read-only inventory and policy-v3 sanitization boundary for the owner-provided BSON export at `D:\Sghb\mongodb-heymoney-data\Heymoney-Data`; W2-07B1 accepted its pure transform/reconciliation plan; W2-07B2 accepted the actual clean Testcontainer load and database-derived reconciliation. Raw data remains external and was neither copied nor committed. W2-07 is `READY_FOR_REVIEW`. The supplied BSON does not independently attest source environment or point-in-time/staging provenance; owner attestation remains explicit deferred evidence, not an inferred property of this run. No production connection or external side effect was used.
 
-W2-08 output: `docs/v2/migration/wave-2-review.md`. Database guard issues are covered by the current hardening migration and disposable-PostgreSQL probes. Wave 2/Phase 3 remains `IN_PROGRESS` until `W2-STAGING-COPY-001` is evidenced and independently reviewed.
+W2-08 output: `docs/v2/migration/wave-2-review.md`. Database guard issues are covered by the current hardening migration and disposable-PostgreSQL probes. The final full-Wave acceptance gate passed; Wave 2/Phase 3 is `READY_FOR_REVIEW`, not `COMPLETED`, pending project-owner sign-off. Owner source-environment/point-in-time attestation remains explicit deferred provenance evidence. Wave 3 remains `NOT_STARTED`.
 
 ## Wave 1 task register
 
