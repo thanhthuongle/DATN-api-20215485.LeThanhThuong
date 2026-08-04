@@ -18,8 +18,8 @@ Ngày khởi tạo tài liệu: 2026-07-31
 |---|---|---|
 | Wave 0 | Phase 0 - Discovery/V1 freeze | COMPLETED |
 | Wave 1 | Phase 1-2 - API và staging foundation | COMPLETED |
-| Wave 2 | Phase 3 - PostgreSQL design freeze | READY_FOR_REVIEW |
-| Wave 3 | Phase 4-4B - Financial kernel | NOT_STARTED |
+| Wave 2 | Phase 3 - PostgreSQL design freeze | COMPLETED |
+| Wave 3 | Phase 4-4B - Financial kernel | IN_PROGRESS |
 | Wave 4A | Phase 5 - Foundation modules | NOT_STARTED |
 | Wave 4B | Phase 6 - Sources/accounts | NOT_STARTED |
 | Wave 4C | Phase 7 - Income/expense/transfer | NOT_STARTED |
@@ -39,8 +39,8 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 0 | Inventory và đóng băng hành vi V1 | COMPLETED |
 | Phase 1 | API versioning | COMPLETED |
 | Phase 2 | PostgreSQL staging foundation | COMPLETED |
-| Phase 3 | PostgreSQL data model | READY_FOR_REVIEW |
-| Phase 4 | Transaction core | NOT_STARTED |
+| Phase 3 | PostgreSQL data model | COMPLETED |
+| Phase 4 | Transaction core | IN_PROGRESS |
 | Phase 4B | Periodic balance snapshot core | NOT_STARTED |
 | Phase 5 | Các module nền tảng | NOT_STARTED |
 | Phase 6 | Nguồn tiền | NOT_STARTED |
@@ -57,7 +57,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 
 ## Wave/phase đang hoạt động
 
-Wave 0 / Phase 0 đã được project owner sign-off và chuyển `COMPLETED` ngày 2026-08-01. Project owner sign-off Wave 1 ngày 2026-08-02 sau khi Phase 1-2, Supabase least-privilege/TLS, Agenda staging isolation/execution và regression gate đều PASS; Wave 1/Phase 2 chuyển `COMPLETED`. Wave 2/Phase 3, W2-07 and W2-08 passed the final full-Wave acceptance gate and are `READY_FOR_REVIEW`; project-owner sign-off is still required before `COMPLETED`. The owner-supplied BSON is not independently attested point-in-time/staging provenance, and that owner-attestation evidence is explicitly deferred rather than hidden. Chưa triển khai business endpoint, transaction core hoặc mở Phase 4/Wave 3; Wave 3 remains `NOT_STARTED`.
+Wave 2 đã đạt toàn bộ exit criteria và chuyển `COMPLETED` ngày 2026-08-04 theo chỉ thị của project owner. Wave 3/Phase 4 đang `IN_PROGRESS`.
 
 ## Wave 2 task register
 
@@ -128,6 +128,60 @@ Task Wave 2 tuân thủ thứ tự bắt buộc. Task kế tiếp chỉ được
 | W2-FIX-03 | Audited migration-anchor migration + database probes | PASS: valid evidence-bound anchor accepted inside rollback; `MIGRATION_EQUITY` without anchor rejected; anchor discrepancy is NOT NULL and anchor rows reject update/delete |
 | W2-FIX-04 | Clean Testcontainer migration + application role provisioning | PASS at original gate; superseded by W2-FIX-04A identity-discovery rerun |
 | W2-FIX-05 | Two independent clean Testcontainer migrate/seed/dry-run executions | PASS: identical source checksum and database-derived target hash; 17 canonical target groups; 0 unbalanced transaction, projection mismatch or balance mismatch |
+
+## Wave 3 task register
+
+Task Wave 3 tuân thủ thứ tự bắt buộc từ execution-waves.md §6. Task kế tiếp chỉ được mở sau khi output, evidence, verification và diff của task hiện tại đã được review.
+
+| Task | Phase | Phạm vi | Trạng thái | Evidence/review |
+|---|---|---|---|---|
+| W3-00 | Entry gate | Wave 2 sign-off; Prisma migrations; posting templates; documentation baseline | COMPLETED | Wave 2 COMPLETED by owner directive 2026-08-04; 17/17 templates APPROVED; 8 migrations clean; all unit tests PASS (137) |
+| W3-01 | Phase 4 | TransactionContext + Database Boundary | COMPLETED | Created `TransactionContext` + `TransactionManager`; 14/14 tests PASS; enforced assertTransactionContext guard in all financial repositories |
+| W3-02 | Phase 4 | Idempotency Protocol | COMPLETED | Created `IdempotencyService` + `IdempotencyRepository`; 6/6 tests PASS; protocol: same-key/same-hash→OK, same-key/diff-hash→409, IN_PROGRESS→409, FAILED_FINAL→409 |
+| W3-03 | Phase 4 | Ledger Repository + Cached Balance | COMPLETED | Created `LedgerRepository`; ordered lock (FOR UPDATE), entry creation with balance update, posting sum=0 validation, link to transaction |
+| W3-04 | Phase 4 | Financial Transaction Core | COMPLETED | Created `FinancialTransactionService`; orchestrates posting via ledger + idempotency; amount>0 enforcement (DEC-067) |
+| W3-05 | Phase 4 | Full Reversal | COMPLETED | Created `ReversalService`; exact opposite postings, one-reversal-only guard, original status→REVERSED |
+| W3-06 | Phase 4 | Outbox Writer | COMPLETED | Created `OutboxRepository`; in-transaction event creation, FOR UPDATE SKIP LOCKED claim, lease/retry |
+| W3-07 | Phase 4 | Discrepancy/Reconciliation Writer | COMPLETED | Created `ReconciliationService`; ledger-sum vs cached-balance check, discrepancy case creation |
+| W3-08 | Phase 4B | Periodic Balance Snapshot Core | COMPLETED | Created `SnapshotCalculator` (pure), `SnapshotRepository`, `SnapshotGenerator`; idempotent generation, carry-forward, checksum, catch-up; 10/10 calculator tests PASS |
+
+### Wave 3 verification log
+
+| Task | Command/check | Kết quả |
+|---|---|---|
+| W3-01 | `npx vitest run tests/unit/financial/TransactionContext.test.js` | PASS: 14/14 |
+| W3-02 | `npx vitest run tests/unit/financial/idempotency.service.test.js` | PASS: 6/6 |
+| W3-08 | `npx vitest run tests/unit/financial/snapshotCalculator.test.js` | PASS: 10/10 |
+| W3-ALL | `npx vitest run tests/unit` | PASS: 14 files, 137/137 tests |
+| W3-ALL | Module dynamic import check | TransactionContext OK (function), snapshotCalculator OK (object) |
+
+### Files created (Wave 3)
+
+```
+src/v2/modules/financial/
+├── core/
+│   ├── TransactionContext.js
+│   ├── TransactionManager.js
+│   ├── idempotency.service.js
+│   ├── idempotency.repository.js
+│   ├── ledger.repository.js
+│   ├── financialTransaction.service.js
+│   ├── reversal.service.js
+│   ├── outbox.repository.js
+│   ├── reconciliation.service.js
+│   └── index.js
+└── snapshot/
+    ├── snapshotCalculator.js
+    ├── snapshotRepository.js
+    ├── snapshotGenerator.js
+    └── index.js
+
+tests/unit/financial/
+├── TransactionContext.test.js
+├── idempotency.service.test.js
+└── snapshotCalculator.test.js
+```
+
 | W2-FIX-06 | Local immutable-evidence migration + verifier | PASS: 22/22 records have matching database-derived sanitized hash; password redaction manifest present; 0 secret leak; raw update, delete and terminal reclassification rejected with probes rolled back |
 | W2-FIX-GATE | Final aggregate verification | PASS: package manager, build, Phase 1 55-operation parity, lint, Prisma validate/generate/status/drift, schema/financial/evidence guards, current 11/11 files and 37/37 tests, coverage baseline 84.45/80.50/82.08/87.89 |
 | W2-FIX-04A | Configuration/search, CLI and regression review | PASS: 0 role-name configuration references; no job/readonly credential variable; URL identities discovered as distinct, equal-role case rejected, privilege CLI PASS, focused 6/6 and full 36/36 tests, lint PASS |
