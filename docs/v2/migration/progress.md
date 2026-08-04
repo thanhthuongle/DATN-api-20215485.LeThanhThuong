@@ -22,7 +22,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 3 | Phase 4-4B - Financial kernel | COMPLETED |
 | Wave 4A | Phase 5 - Foundation modules | COMPLETED |
 | Wave 4B | Phase 6 - Sources/accounts | COMPLETED |
-| Wave 4C | Phase 7 - Income/expense/transfer | NOT_STARTED |
+| Wave 4C | Phase 7 - Income/expense/transfer | COMPLETED |
 | Wave 4D | Phase 7 - Debt/advanced commands | NOT_STARTED |
 | Wave 4E | Phase 7 - Time-based savings | NOT_STARTED |
 | Wave 5 | Phase 8-9 - Read models/operations | NOT_STARTED |
@@ -44,7 +44,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 4B | Periodic balance snapshot core | COMPLETED |
 | Phase 5 | Các module nền tảng | COMPLETED |
 | Phase 6 | Nguồn tiền | COMPLETED |
-| Phase 7 | Transaction endpoints | NOT_STARTED |
+| Phase 7 | Transaction endpoints | COMPLETED |
 | Phase 8 | Query, aggregation và báo cáo | NOT_STARTED |
 | Phase 9 | Budget, cache, notification và jobs | NOT_STARTED |
 | Phase 10 | Data migration pipeline | NOT_STARTED |
