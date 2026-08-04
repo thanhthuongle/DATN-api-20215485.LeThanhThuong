@@ -19,8 +19,8 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 0 | Phase 0 - Discovery/V1 freeze | COMPLETED |
 | Wave 1 | Phase 1-2 - API và staging foundation | COMPLETED |
 | Wave 2 | Phase 3 - PostgreSQL design freeze | COMPLETED |
-| Wave 3 | Phase 4-4B - Financial kernel | READY_FOR_REVIEW |
-| Wave 4A | Phase 5 - Foundation modules | READY_FOR_REVIEW |
+| Wave 3 | Phase 4-4B - Financial kernel | COMPLETED |
+| Wave 4A | Phase 5 - Foundation modules | COMPLETED |
 | Wave 4B | Phase 6 - Sources/accounts | NOT_STARTED |
 | Wave 4C | Phase 7 - Income/expense/transfer | NOT_STARTED |
 | Wave 4D | Phase 7 - Debt/advanced commands | NOT_STARTED |
@@ -40,9 +40,9 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 1 | API versioning | COMPLETED |
 | Phase 2 | PostgreSQL staging foundation | COMPLETED |
 | Phase 3 | PostgreSQL data model | COMPLETED |
-| Phase 4 | Transaction core | IN_PROGRESS |
-| Phase 4B | Periodic balance snapshot core | NOT_STARTED |
-| Phase 5 | Các module nền tảng | IN_PROGRESS |
+| Phase 4 | Transaction core | COMPLETED |
+| Phase 4B | Periodic balance snapshot core | COMPLETED |
+| Phase 5 | Các module nền tảng | COMPLETED |
 | Phase 6 | Nguồn tiền | NOT_STARTED |
 | Phase 7 | Transaction endpoints | NOT_STARTED |
 | Phase 8 | Query, aggregation và báo cáo | NOT_STARTED |
