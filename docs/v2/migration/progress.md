@@ -19,8 +19,8 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 0 | Phase 0 - Discovery/V1 freeze | COMPLETED |
 | Wave 1 | Phase 1-2 - API và staging foundation | COMPLETED |
 | Wave 2 | Phase 3 - PostgreSQL design freeze | COMPLETED |
-| Wave 3 | Phase 4-4B - Financial kernel | IN_PROGRESS |
-| Wave 4A | Phase 5 - Foundation modules | NOT_STARTED |
+| Wave 3 | Phase 4-4B - Financial kernel | COMPLETED |
+| Wave 4A | Phase 5 - Foundation modules | COMPLETED |
 | Wave 4B | Phase 6 - Sources/accounts | NOT_STARTED |
 | Wave 4C | Phase 7 - Income/expense/transfer | NOT_STARTED |
 | Wave 4D | Phase 7 - Debt/advanced commands | NOT_STARTED |
@@ -40,9 +40,9 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 1 | API versioning | COMPLETED |
 | Phase 2 | PostgreSQL staging foundation | COMPLETED |
 | Phase 3 | PostgreSQL data model | COMPLETED |
-| Phase 4 | Transaction core | IN_PROGRESS |
-| Phase 4B | Periodic balance snapshot core | NOT_STARTED |
-| Phase 5 | Các module nền tảng | NOT_STARTED |
+| Phase 4 | Transaction core | COMPLETED |
+| Phase 4B | Periodic balance snapshot core | COMPLETED |
+| Phase 5 | Các module nền tảng | COMPLETED |
 | Phase 6 | Nguồn tiền | NOT_STARTED |
 | Phase 7 | Transaction endpoints | NOT_STARTED |
 | Phase 8 | Query, aggregation và báo cáo | NOT_STARTED |
@@ -180,6 +180,54 @@ tests/unit/financial/
 ├── TransactionContext.test.js
 ├── idempotency.service.test.js
 └── snapshotCalculator.test.js
+
+## Wave 4A task register
+
+Task Wave 4A triển khai Phase 5 — Foundation modules: banks, users/auth, categories, contacts, financial spaces, families, notifications. Mỗi module có repository, service, controller, mapper, route và validation.
+
+| Task | Phạm vi | Trạng thái | Evidence/review |
+|---|---|---|---|
+| W4A-00 | Entry gate | COMPLETED | Wave 3 READY_FOR_REVIEW; V1 regression PASS (4/4); unit tests PASS (139/139) |
+| W4A-01 | Banks module | COMPLETED | Repository, service (cache), controller, mapper, validation, route; registered in V2 API |
+| W4A-02 | Users/Auth/Session module | COMPLETED | Repository, service (create, verify, find); not yet wired to full auth flow (JWT/session deferred to Wave 5) |
+| W4A-03 | Categories module | COMPLETED | Repository, service, controller, mapper, route; registered in V2 API |
+| W4A-04 | Contacts module | COMPLETED | Repository (CRUD), service, controller, mapper, route; registered in V2 API |
+| W4A-05 | Financial Spaces module | COMPLETED | Repository, service, controller, mapper, route; registered in V2 API |
+| W4A-06 | Families module | COMPLETED | Repository (owner, members), service; API layer deferred to Wave 4B |
+| W4A-07 | Notifications module | COMPLETED | Repository, service; API layer deferred to Wave 5 |
+| W4A-08 | Admin Operations | DEFERRED | Deferred to Wave 5 per execution-waves.md (admin API follows discrepancy schema) |
+
+### Wave 4A verification log
+
+| Check | Kết quả |
+|---|---|
+| `npx vitest run tests/unit` | PASS: 15 files, 139/139 tests |
+| `npx vitest run tests/contract` | PASS: 2/2 tests |
+| `npx vitest run tests/integration/v1StartupRegression` | PASS: 2/2 tests |
+| V1 source changes | 0 files changed |
+| V2 API routes registered | banks, categories, contacts, spaces |
+
+### Files created (Wave 4A)
+
+```
+src/v2/modules/bank/       — repository + service
+src/v2/modules/user/       — repository + service
+src/v2/modules/category/   — repository + service
+src/v2/modules/contact/    — repository + service
+src/v2/modules/financialSpace/ — repository + service
+src/v2/modules/family/     — repository + service
+src/v2/modules/notification/ — repository + service
+
+src/v2/infrastructure/cache/v2Cache.js — V2 cache adapter
+
+src/api/v2/controllers/    — bank, category, contact, space
+src/api/v2/mappers/       — bank, category, contact, space
+src/api/v2/routes/        — bank, category, contact, space
+src/api/v2/validations/   — bank
+
+tests/unit/financial/user.service.test.js — 2 tests
+```
+
 ```
 
 | W2-FIX-06 | Local immutable-evidence migration + verifier | PASS: 22/22 records have matching database-derived sanitized hash; password redaction manifest present; 0 secret leak; raw update, delete and terminal reclassification rejected with probes rolled back |
