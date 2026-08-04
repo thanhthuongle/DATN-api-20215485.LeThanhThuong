@@ -27,7 +27,7 @@ class ReversalService {
   async reverse(txContext, { originalTransactionId, postingTemplateDefinitionId, businessSnapshot }) {
     TransactionContext.assertTransactionContext(txContext)
 
-    // 1. Lock và verify original transaction
+    // 1. Lock và verify original transaction (FOR UPDATE ngăn concurrent reversal)
     const originalTx = await txContext.db.financial_transactions.findUnique({
       where: { id: originalTransactionId }
     })
@@ -41,6 +41,13 @@ class ReversalService {
         `Cannot reverse transaction in status ${originalTx.status}. Only POSTED transactions can be reversed.`
       )
     }
+
+    // Lock the original row to prevent concurrent reversal (check-then-act race)
+    await txContext.db.$queryRaw`
+      SELECT id FROM financial_transactions
+      WHERE id = ${originalTransactionId} AND status = 'POSTED'
+      FOR UPDATE
+    `
 
     // Check if already reversed (unique constraint on reverses_transaction_id)
     const existingReversal = await txContext.db.financial_transactions.findFirst({
