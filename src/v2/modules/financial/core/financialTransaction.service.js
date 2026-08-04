@@ -1,9 +1,5 @@
-import { randomUUID } from 'node:crypto'
-import { createHash } from 'node:crypto'
 import TransactionContext from './TransactionContext'
 import ledgerRepository from './ledger.repository'
-import idempotencyService from './idempotency.service'
-import { IdempotencyResult } from './idempotency.service'
 
 /**
  * FinancialTransactionService — orchestrator duy nhất tạo financial transactions.
@@ -13,25 +9,16 @@ import { IdempotencyResult } from './idempotency.service'
  *
  * Mọi service ghi tiền (income, expense, transfer, etc.) phải gọi
  * financialTransactionService.post() thay vì tự tạo postings.
+ *
+ * Note: Idempotency must be resolved by the caller BEFORE opening the
+ * transaction. The caller checks idempotencyService.resolveIdempotency(),
+ * and only proceeds to post() if the result is NEW.
  */
 
 class FinancialTransactionService {
   /**
-   * Post một financial transaction với đầy đủ idempotency, ledger, snapshot.
-   *
-   * @param {TransactionContext} txContext
-   * @param {object} params
-   * @param {string} params.type - financial_transaction_type (e.g. 'INCOME', 'EXPENSE')
-   * @param {bigint} params.postingTemplateDefinitionId
-   * @param {object[]} params.entries - [{ ledgerAccountId, amount, entryRole }]
-   * @param {object} params.businessSnapshot - JSONB snapshot của giao dịch
-   * @param {object} [params.options]
-   * @param {bigint} [params.options.categoryId]
-   * @param {bigint} [params.options.responsibleUserId]
-   * @param {string} [params.options.legacyMongoId]
-   * @param {string} [params.options.occurredAt] - ISO timestamp
-   * @param {object} [params.options.metadata]
-   * @returns {Promise<object>} Kết quả với transaction, entries, idempotency
+   * Post một financial transaction.
+   * Caller MUST resolve idempotency before calling this method.
    */
   async post(txContext, { type, postingTemplateDefinitionId, entries, businessSnapshot, options = {} }) {
     TransactionContext.assertTransactionContext(txContext)
@@ -44,14 +31,10 @@ class FinancialTransactionService {
       throw new Error('Money-moving commands require amount > 0 (DEC-067)')
     }
 
-    // 1. Idempotency check (already resolved by caller, but double-check)
-    //    Caller should resolve idempotency BEFORE opening this transaction
-    //    Here we just verify we have a valid NEW idempotency slot
-
-    // 2. Create ledger entries (auto-balances to 0)
+    // Create ledger entries (auto-validates sum=0)
     const createdEntries = await ledgerRepository.createEntries(txContext, entries)
 
-    // 3. Create financial transaction
+    // Create financial transaction
     const transaction = await txContext.db.financial_transactions.create({
       data: {
         type,
@@ -68,17 +51,9 @@ class FinancialTransactionService {
       }
     })
 
-    // 4. Link entries to transaction
+    // Link entries to transaction
     const entryIds = createdEntries.map(e => e.id)
     await ledgerRepository.linkEntriesToTransaction(txContext, entryIds, transaction.id)
-
-    // 5. Update transaction with entry linkage (optional metadata)
-    await txContext.db.financial_transactions.update({
-      where: { id: transaction.id },
-      data: {
-        // Additional post-creation metadata if needed
-      }
-    })
 
     return {
       transaction,
