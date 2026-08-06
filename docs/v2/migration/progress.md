@@ -19,12 +19,12 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 0 | Phase 0 - Discovery/V1 freeze | COMPLETED |
 | Wave 1 | Phase 1-2 - API và staging foundation | COMPLETED |
 | Wave 2 | Phase 3 - PostgreSQL design freeze | COMPLETED |
-| Wave 3 | Phase 4-4B - Financial kernel | IN_PROGRESS |
-| Wave 4A | Phase 5 - Foundation modules | NOT_STARTED |
-| Wave 4B | Phase 6 - Sources/accounts | NOT_STARTED |
-| Wave 4C | Phase 7 - Income/expense/transfer | NOT_STARTED |
-| Wave 4D | Phase 7 - Debt/advanced commands | NOT_STARTED |
-| Wave 4E | Phase 7 - Time-based savings | NOT_STARTED |
+| Wave 3 | Phase 4-4B - Financial kernel | COMPLETED |
+| Wave 4A | Phase 5 - Foundation modules | COMPLETED |
+| Wave 4B | Phase 6 - Sources/accounts | COMPLETED |
+| Wave 4C | Phase 7 - Income/expense/transfer | COMPLETED |
+| Wave 4D | Phase 7 - Debt/advanced commands | COMPLETED |
+| Wave 4E | Phase 7 - Time-based savings | COMPLETED |
 | Wave 5 | Phase 8-9 - Read models/operations | NOT_STARTED |
 | Wave 6 | Phase 10-10B - Migration/differential validation | NOT_STARTED |
 | Wave 7 | Phase 11 - Release candidate | NOT_STARTED |
@@ -40,11 +40,11 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 1 | API versioning | COMPLETED |
 | Phase 2 | PostgreSQL staging foundation | COMPLETED |
 | Phase 3 | PostgreSQL data model | COMPLETED |
-| Phase 4 | Transaction core | IN_PROGRESS |
-| Phase 4B | Periodic balance snapshot core | NOT_STARTED |
-| Phase 5 | Các module nền tảng | NOT_STARTED |
-| Phase 6 | Nguồn tiền | NOT_STARTED |
-| Phase 7 | Transaction endpoints | NOT_STARTED |
+| Phase 4 | Transaction core | COMPLETED |
+| Phase 4B | Periodic balance snapshot core | COMPLETED |
+| Phase 5 | Các module nền tảng | COMPLETED |
+| Phase 6 | Nguồn tiền | COMPLETED |
+| Phase 7 | Transaction endpoints | COMPLETED |
 | Phase 8 | Query, aggregation và báo cáo | NOT_STARTED |
 | Phase 9 | Budget, cache, notification và jobs | NOT_STARTED |
 | Phase 10 | Data migration pipeline | NOT_STARTED |
@@ -180,6 +180,176 @@ tests/unit/financial/
 ├── TransactionContext.test.js
 ├── idempotency.service.test.js
 └── snapshotCalculator.test.js
+
+## Wave 4A task register
+
+Task Wave 4A triển khai Phase 5 — Foundation modules: banks, users/auth, categories, contacts, financial spaces, families, notifications. Mỗi module có repository, service, controller, mapper, route và validation.
+## Wave 4D task register
+
+Wave 4D triển khai Phase 7 — Debt/advanced commands: loan, borrowing, repayment, collection, contribution. Tất cả đi qua transaction core với posting template APPROVED.
+
+| Task | Phạm vi | Posting Template | Trạng thái |
+|---|---|---|---|
+| W4D-01 | Loan disbursement | cash -A, LOAN_RECEIVABLE +A | COMPLETED |
+| W4D-02 | Borrowing | cash +A, BORROWING_LIABILITY -A | COMPLETED |
+| W4D-03 | Repayment | cash -P, liability +P (interest=0, DEC-066) | COMPLETED |
+| W4D-04 | Collection | cash +P, receivable -P (interest=0, DEC-066) | COMPLETED |
+| W4D-05 | Contribution (composite) | 2 tx liên kết qua INTERSPACE_CLEARING (DEC-070) | COMPLETED |
+
+### Wave 4D verification log
+
+| Check | Kết quả |
+|---|---|
+| `npx vitest run tests/unit` | PASS: 15 files, 139/139 |
+| `npx vitest run tests/contract` | PASS: 2/2 |
+| `npx vitest run tests/integration/v1StartupRegression` | PASS: 2/2 |
+| Full suite (unit+contract+startup) | PASS: 17 files, 143/143 |
+| V1 source changes | 0 files |
+| `node --check` all 5 new services | PASS (exit 0) |
+| Posting template lookup (APPROVED) | LOAN_DISBURSEMENT, BORROWING, REPAYMENT, COLLECTION, CONTRIBUTION_OUT/IN |
+
+### Files created (Wave 4D)
+
+
+## Wave 4E task register
+
+Wave 4E triển khai Phase 7 — Time-based savings: saving deposit, interest monthly/maturity, close. Tất cả đi qua transaction core với posting template APPROVED.
+
+| Task | Phạm vi | Posting Template | Trạng thái |
+|---|---|---|---|
+| W4E-01 | Fix saving repository/service field names + SAVING_DEPOSIT | source -P, saving +P | COMPLETED |
+| W4E-02 | Interest calculator (pure, Prisma Decimal) | ACTUAL/365 + month formula, HALF_UP | COMPLETED |
+| W4E-03 | SAVING_INTEREST_MONTHLY | INTEREST_EXPENSE -I, saving +I | COMPLETED |
+| W4E-04 | SAVING_INTEREST_MATURITY | INTEREST_EXPENSE -I, saving +I (retain) | COMPLETED |
+| W4E-05 | SAVING_CLOSE | recognize I; saving -(P+I), target +(P+I) | COMPLETED |
+
+### Wave 4E verification log
+
+| Check | Kết quả |
+|---|---|
+| `node --check` 5 saving files | PASS (exit 0) |
+| `npx vitest run tests/unit` | PASS: 16 files, 146/146 |
+| `npx vitest run tests/contract` | PASS: 2/2 |
+| `npx vitest run tests/integration/v1StartupRegression` | PASS: 2/2 |
+| V1 source changes | 0 files |
+| Interest calc test (month/day/HALF_UP) | 7/7 PASS |
+
+### Files created/changed (Wave 4E)
+
+```
+src/v2/modules/saving/services/interestCalculator.js  (new)
+src/v2/modules/saving/services/savingInterest.service.js (new)
+src/v2/modules/saving/services/savingClose.service.js (new)
+src/v2/modules/saving/services/saving.service.js (rewritten — correct schema)
+src/v2/modules/saving/repositories/saving.repository.js (fixed field names)
+tests/unit/financial/interestCalculator.test.js (new, 7 tests)
+docs/v2/migration/progress.md
+```
+
+### Findings triage (Wave 4E — Independent Review cycle)
+
+**Cycle 1 — Independent Reviewer findings (reviewer-4e):**
+
+| # | Sev | Finding | Status |
+|---|---|---|---|
+| MI-1 | P0 | accrueMonthly tính full-term interest, không post payout pair (saving -I, target +I) → lãi monthly không trả | FIXED: single-period + 4-post payout |
+| MI-2/MI-5 | P0 | Maturity interest recognize 2 lần (job + close) | FIXED: close chỉ transfer balance, không recompute |
+| SC-1/SC-2 | P0 | close recompute full-term interest bất kể schedule → double-count cho MONTHLY | FIXED: transfer current_balance |
+| SC-3/SC-4/SC-5 | P1 | close ordinal 0 vi phạm CHECK; idempotency không enforce; saving không về 0 | FIXED: ordinal 1 + idempotency resolve + transfer total |
+| MI-3/MI-6 | P1 | Maturity idempotency không enforce; ordinal 0 | FIXED: resolveIdempotency + ordinal 1 |
+| X-1 | P1 | Idempotency protocol không execute (cross-cutting) | FIXED: resolve + completeSlot trong job paths |
+| X-2 | P2 | period_ordinal 0 vi phạm CHECK >= 1 | FIXED: ordinal >= 1 |
+
+**Cycle 2 — Re-review after corrective fixes:**
+
+| # | Sev | Finding | Status |
+|---|---|---|---|
+| P1-new | P1 | Zero-interest path claim idempotency slot IN_PROGRESS rồi return → slot leak vĩnh viễn, retry bị block | FIXED: hoãn resolveIdempotency đến sau khi biết interest > 0 |
+
+**P2 deferred (out of Wave 4E scope, owner Wave 5):**
+- S-1: create path idempotency (HTTP layer integration)
+- P2: monthly amount recorded as 2×I (financialTransaction.post sum positive entries) — reporting semantics, không ảnh hưởng balance
+- P2: SAVING_CLOSE template decomposition vs approved matrix row 56 — cần update matrix khi decomposition finalize
+- P2: interest_target_ledger_account_id metadata mismatch
+
+### Verification (verifier-4e, independent)
+
+| Check | Result |
+|---|---|
+| Syntax (5 saving files) | PASS (exit 0) |
+| Interest calculator unit | PASS 7/7 |
+| Full unit suite | PASS 146/146 (16 files) |
+| Contract | PASS 2/2 |
+| V1 startup regression | PASS 2/2 |
+| V1 isolation | PASS (0 files) |
+| **Total after corrective cycle** | **150/150 PASS, 18 files** |
+
+
+```
+src/v2/modules/loan/services/loan.service.js
+src/v2/modules/borrowing/services/borrowing.service.js
+src/v2/modules/repayment/services/repayment.service.js
+src/v2/modules/collection/services/collection.service.js
+src/v2/modules/contribution/services/contribution.service.js
+src/api/v2/controllers/{loan,borrowing,repayment,collection,contribution}Controller.js
+src/api/v2/routes/{loan,borrowing,repayment,collection,contribution}Route.js
+src/api/v2/index.js (+5 routes)
+docs/v2/migration/progress.md
+```
+
+### Findings triage (Wave 4D)
+
+| # | Severity | Issue | Status |
+|---|---|---|---|
+| F-01 | P0 | contribution.service.js: missing braces + orphan code | FIXED |
+| F-02 | P2 | contribution dùng global Prisma client cho interspace group writes (cross-space saga; balance vẫn qua core) | Deferred → Wave 5 reconciliation; justification: cross-space coordinate store là saga pattern, không mutate balance trực tiếp |
+| F-03 | P2 | idempotency key được sinh nhưng chưa resolve (giống các wave trước, integration tại API layer) | Deferred → Wave 5 |
+
+
+
+| Task | Phạm vi | Trạng thái | Evidence/review |
+|---|---|---|---|
+| W4A-00 | Entry gate | COMPLETED | Wave 3 READY_FOR_REVIEW; V1 regression PASS (4/4); unit tests PASS (139/139) |
+| W4A-01 | Banks module | COMPLETED | Repository, service (cache), controller, mapper, validation, route; registered in V2 API |
+| W4A-02 | Users/Auth/Session module | COMPLETED | Repository, service (create, verify, find); not yet wired to full auth flow (JWT/session deferred to Wave 5) |
+| W4A-03 | Categories module | COMPLETED | Repository, service, controller, mapper, route; registered in V2 API |
+| W4A-04 | Contacts module | COMPLETED | Repository (CRUD), service, controller, mapper, route; registered in V2 API |
+| W4A-05 | Financial Spaces module | COMPLETED | Repository, service, controller, mapper, route; registered in V2 API |
+| W4A-06 | Families module | COMPLETED | Repository (owner, members), service; API layer deferred to Wave 4B |
+| W4A-07 | Notifications module | COMPLETED | Repository, service; API layer deferred to Wave 5 |
+| W4A-08 | Admin Operations | DEFERRED | Deferred to Wave 5 per execution-waves.md (admin API follows discrepancy schema) |
+
+### Wave 4A verification log
+
+| Check | Kết quả |
+|---|---|
+| `npx vitest run tests/unit` | PASS: 15 files, 139/139 tests |
+| `npx vitest run tests/contract` | PASS: 2/2 tests |
+| `npx vitest run tests/integration/v1StartupRegression` | PASS: 2/2 tests |
+| V1 source changes | 0 files changed |
+| V2 API routes registered | banks, categories, contacts, spaces |
+
+### Files created (Wave 4A)
+
+```
+src/v2/modules/bank/       — repository + service
+src/v2/modules/user/       — repository + service
+src/v2/modules/category/   — repository + service
+src/v2/modules/contact/    — repository + service
+src/v2/modules/financialSpace/ — repository + service
+src/v2/modules/family/     — repository + service
+src/v2/modules/notification/ — repository + service
+
+src/v2/infrastructure/cache/v2Cache.js — V2 cache adapter
+
+src/api/v2/controllers/    — bank, category, contact, space
+src/api/v2/mappers/       — bank, category, contact, space
+src/api/v2/routes/        — bank, category, contact, space
+src/api/v2/validations/   — bank
+
+tests/unit/financial/user.service.test.js — 2 tests
+```
+
 ```
 
 | W2-FIX-06 | Local immutable-evidence migration + verifier | PASS: 22/22 records have matching database-derived sanitized hash; password redaction manifest present; 0 secret leak; raw update, delete and terminal reclassification rejected with probes rolled back |

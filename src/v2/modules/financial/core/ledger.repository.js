@@ -109,6 +109,25 @@ class LedgerRepository {
 
       // Update account state in memory
       acc.currentBalance = newBalance
+      acc.currentSequence = newSequence
+
+      createdEntries.push(created)
+    }
+
+    // Bulk update current_balance and current_sequence
+    for (const [accId, acc] of accountMap) {
+      await txContext.db.ledger_accounts.update({
+        where: { id: accId },
+        data: {
+          current_balance: acc.currentBalance,
+          current_sequence: acc.currentSequence,
+          updated_at: new Date()
+        }
+      })
+    }
+
+    return createdEntries
+  }
 
   /**
    * Link ledger entries to a financial transaction.
@@ -162,23 +181,3 @@ const ledgerRepository = new LedgerRepository()
 
 export default ledgerRepository
 export { LedgerRepository }
-
-      acc.currentSequence = newSequence
-
-      createdEntries.push(created)
-    }
-
-    // Bulk update current_balance and current_sequence
-    for (const [accId, acc] of accountMap) {
-      await txContext.db.ledger_accounts.update({
-        where: { id: accId },
-        data: {
-          current_balance: acc.currentBalance,
-          current_sequence: acc.currentSequence,
-          updated_at: new Date()
-        }
-      })
-    }
-
-    return createdEntries
-  }
