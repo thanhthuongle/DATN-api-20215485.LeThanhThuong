@@ -23,8 +23,8 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 4A | Phase 5 - Foundation modules | COMPLETED |
 | Wave 4B | Phase 6 - Sources/accounts | COMPLETED |
 | Wave 4C | Phase 7 - Income/expense/transfer | COMPLETED |
-| Wave 4D | Phase 7 - Debt/advanced commands | READY_FOR_REVIEW |
-| Wave 4E | Phase 7 - Time-based savings | NOT_STARTED |
+| Wave 4D | Phase 7 - Debt/advanced commands | COMPLETED |
+| Wave 4E | Phase 7 - Time-based savings | COMPLETED |
 | Wave 5 | Phase 8-9 - Read models/operations | NOT_STARTED |
 | Wave 6 | Phase 10-10B - Migration/differential validation | NOT_STARTED |
 | Wave 7 | Phase 11 - Release candidate | NOT_STARTED |
@@ -209,6 +209,81 @@ Wave 4D triển khai Phase 7 — Debt/advanced commands: loan, borrowing, repaym
 | Posting template lookup (APPROVED) | LOAN_DISBURSEMENT, BORROWING, REPAYMENT, COLLECTION, CONTRIBUTION_OUT/IN |
 
 ### Files created (Wave 4D)
+
+
+## Wave 4E task register
+
+Wave 4E triển khai Phase 7 — Time-based savings: saving deposit, interest monthly/maturity, close. Tất cả đi qua transaction core với posting template APPROVED.
+
+| Task | Phạm vi | Posting Template | Trạng thái |
+|---|---|---|---|
+| W4E-01 | Fix saving repository/service field names + SAVING_DEPOSIT | source -P, saving +P | COMPLETED |
+| W4E-02 | Interest calculator (pure, Prisma Decimal) | ACTUAL/365 + month formula, HALF_UP | COMPLETED |
+| W4E-03 | SAVING_INTEREST_MONTHLY | INTEREST_EXPENSE -I, saving +I | COMPLETED |
+| W4E-04 | SAVING_INTEREST_MATURITY | INTEREST_EXPENSE -I, saving +I (retain) | COMPLETED |
+| W4E-05 | SAVING_CLOSE | recognize I; saving -(P+I), target +(P+I) | COMPLETED |
+
+### Wave 4E verification log
+
+| Check | Kết quả |
+|---|---|
+| `node --check` 5 saving files | PASS (exit 0) |
+| `npx vitest run tests/unit` | PASS: 16 files, 146/146 |
+| `npx vitest run tests/contract` | PASS: 2/2 |
+| `npx vitest run tests/integration/v1StartupRegression` | PASS: 2/2 |
+| V1 source changes | 0 files |
+| Interest calc test (month/day/HALF_UP) | 7/7 PASS |
+
+### Files created/changed (Wave 4E)
+
+```
+src/v2/modules/saving/services/interestCalculator.js  (new)
+src/v2/modules/saving/services/savingInterest.service.js (new)
+src/v2/modules/saving/services/savingClose.service.js (new)
+src/v2/modules/saving/services/saving.service.js (rewritten — correct schema)
+src/v2/modules/saving/repositories/saving.repository.js (fixed field names)
+tests/unit/financial/interestCalculator.test.js (new, 7 tests)
+docs/v2/migration/progress.md
+```
+
+### Findings triage (Wave 4E — Independent Review cycle)
+
+**Cycle 1 — Independent Reviewer findings (reviewer-4e):**
+
+| # | Sev | Finding | Status |
+|---|---|---|---|
+| MI-1 | P0 | accrueMonthly tính full-term interest, không post payout pair (saving -I, target +I) → lãi monthly không trả | FIXED: single-period + 4-post payout |
+| MI-2/MI-5 | P0 | Maturity interest recognize 2 lần (job + close) | FIXED: close chỉ transfer balance, không recompute |
+| SC-1/SC-2 | P0 | close recompute full-term interest bất kể schedule → double-count cho MONTHLY | FIXED: transfer current_balance |
+| SC-3/SC-4/SC-5 | P1 | close ordinal 0 vi phạm CHECK; idempotency không enforce; saving không về 0 | FIXED: ordinal 1 + idempotency resolve + transfer total |
+| MI-3/MI-6 | P1 | Maturity idempotency không enforce; ordinal 0 | FIXED: resolveIdempotency + ordinal 1 |
+| X-1 | P1 | Idempotency protocol không execute (cross-cutting) | FIXED: resolve + completeSlot trong job paths |
+| X-2 | P2 | period_ordinal 0 vi phạm CHECK >= 1 | FIXED: ordinal >= 1 |
+
+**Cycle 2 — Re-review after corrective fixes:**
+
+| # | Sev | Finding | Status |
+|---|---|---|---|
+| P1-new | P1 | Zero-interest path claim idempotency slot IN_PROGRESS rồi return → slot leak vĩnh viễn, retry bị block | FIXED: hoãn resolveIdempotency đến sau khi biết interest > 0 |
+
+**P2 deferred (out of Wave 4E scope, owner Wave 5):**
+- S-1: create path idempotency (HTTP layer integration)
+- P2: monthly amount recorded as 2×I (financialTransaction.post sum positive entries) — reporting semantics, không ảnh hưởng balance
+- P2: SAVING_CLOSE template decomposition vs approved matrix row 56 — cần update matrix khi decomposition finalize
+- P2: interest_target_ledger_account_id metadata mismatch
+
+### Verification (verifier-4e, independent)
+
+| Check | Result |
+|---|---|
+| Syntax (5 saving files) | PASS (exit 0) |
+| Interest calculator unit | PASS 7/7 |
+| Full unit suite | PASS 146/146 (16 files) |
+| Contract | PASS 2/2 |
+| V1 startup regression | PASS 2/2 |
+| V1 isolation | PASS (0 files) |
+| **Total after corrective cycle** | **150/150 PASS, 18 files** |
+
 
 ```
 src/v2/modules/loan/services/loan.service.js
