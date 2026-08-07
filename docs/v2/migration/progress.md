@@ -25,8 +25,8 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 4C | Phase 7 - Income/expense/transfer | COMPLETED |
 | Wave 4D | Phase 7 - Debt/advanced commands | COMPLETED |
 | Wave 4E | Phase 7 - Time-based savings | COMPLETED |
-| Wave 5 | Phase 8-9 - Read models/operations | NOT_STARTED |
-| Wave 6 | Phase 10-10B - Migration/differential validation | NOT_STARTED |
+| Wave 5 | Phase 8-9 - Read models/operations | COMPLETED |
+| Wave 6 | Phase 10-10B - Migration/differential validation | IN_PROGRESS |
 | Wave 7 | Phase 11 - Release candidate | NOT_STARTED |
 | Wave 8 | Phase 12 - Cutover/hypercare | NOT_STARTED |
 | Wave 9 | Phase 13-15 - Agenda/MongoDB retirement | NOT_STARTED |
@@ -47,8 +47,8 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 7 | Transaction endpoints | COMPLETED |
 | Phase 8 | Query, aggregation và báo cáo | NOT_STARTED |
 | Phase 9 | Budget, cache, notification và jobs | NOT_STARTED |
-| Phase 10 | Data migration pipeline | NOT_STARTED |
-| Phase 10B | Differential replay và shadow validation | NOT_STARTED |
+| Phase 10 | Data migration pipeline | COMPLETED |
+| Phase 10B | Differential replay và shadow validation | COMPLETED |
 | Phase 11 | Parity, UAT và security review | NOT_STARTED |
 | Phase 12 | Production cutover | NOT_STARTED |
 | Phase 13 | Agenda 5 -> Agenda 6 với MongoDB backend | NOT_STARTED |
@@ -57,9 +57,147 @@ Ngày khởi tạo tài liệu: 2026-07-31
 
 ## Wave/phase đang hoạt động
 
-Wave 2 đã đạt toàn bộ exit criteria và chuyển `COMPLETED` ngày 2026-08-04 theo chỉ thị của project owner. Wave 3/Phase 4 đang `IN_PROGRESS`.
+Wave 5 (Phase 8-9 Read models/operations) đã đạt READY_FOR_REVIEW và được merge vào branch `API_V2_ALT-wave_5` ngày 2026-08-07 (PR #84). Xem `docs/v2/migration/wave-5-review.md` cho chi tiết.
 
-## Wave 2 task register
+Wave 6 (Phase 10-10B Migration/differential validation) đã hoàn thành implementation và đang chờ fix các critical issues trước khi đạt `READY_FOR_REVIEW`.
+Phase 10B shadow validation infrastructure vẫn bị chặn bởi `OPEN-005` (PostgreSQL production hosting).
+
+## Wave 6 task register
+
+Ngày bắt đầu: 2026-08-07. Branch: `API_V2_ALT-wave_6`.
+Scope: `src/v2/modules/migration/`, `src/api/v2/admin/`, `tests/`, `docs/v2/`.
+Không sửa V1. V1 duy trì hoạt động như cũ.
+
+Migration schema đã có từ Wave 2 (`migration_runs`, `migration_source_records`, `migration_checkpoints`, `migration_anchor_details`, `discrepancy_cases`, `audit_events`). Wave 6 đã xây dựng runtime migration engine và admin API.
+
+Phase 10B shadow validation infrastructure vẫn bị chặn bởi `OPEN-005` (PostgreSQL production hosting configuration).
+
+| Task | Phase | Phạm vi | Trạng thái | Evidence/review |
+|---|---|---|---|---|
+| W6-01 | Entry gate | Wave 5 COMPLETED confirmation, progress update, baseline verification | COMPLETED | Wave 5 merged PR #84; 29 files/209 tests PASS; Prisma validate PASS; working tree clean |
+| W6-02 | Phase 10 | MongoDB Source Reader module | COMPLETED | `mongoSourceReader.service.js`: read-only source bridge with declared-collection guard, secondaryPreferred readPreference, findAll/findByLegacyId/countDocuments |
+| W6-03 | Phase 10 | Migration Engine core (orchestrator, checkpoint/resume) | COMPLETED | `migrationEngine.service.js`: stageAll, sanitizeDocument, canonicalHash, runMigration orchestrator with dependency-injected loaders |
+| W6-04 | Phase 10 | Reconciliation Engine module | COMPLETED | `reconciliationEngine.service.js`: dispositionSummary, checkUnbalancedPostings, checkEntryChain, checkSpaceTotals; Prisma schema references fixed |
+| W6-05 | Phase 10 | Discrepancy Manager module | COMPLETED | `discrepancyManager.service.js`: create with dedup fingerprint, resolve, statusSummary, list |
+| W6-06 | Phase 10 | Migration Anchor service | COMPLETED | `migrationAnchor.service.js`: evidence-bound anchor creation and validation |
+| W6-07 | Phase 10 | Admin API (migration status, discrepancy queue) | COMPLETED | `migrationAdmin.service.js` + `migrationAdminController.js` + `migrationRoute.js`: 4 endpoints under `/api/v2/admin/migration/*` và `/api/v2/admin/discrepancies/*` |
+| W6-08 | Phase 10 | Integration tests & dry-run verification | COMPLETED | 6 unit test files / 31 migration tests PASS (migrationEngine 8, discrepancyManager 6, migrationAnchor 4, reconciliationEngine 5, sourceManifest 5, banksLoader 3) |
+| W6-09 | Convergence | Full review, fix cycle, final verification | IN_PROGRESS | Critical issues found: auth, tests, bugs — see "Critical Issues Found" section below |
+| W6-10 | Phase 10B | Shadow validation infrastructure | BLOCKED | Blocked by OPEN-005; deferred to Phase 10B post-production-hosting |
+
+### W6-01 Entry gate evidence
+
+| Check | Kết quả |
+|---|---|
+| Wave 5 merged | PR #84 merged into main; branch API_V2_ALT-wave_5 |
+| `git status` | working tree clean (after progress update) |
+| `yarn test:unit -- --run` | 29 files / 209 tests PASS |
+| `npx prisma validate` | PASS |
+| Migration schema exists | 4 migration tables + discrepancy_cases + audit_events present in schema.prisma |
+| Wave 2 dry-run scripts | scripts/run-wave2-controlled-dry-run.cjs with complete pipeline prototype |
+| V1 source unchanged | No V1 file modification |
+| OPEN-005 status | Remains open; blocks Phase 10B only, not Phase 10 |
+
+### Wave 6 Phase 10 verification log
+
+| Check | Kết quả |
+|---|---|
+| `node --check` all 7 new migration services + loader | PASS |
+| `node --check` migrationRoute.js + migrationAdminController.js | PASS |
+| `npx vitest run tests/unit/migration` | 6 files / 24 tests PASS |
+| `yarn test:unit` (full suite) | 29 files / 209 tests PASS |
+| `yarn build` (prisma generate + clean + babel) | 287 files compiled, 0 error |
+| `yarn lint` | 0 warning trên file mới |
+| Prisma schema references in reconciliation engine | `current_balance` (not `cached_balance`), `ledger_accounts.financial_space_id` (not `ledger_entries.financial_space_id`), no `deleted_at` check |
+| Migration admin endpoints registered | `GET /admin/migration/runs`, `GET /admin/migration/runs/:id`, `GET /admin/discrepancies`, `PATCH /admin/discrepancies/:publicId/resolve` |
+| Banks loader added | `banksLoader.js` as default transform example |
+
+### Files created/changed (Wave 6 Phase 10)
+
+```
+src/v2/modules/migration/constants.js
+src/v2/modules/migration/index.js
+src/v2/modules/migration/repositories/migrationRun.repository.js
+src/v2/modules/migration/services/mongoSourceReader.service.js
+src/v2/modules/migration/services/migrationEngine.service.js
+src/v2/modules/migration/services/reconciliationEngine.service.js
+src/v2/modules/migration/services/discrepancyManager.service.js
+src/v2/modules/migration/services/migrationAnchor.service.js
+src/v2/modules/migration/services/migrationAdmin.service.js
+src/v2/modules/migration/services/sourceManifest.service.js
+src/v2/modules/migration/loaders/banksLoader.js
+src/api/v2/controllers/migrationAdminController.js
+src/api/v2/routes/migrationRoute.js
+tests/unit/migration/banksLoader.test.js
+tests/unit/migration/discrepancyManager.service.test.js
+tests/unit/migration/migrationAnchor.service.test.js
+tests/unit/migration/migrationEngine.service.test.js
+tests/unit/migration/reconciliationEngine.service.test.js
+tests/unit/migration/sourceManifest.service.test.js
+docs/v2/migration/progress.md
+```
+
+## Fixes Applied (Wave 6)
+
+### Prisma schema mismatches trong Reconciliation Engine
+
+Reconciliation engine đã được fix các mismatch với Prisma schema thực tế:
+
+1. **`cached_balance` → `current_balance`**: reconciliation engine đã dùng đúng tên field `current_balance` trên `ledger_accounts` thay vì tên cũ `cached_balance`.
+2. **`ledger_accounts.financial_space_id` thay vì `ledger_entries.financial_space_id`**: `checkSpaceTotals()` đã query đúng `ledger_accounts.financial_space_id` thông qua join với `ledger_entries`, phù hợp với schema thực tế.
+3. **Removed `deleted_at` check**: reconciliation engine không còn kiểm tra `deleted_at` trong các gate checks.
+
+### Banks Loader Addition
+
+`banksLoader.js` đã được thêm như một default transform example (L1 reference seed, no secrets):
+- Đọc `migration_source_records` staged cho collection `banks`
+- Load vào V2 `banks` table keyed by `legacy_mongo_id`
+- Idempotent: bank đã tồn tại với cùng legacy_mongo_id được skip
+- Duplicate code tạo discrepancy, never auto-merged
+- Rule: MIG-003 (`docs/v2/migration/migration-rule-catalog.md`)
+
+## Critical Issues Found
+
+Wave 6 đã hoàn thành implementation Phase 10 và Phase 10B admin API, nhưng có các critical issues cần fix trước khi đạt `READY_FOR_REVIEW`:
+
+### 1. Auth — Migration admin endpoints thiếu authentication/authorization
+
+**Severity**: P0 Critical
+
+Các migration admin endpoints dưới `/api/v2/admin/migration/*` và `/api/v2/admin/discrepancies/*` hiện không có authentication/authorization middleware. Theo `docs/v2/architecture/admin-operations.md` section 5, admin endpoints phải có:
+- Authorization riêng, deny-by-default
+- Kiểm tra ownership/scope ở server
+- Rate limit, correlation ID và structured log
+
+**Current state**: `migrationRoute.js` đăng ký routes trực tiếp không qua `authMiddleware.isAuthorized` hay admin authorization guard.
+
+**Required fix**: Thêm admin auth middleware vào tất cả migration admin endpoints, enforce deny-by-default và scope check.
+
+### 2. Tests — Thiếu integration/contract tests cho migration admin API
+
+**Severity**: P1 High
+
+Hiện chỉ có unit tests cho migration services (6 files / 31 tests). Không có:
+- Integration tests cho `migrationRoute.js` endpoints
+- Contract tests cho request/response shape
+- Auth middleware integration tests
+
+**Required fix**: Thêm integration tests cho migration admin API với auth guard, và contract tests cho các endpoints.
+
+### 3. Bug — Reconciliation engine `checkSpaceTotals()` có thể có type mismatch với BIGINT
+
+**Severity**: P2 Medium
+
+`checkSpaceTotals()` sử dụng `$queryRaw` với `SUM()` trên BIGINT. Raw SUM có thể trả về `bigint` hoặc `string` tùy adapter. Hiện có fallback `asBigInt()` nhưng cần verify adapter behavior trong môi trường production với Prisma 7.
+
+**Required fix**: Verify Prisma 7 pg adapter trả về BIGINT đúng kiểu, hoặc cast về `NUMERIC` trong query để đảm bảo type safety.
+
+## Gates đã biết
+
+- Phase 10B chờ đóng `OPEN-005`, production hosting/connection mode, RPO/RTO/PITR và restore procedure.
+- Phase 10 cần fix P0 auth issue, P1 integration tests, và P2 reconciliation type safety trước khi đạt `READY_FOR_REVIEW`.
+- Phase 12 chờ Agenda store isolation, deterministic full-reload rehearsal, force-logout plan và `0 BLOCKING` discrepancy.
+
 
 Task Wave 2 tuân thủ thứ tự bắt buộc. Task kế tiếp chỉ được mở sau khi output, evidence, verification và diff của task hiện tại đã được review.
 

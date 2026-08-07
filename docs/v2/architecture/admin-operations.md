@@ -37,7 +37,20 @@ Admin không được sửa trực tiếp cached balance, ledger entry, transact
 
 ## 4. API và trang admin
 
-Backend dự kiến đặt dưới `/api/v2/admin` và module riêng `src/v2/modules/admin-operations/`. Trang admin tối thiểu cần các màn hình:
+Backend dự kiến đặt dưới `/api/v2/admin` và module riêng `src/v2/modules/admin-operations/`. Migration admin API đã được triển khai Phase 10 tại `src/api/v2/controllers/migrationAdminController.js` và `src/api/v2/routes/migrationRoute.js`.
+
+### Migration admin endpoints (Phase 10)
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| GET | `/api/v2/admin/migration/runs` | Liệt kê migration runs (filter by status, runType) |
+| GET | `/api/v2/admin/migration/runs/:id` | Chi tiết migration run + discrepancy summary + reconciliation result |
+| GET | `/api/v2/admin/discrepancies` | Liệt kê discrepancy cases (filter by status, severity, source) |
+| PATCH | `/api/v2/admin/discrepancies/:publicId/resolve` | Resolve discrepancy case với resolution note, action, actor |
+
+Lưu ý: Các endpoints hiện chưa có authentication/authorization middleware. Theo section 5, cần thêm admin auth, deny-by-default và scope check trước production.
+
+Trang admin tối thiểu cần các màn hình:
 
 1. Dashboard health: open/blocking cases, failed jobs/outbox/snapshot runs.
 2. Discrepancy queue: lọc, xem evidence, assign và resolve.
