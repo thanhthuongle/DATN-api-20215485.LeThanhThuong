@@ -28,7 +28,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 5 | Phase 8-9 - Read models/operations | COMPLETED |
 | Wave 6 | Phase 10-10B - Migration/differential validation | IN_PROGRESS |
 | Wave 7 | Phase 11 - Release candidate | COMPLETED |
-| Wave 8 | Phase 12 - Cutover/hypercare | NOT_STARTED |
+| Wave 8 | Phase 12 - Cutover/hypercare | IN_PROGRESS |
 | Wave 9 | Phase 13-15 - Agenda/MongoDB retirement | NOT_STARTED |
 
 ### Phases
@@ -50,7 +50,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 10 | Data migration pipeline | COMPLETED |
 | Phase 10B | Differential replay và shadow validation | COMPLETED |
 | Phase 11 | Parity, UAT và security review | COMPLETED |
-| Phase 12 | Production cutover | NOT_STARTED |
+| Phase 12 | Production cutover | IN_PROGRESS |
 | Phase 13 | Agenda 5 -> Agenda 6 với MongoDB backend | NOT_STARTED |
 | Phase 14 | Agenda 6 MongoDB -> PostgreSQL backend | NOT_STARTED |
 | Phase 15 | MongoDB retirement | NOT_STARTED |
@@ -775,4 +775,44 @@ Tại gate Wave 0 ban đầu chưa có automated test script; baseline lint fail
 - Mỗi thời điểm chỉ có một wave chính `IN_PROGRESS`; không mở task mới chạm cùng schema/core trước khi task hiện tại review xong.
 - Ghi blocker và quyết định phát sinh trước khi tiếp tục phase phụ thuộc.
 - Mỗi lần hoàn thành task phải cập nhật checklist, validation/test đã chạy và commit liên quan nếu được yêu cầu; Wave 0 hiện không commit theo chỉ thị người dùng.
+
+## Wave 8 task register
+
+Ngày bắt đầu: 2026-08-07. Branch: `API_V2_ALT-wave_8`.
+Scope: Phase 12 (Cutover/Hypercare Safe-Prep Part A). Không sửa V1. V1 duy trì hoạt động như cũ.
+Chi tiết: `docs/v2/migration/runbooks/`.
+
+| Task | Phase | Phạm vi | Trạng thái | Evidence/review |
+|---|---|---|---|---|
+| W8-01 | Phase 12 | Write authority module (safe-prep) | COMPLETED | `writeAuthority.js`: resolveWriteAuthority + canOpenV2Writes; production-only V2 write gate |
+| W8-02 | Phase 12 | Cutover prerequisite checker | COMPLETED | `cutoverPrerequisites.js`: pure GO/NO_GO evaluator; 7 gates from reconciliation spec §5 |
+| W8-03 | Phase 12 | CLI script: verify-cutover-prerequisites | COMPLETED | `scripts/verify-cutover-prerequisites.cjs`: local-only guard + `--from-json` dry-run |
+| W8-04 | Phase 12 | Unit tests: writeAuthority + cutoverPrerequisites | COMPLETED | 13 tests PASS (writeAuthority 8, cutoverPrerequisites 5) |
+| W8-05 | Phase 12 | Runbook: rollback-before-write | COMPLETED | `docs/v2/migration/runbooks/rollback-before-write.md` |
+| W8-06 | Phase 12 | Runbook: restore-after-write | COMPLETED | `docs/v2/migration/runbooks/restore-after-write.md` |
+| W8-07 | Phase 12 | Pre-cutover security/auth gate (deferred from W7) | PENDING | Broad V2 route auth + IDOR; owner approval required |
+| W8-08 | Phase 12 | Force-logout plan + maintenance mode | PENDING | Requires production infra; deferred to production-gated work |
+| W8-09 | Phase 12 | Hypercare team standing + escalation path | PENDING | On-call roster + runbook review; infra-dependent |
+| W8-10 | Phase 12 | Wave 8 convergence: full verify + docs | PENDING | Entry gate + baseline + review |
+
+### Wave 8 Safe-Prep verification log (Part A)
+
+| Check | Kết quả |
+|---|---|
+| `node --check` writeAuthority.js | PASS |
+| `node --check` cutoverPrerequisites.js | PASS |
+| `node --check` verify-cutover-prerequisites.cjs | PASS |
+| `node scripts/verify-cutover-prerequisites.cjs --from-json ./snapshot-go.json` | VERDICT: GO, EXIT=0 |
+| `node scripts/verify-cutover-prerequisites.cjs --from-json ./snapshot-nogo.json` | VERDICT: NO_GO, EXIT=2 |
+| `npx vitest run tests/unit/cutover` | 2 files / 13 tests PASS |
+| `npx vitest run tests/unit` (full suite) | PASS — no regressions |
+| Runbooks created | 2 files (`rollback-before-write.md`, `restore-after-write.md`) |
+
+### Wave 8 deferred items (production-gated)
+
+- Pre-cutover security/auth gate (broad V2 route auth + IDOR) → P1, owner approval required.
+- Force-logout plan + maintenance mode → requires production infra + owner decision.
+- Hypercare team standing → requires on-call roster confirmation.
+- UAT/load/concurrency/cutover rehearsal → staging/prod infra; recorded as BLOCKED-by-environment.
+
 - Mỗi phase phải ghi acceptance metrics thực tế, đường dẫn evidence/report và approved exceptions trước khi chuyển `COMPLETED`.
