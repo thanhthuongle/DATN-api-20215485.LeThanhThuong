@@ -27,7 +27,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Wave 4E | Phase 7 - Time-based savings | COMPLETED |
 | Wave 5 | Phase 8-9 - Read models/operations | COMPLETED |
 | Wave 6 | Phase 10-10B - Migration/differential validation | IN_PROGRESS |
-| Wave 7 | Phase 11 - Release candidate | NOT_STARTED |
+| Wave 7 | Phase 11 - Release candidate | COMPLETED |
 | Wave 8 | Phase 12 - Cutover/hypercare | NOT_STARTED |
 | Wave 9 | Phase 13-15 - Agenda/MongoDB retirement | NOT_STARTED |
 
@@ -49,7 +49,7 @@ Ngày khởi tạo tài liệu: 2026-07-31
 | Phase 9 | Budget, cache, notification và jobs | NOT_STARTED |
 | Phase 10 | Data migration pipeline | COMPLETED |
 | Phase 10B | Differential replay và shadow validation | COMPLETED |
-| Phase 11 | Parity, UAT và security review | NOT_STARTED |
+| Phase 11 | Parity, UAT và security review | COMPLETED |
 | Phase 12 | Production cutover | NOT_STARTED |
 | Phase 13 | Agenda 5 -> Agenda 6 với MongoDB backend | NOT_STARTED |
 | Phase 14 | Agenda 6 MongoDB -> PostgreSQL backend | NOT_STARTED |
@@ -61,6 +61,40 @@ Wave 5 (Phase 8-9 Read models/operations) đã đạt READY_FOR_REVIEW và đư�
 
 Wave 6 (Phase 10-10B Migration/differential validation) đã hoàn thành implementation và đang chờ fix các critical issues trước khi đạt `READY_FOR_REVIEW`.
 Phase 10B shadow validation infrastructure vẫn bị chặn bởi `OPEN-005` (PostgreSQL production hosting).
+
+Wave 7 (Phase 11 - Release candidate/security gate) đã được project owner ký duyệt **COMPLETED** ngày 2026-08-07. Đã fix P0 admin auth guard, resolve W5-02 (budget/notification auth), fix P2 reconciliation BIGINT type-safety và bổ sung security contract tests. Broad auth/IDOR rollout defer sang pre-cutover security/auth gate (Wave 8) theo user decision. Xem `docs/v2/migration/wave-7-review.md`.
+
+## Wave 7 task register
+
+Ngày bắt đầu: 2026-08-07. Branch: `API_V2_ALT-wave_7`.
+Scope: Phase 11 (Release candidate / security gate). Không sửa V1. V1 duy trì hoạt động như cũ.
+Chi tiết: `docs/v2/migration/wave-7-review.md`.
+
+| Task | Phase | Phạm vi | Trạng thái | Evidence/review |
+|---|---|---|---|---|
+| W7-01 | Phase 11 | Entry gate + baseline | COMPLETED | Wave 6 merged PR #85; Prisma validate PASS; 217 tests baseline PASS; user changes preserved |
+| W7-02 | Phase 11 | Fix P0: admin auth guard cho migration admin endpoints | COMPLETED | `adminAuth.js` (mới) + `migrationRoute.js` thêm `isAuthorized` + `isAdmin` cho 4 endpoints |
+| W7-03 | Phase 11 | Resolve W5-02: auth budget + notification routes | COMPLETED | `budgetRoute.js` + `notificationRoute.js` thêm `isAuthorized` |
+| W7-04 | Phase 11 | Fix P2: reconciliation BIGINT type-safety | COMPLETED | `asBigInt` coerce bigint/string/number/null; +2 regression tests |
+| W7-05 | Phase 11 | Security contract tests | COMPLETED | `tests/unit/adminAuth.test.js` (4) + `tests/contract/v2SecurityAuth.test.js` (6) PASS |
+| W7-06 | Phase 11 | Security review + route auth audit (read-only) | COMPLETED | Independent review (T-7-05): findings W7-01..W7-05 triaged; deferred P1/P2 với owner Wave 8 theo user decision |
+| W7-07 | Phase 11 | Convergence: full verify + docs | COMPLETED | 31 files/223 tests PASS; build/babel/eslint PASS; V1 không đổi; `wave-7-review.md` + progress updated |
+
+### Wave 7 verification log
+| Check | Kết quả |
+|---|---|
+| `npx prisma validate` | PASS |
+| `npx vitest run tests/unit` | 31 files / 223 tests PASS |
+| `npx vitest run tests/contract/v2SecurityAuth.test.js` | 6 tests PASS |
+| `npx eslint` (file thay đổi) | PASS (0/0) |
+| `npx babel` + `npx prisma generate` | PASS |
+| Integration (Docker) | BLOCKED / N/A — môi trường không chạy Docker |
+
+### Wave 7 deferred items (owner rõ ràng)
+- Broadcast auth + ownership/IDOR cho toàn bộ V2 route còn thiếu → P1, owner = pre-cutover security/auth gate (Wave 8) theo user decision 2026-08-07.
+- Admin-role issuance path + role lookup server-side → Wave 8.
+- UAT/load/concurrency/cutover/DR rehearsal → cần staging/prod infra; ghi nhận BLOCKED-by-environment.
+
 
 ## Wave 6 task register
 

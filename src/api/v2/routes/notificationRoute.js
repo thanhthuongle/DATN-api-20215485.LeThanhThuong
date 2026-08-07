@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { authMiddleware } from '~/middlewares/authMiddleware'
 import {
   getNotifications,
   markReaded
@@ -6,7 +7,7 @@ import {
 
 const notificationRoute = Router()
 
-notificationRoute.get('/notifications', getNotifications)
-notificationRoute.put('/notifications/:userNotificationId', markReaded)
+notificationRoute.get('/notifications', authMiddleware.isAuthorized, getNotifications)
+notificationRoute.put('/notifications/:userNotificationId', authMiddleware.isAuthorized, markReaded)
 
 export default notificationRoute

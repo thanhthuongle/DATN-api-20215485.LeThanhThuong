@@ -129,8 +129,15 @@ class ReconciliationEngine {
       JOIN ledger_accounts la ON la.id = le.ledger_account_id
       GROUP BY la.financial_space_id
     `
-    // Raw SUM of BIGINT may come back as bigint or string depending on adapter.
-    const asBigInt = (value) => (typeof value === 'bigint' ? value : BigInt(value))
+    // Raw SUM of BIGINT may come back as bigint or string depending on adapter,
+    // and may be null when a grouped row aggregates only null amounts.
+    // Coerce defensively so a null never throws and never falsely flags balance.
+    const asBigInt = (value) => {
+      if (value === null || value === undefined) return 0n
+      if (typeof value === 'bigint') return value
+      if (typeof value === 'number') return BigInt(Math.trunc(value))
+      return BigInt(String(value))
+    }
     const unbalanced = (rows || []).filter((row) => asBigInt(row.net) !== 0n)
     return { spaceCount: (rows || []).length, unbalancedSpaces: unbalanced }
   }

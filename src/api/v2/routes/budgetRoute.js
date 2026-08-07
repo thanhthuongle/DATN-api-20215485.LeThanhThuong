@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { authMiddleware } from '~/middlewares/authMiddleware'
 import {
   getBudgetsBySpace,
   createBudgetAllocation
@@ -7,7 +8,7 @@ import { validateBudgetCreation } from '../validations/budgetValidation'
 
 const budgetRoute = Router()
 
-budgetRoute.get('/spaces/:spaceId/budgets', getBudgetsBySpace)
-budgetRoute.post('/spaces/:spaceId/budgets', validateBudgetCreation, createBudgetAllocation)
+budgetRoute.get('/spaces/:spaceId/budgets', authMiddleware.isAuthorized, getBudgetsBySpace)
+budgetRoute.post('/spaces/:spaceId/budgets', authMiddleware.isAuthorized, validateBudgetCreation, createBudgetAllocation)
 
 export default budgetRoute
