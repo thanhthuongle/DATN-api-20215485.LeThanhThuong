@@ -81,6 +81,32 @@ describe('reconciliationEngine.service', () => {
     expect(result.unbalancedSpaces).toHaveLength(1)
   })
 
+  it('coerces string-typed BIGINT net values (pg adapter) without throwing', async () => {
+    // Prisma pg adapter may return raw SUM as a decimal string rather than bigint.
+    mockedDb = createMockDb({
+      rawSpaceTotals: [
+        { financial_space_id: 1n, net: '0' }, // balanced, string form
+        { financial_space_id: 2n, net: '125000' }, // unbalanced, string form
+        { financial_space_id: 3n, net: 0n } // balanced, native bigint
+      ]
+    })
+    const engine = new ReconciliationEngine()
+    const result = await engine.checkSpaceTotals()
+    expect(result.spaceCount).toBe(3)
+    expect(result.unbalancedSpaces).toHaveLength(1)
+    expect(result.unbalancedSpaces[0].financial_space_id).toBe(2n)
+  })
+
+  it('treats a null net as balanced instead of throwing', async () => {
+    // A grouped row with only null amounts yields SUM = NULL; must not throw.
+    mockedDb = createMockDb({
+      rawSpaceTotals: [{ financial_space_id: 9n, net: null }]
+    })
+    const engine = new ReconciliationEngine()
+    const result = await engine.checkSpaceTotals()
+    expect(result.unbalancedSpaces).toHaveLength(0)
+  })
+
   it('aggregates disposition totals for a run', async () => {
     mockedDb = createMockDb()
     const engine = new ReconciliationEngine()
