@@ -56,3 +56,23 @@ export const infrastructureJobRegistry = createJobRegistry([{
   idempotencyScope: 'stable-key',
   runbook: 'docs/v2/operations/staging-foundation.md'
 }])
+
+export const businessJobRegistry = createJobRegistry([{
+  name: 'v2.snapshot.daily',
+  ownerModule: 'financial/snapshot',
+  payloadVersion: 1,
+  scheduleTimezone: 'UTC',
+  stableKeyPattern: 'v2.snapshot.daily:<businessDate>',
+  concurrency: 1,
+  lockLifetimeMs: 30 * 60 * 1000,
+  retryPolicy: 'retry-with-backoff',
+  timeoutMs: 25 * 60 * 1000,
+  sideEffects: 'none (writes via transaction core)',
+  idempotencyScope: 'space+date (COMPLETED run guard)',
+  runbook: 'docs/v2/architecture/periodic-balance-snapshots.md'
+}])
+
+export const defaultJobRegistry = createJobRegistry([
+  ...businessJobRegistry.list(),
+  ...infrastructureJobRegistry.list()
+])

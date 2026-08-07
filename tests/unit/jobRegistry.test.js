@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { Agenda5MongoScheduler } from '~/v2/infrastructure/jobs/Agenda5MongoScheduler'
 import {
   createJobRegistry,
-  infrastructureJobRegistry
+  infrastructureJobRegistry,
+  businessJobRegistry,
+  defaultJobRegistry
 } from '~/v2/infrastructure/jobs/jobRegistry'
 
 describe('V2 job registry', () => {
@@ -13,6 +15,18 @@ describe('V2 job registry', () => {
       scheduleTimezone: 'UTC',
       sideEffects: 'none'
     })
+  })
+
+  it('registers the daily snapshot job with idempotent stable key metadata', () => {
+    expect(businessJobRegistry.get('v2.snapshot.daily')).toMatchObject({
+      ownerModule: 'financial/snapshot',
+      scheduleTimezone: 'UTC',
+      idempotencyScope: 'space+date (COMPLETED run guard)',
+      concurrency: 1
+    })
+    // default registry merges business + infrastructure without duplication
+    expect(defaultJobRegistry.get('v2.snapshot.daily')).toBeDefined()
+    expect(defaultJobRegistry.get('v2.infrastructure.smoke')).toBeDefined()
   })
 
   it('rejects unregistered, duplicate and non-UTC jobs', () => {

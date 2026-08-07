@@ -11,6 +11,11 @@ import { initSocketServer } from './sockets'
 import { initializeCacheClient } from '~/utils/cache/cacheClient'
 import { createApplication } from './app'
 
+import { startV2Workers } from '~/v2/infrastructure/bootstrap/v2WorkerBootstrap'
+
+let v2WorkerBootstrap = null
+
+
 const START_SERVER = () => {
   const app = createApplication()
   const server = http.createServer(app)
@@ -30,6 +35,10 @@ const START_SERVER = () => {
   exitHook(async () => {
     console.log('6. Server is shutting down...')
     await agenda.stop()
+    if (v2WorkerBootstrap) {
+      await v2WorkerBootstrap.stop()
+      console.log('6b. V2 workers stopped.')
+    }
     CLOSE_DB()
     console.log('7. DisConnected from MongoDB Cloud Atlas...')
   })
@@ -55,6 +64,9 @@ const START_SERVER = () => {
     loadSystemTasks(agenda)
     await agenda.start()
     console.log('4. Agenda started.')
+
+    v2WorkerBootstrap = await startV2Workers()
+    console.log('4b. V2 workers started.')
 
     START_SERVER()
   } catch (error) {

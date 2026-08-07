@@ -5,6 +5,9 @@ import categoryRoute from '~/api/v2/routes/categoryRoute'
 import contactRoute from '~/api/v2/routes/contactRoute'
 import spaceRoute from '~/api/v2/routes/spaceRoute'
 import accountRoute from '~/api/v2/routes/accountRoute'
+import budgetRoute from '~/api/v2/routes/budgetRoute'
+import notificationRoute from '~/api/v2/routes/notificationRoute'
+import queryRoute from '~/api/v2/routes/queryRoute'
 import incomeRoute from '~/api/v2/routes/incomeRoute'
 import expenseRoute from '~/api/v2/routes/expenseRoute'
 import transferRoute from '~/api/v2/routes/transferRoute'
@@ -24,6 +27,9 @@ Router.use('/', categoryRoute)
 Router.use('/', contactRoute)
 Router.use('/', spaceRoute)
 Router.use('/', accountRoute)
+Router.use('/', budgetRoute)
+Router.use('/', notificationRoute)
+Router.use('/', queryRoute)
 Router.use('/', incomeRoute)
 Router.use('/', expenseRoute)
 Router.use('/', transferRoute)

@@ -7,3 +7,4 @@ export { default as financialTransactionService, FinancialTransactionService } f
 export { default as reversalService, ReversalService } from './reversal.service'
 export { default as outboxRepository, OutboxRepository } from './outbox.repository'
 export { default as reconciliationService, ReconciliationService } from './reconciliation.service'
+export { default as outboxConsumer, OutboxConsumer } from './outboxConsumer.service'
