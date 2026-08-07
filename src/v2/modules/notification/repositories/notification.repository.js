@@ -4,9 +4,9 @@ class NotificationRepository {
   async findByUser(userId, limit = 20) {
     const prisma = getPrismaClient()
     return prisma.user_notifications.findMany({
-      where: { user_id: userId },
+      where: { user_id: userId, deleted_at: null },
       include: { notifications: true },
-      orderBy: { created_at: 'desc' },
+      orderBy: { received_at: 'desc' },
       take: limit
     })
   }
@@ -19,6 +19,22 @@ class NotificationRepository {
   async createUserNotification(data) {
     const prisma = getPrismaClient()
     return prisma.user_notifications.create({ data })
+  }
+
+  async findUserNotificationByPublicId(userNotificationId) {
+    const prisma = getPrismaClient()
+    return prisma.user_notifications.findFirst({
+      where: { public_id: userNotificationId, deleted_at: null },
+      include: { notifications: true }
+    })
+  }
+
+  async markReaded(userId, userNotificationId) {
+    const prisma = getPrismaClient()
+    return prisma.user_notifications.updateMany({
+      where: { user_id: userId, public_id: userNotificationId, deleted_at: null },
+      data: { is_read: true, read_at: new Date() }
+    })
   }
 }
 
