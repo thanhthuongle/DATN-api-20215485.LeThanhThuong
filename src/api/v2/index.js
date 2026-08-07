@@ -16,6 +16,7 @@ import borrowingRoute from '~/api/v2/routes/borrowingRoute'
 import repaymentRoute from '~/api/v2/routes/repaymentRoute'
 import collectionRoute from '~/api/v2/routes/collectionRoute'
 import contributionRoute from '~/api/v2/routes/contributionRoute'
+import migrationRoute from '~/api/v2/routes/migrationRoute'
 import { correlationIdMiddleware } from '~/api/v2/middlewares/correlationId'
 
 const Router = express.Router()
@@ -38,5 +39,6 @@ Router.use('/', borrowingRoute)
 Router.use('/', repaymentRoute)
 Router.use('/', collectionRoute)
 Router.use('/', contributionRoute)
+Router.use('/', migrationRoute)
 
 export const v2Routes = Router

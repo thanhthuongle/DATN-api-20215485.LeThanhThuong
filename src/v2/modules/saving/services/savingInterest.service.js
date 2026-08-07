@@ -85,7 +85,7 @@ class SavingInterestService {
         if (!template) throw new Error('Posting template SAVING_INTEREST_MONTHLY not found')
 
         // Full monthly payout pair: expense -I, saving +I, saving -I, target +I (sum 0)
-        const res = await financialTransactionService.post(txContext, {
+        const postResult = await financialTransactionService.post(txContext, {
           type: 'SAVING_INTEREST_MONTHLY',
           postingTemplateDefinitionId: template.id,
           entries: [
@@ -110,7 +110,7 @@ class SavingInterestService {
         await idempotencyService.completeSlot(txContext, {
           idempotencyRecordId: idem.record.id,
           resourceType: 'saving_period',
-          resourcePublicId: res.transaction.public_id,
+          resourcePublicId: postResult.transaction.public_id,
           responseBody: { interest: interest.toString() },
           responseStatus: 200
         })
@@ -121,7 +121,7 @@ class SavingInterestService {
             action: 'MONTHLY_INTEREST',
             due_at: period?.end || new Date(),
             status: 'COMPLETED',
-            financial_transaction_id: res.transaction.id,
+            financial_transaction_id: postResult.transaction.id,
             idempotency_key: idempotencyKey,
             completed_at: new Date()
           }
@@ -192,7 +192,7 @@ class SavingInterestService {
         if (!template) throw new Error('Posting template SAVING_INTEREST_MATURITY not found')
 
         // Recognize maturity interest: expense -I, saving +I (retained in saving)
-        const res = await financialTransactionService.post(txContext, {
+        const postResult = await financialTransactionService.post(txContext, {
           type: 'SAVING_INTEREST_MATURITY',
           postingTemplateDefinitionId: template.id,
           entries: [
@@ -212,7 +212,7 @@ class SavingInterestService {
         await idempotencyService.completeSlot(txContext, {
           idempotencyRecordId: idem.record.id,
           resourceType: 'saving_period',
-          resourcePublicId: res.transaction.public_id,
+          resourcePublicId: postResult.transaction.public_id,
           responseBody: { interest: interest.toString() },
           responseStatus: 200
         })
@@ -224,7 +224,7 @@ class SavingInterestService {
             action: 'MATURITY_INTEREST',
             due_at: now || new Date(),
             status: 'COMPLETED',
-            financial_transaction_id: res.transaction.id,
+            financial_transaction_id: postResult.transaction.id,
             idempotency_key: idempotencyKey,
             completed_at: new Date()
           }
