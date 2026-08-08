@@ -12,52 +12,52 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 
 ## Tổng quan tiến độ
 
-| # | Giai đoạn | Trạng thái | Ghi chú |
-|---:|---|---|---|
-| 1 | Tinh chỉnh source | Chưa bắt đầu | |
-| 2 | Docker build và kiểm thử local | Chưa bắt đầu | |
-| 3 | Tạo AWS infrastructure bằng Terraform | Chưa bắt đầu | |
-| 4 | Deploy thủ công lần đầu | Chưa bắt đầu | |
-| 5 | Thiết lập GitHub CI/CD | Chưa bắt đầu | |
-| 6 | Domain, HTTPS và smoke test | Chưa bắt đầu | |
-| 7 | Monitoring và rollback test | Chưa bắt đầu | |
+| # | Giai đoạn                             | Trạng thái          | Ghi chú |
+| -: | --------------------------------------- | --------------------- | -------- |
+| 1 | Tinh chỉnh source                      | `Đang thực hiện` |          |
+| 2 | Docker build và kiểm thử local       | Chưa bắt đầu      |          |
+| 3 | Tạo AWS infrastructure bằng Terraform | Chưa bắt đầu      |          |
+| 4 | Deploy thủ công lần đầu            | Chưa bắt đầu      |          |
+| 5 | Thiết lập GitHub CI/CD                | Chưa bắt đầu      |          |
+| 6 | Domain, HTTPS và smoke test            | Chưa bắt đầu      |          |
+| 7 | Monitoring và rollback test            | Chưa bắt đầu      |          |
 
 ## Quyết định kiến trúc đã chốt
 
-- [x] Backend chạy bằng Amazon ECS Fargate tại region Singapore (`ap-southeast-1`).
-- [x] Database tiếp tục sử dụng MongoDB Atlas; ưu tiên đặt cluster trên AWS Singapore.
-- [x] Redis chưa được triển khai trong giai đoạn đầu; `CACHE_ENABLED=false`.
-- [x] Hạ tầng được khai báo và quản lý bằng Terraform.
-- [x] ECS task chạy trong private subnet và truy cập Internet qua một NAT Gateway có Elastic IP tĩnh.
-- [x] Domain và DNS tiếp tục được quản lý tại nhà cung cấp ngoài AWS.
-- [x] Backend bắt đầu với một ECS task (`desired_count=1`).
-- [x] Agenda tiếp tục chạy chung với API trong giai đoạn đầu.
-- [x] Frontend tiếp tục chạy trên Vercel.
-- [x] Application Load Balancer xử lý HTTPS, WebSocket và chuyển tiếp request tới ECS; không thêm Nginx vào backend.
+- [X] Backend chạy bằng Amazon ECS Fargate tại region Singapore (`ap-southeast-1`).
+- [X] Database tiếp tục sử dụng MongoDB Atlas; ưu tiên đặt cluster trên AWS Singapore.
+- [X] Redis chưa được triển khai trong giai đoạn đầu; `CACHE_ENABLED=false`.
+- [X] Hạ tầng được khai báo và quản lý bằng Terraform.
+- [X] ECS task chạy trong private subnet và truy cập Internet qua một NAT Gateway có Elastic IP tĩnh.
+- [X] Domain và DNS tiếp tục được quản lý tại nhà cung cấp ngoài AWS.
+- [X] Backend bắt đầu với một ECS task (`desired_count=1`).
+- [X] Agenda tiếp tục chạy chung với API trong giai đoạn đầu.
+- [X] Frontend tiếp tục chạy trên Vercel.
+- [X] Application Load Balancer xử lý HTTPS, WebSocket và chuyển tiếp request tới ECS; không thêm Nginx vào backend.
 
 ## Thông tin triển khai cần ghi nhận
 
 > Chỉ ghi identifier, hostname và ARN không nhạy cảm. Không ghi secret hoặc connection string.
 
-| Thông tin | Giá trị |
-|---|---|
-| AWS Account ID | `TBD` |
-| AWS Region | `ap-southeast-1` |
-| Terraform state bucket | `TBD` |
-| API domain | `api.<your-domain>` |
-| MongoDB Atlas region | `TBD` |
-| ECR repository | `TBD` |
-| ECS cluster | `TBD` |
-| ECS service | `TBD` |
-| ECS task definition family | `TBD` |
-| ALB DNS name | `TBD` |
-| ALB ARN | `TBD` |
-| Target group ARN | `TBD` |
-| NAT Elastic IP | `TBD` |
-| ACM certificate ARN | `TBD` |
-| CloudWatch log group | `TBD` |
-| GitHub Actions deploy role ARN | `TBD` |
-| GitHub Actions Terraform role ARN | `TBD` |
+| Thông tin                        | Giá trị             |
+| --------------------------------- | --------------------- |
+| AWS Account ID                    | `TBD`               |
+| AWS Region                        | `ap-southeast-1`    |
+| Terraform state bucket            | `TBD`               |
+| API domain                        | `api.<your-domain>` |
+| MongoDB Atlas region              | `TBD`               |
+| ECR repository                    | `TBD`               |
+| ECS cluster                       | `TBD`               |
+| ECS service                       | `TBD`               |
+| ECS task definition family        | `TBD`               |
+| ALB DNS name                      | `TBD`               |
+| ALB ARN                           | `TBD`               |
+| Target group ARN                  | `TBD`               |
+| NAT Elastic IP                    | `TBD`               |
+| ACM certificate ARN               | `TBD`               |
+| CloudWatch log group              | `TBD`               |
+| GitHub Actions deploy role ARN    | `TBD`               |
+| GitHub Actions Terraform role ARN | `TBD`               |
 
 ---
 
@@ -75,10 +75,10 @@ Chuẩn bị ứng dụng để chạy ổn định trong container và đáp �
 
 ### Checklist đầu việc
 
-- [ ] Chạy GitNexus impact analysis cho từng function/method sẽ chỉnh sửa và ghi nhận blast radius.
-- [ ] Thêm endpoint `GET /health` trả HTTP `200` khi process đã sẵn sàng nhận request.
-- [ ] Đảm bảo health endpoint không phụ thuộc Redis và không làm lộ thông tin nhạy cảm.
-- [ ] Chuẩn hóa ứng dụng lắng nghe trên `PORT`, mặc định local là `3000`.
+- [X] Chạy GitNexus impact analysis cho từng function/method sẽ chỉnh sửa và ghi nhận blast radius.
+- [X] Thêm endpoint `GET /health` trả HTTP `200` khi process đã sẵn sàng nhận request.
+- [X] Đảm bảo health endpoint không phụ thuộc Redis và không làm lộ thông tin nhạy cảm.
+- [X] Chuẩn hóa ứng dụng lắng nghe trên `PORT`, mặc định local là `8017`. Kỳ vọng ứng dụng khởi tạo ở port 8017 bằng dodockeerr.
 - [ ] Thay CORS whitelist hard-code bằng biến `ALLOWED_ORIGINS` dạng danh sách phân tách bằng dấu phẩy.
 - [ ] Giữ `credentials: true` và chỉ cho phép các origin được khai báo rõ ràng.
 - [ ] Giữ `CACHE_ENABLED=false` làm mặc định cho deployment đầu tiên.
@@ -93,15 +93,15 @@ Chuẩn bị ứng dụng để chạy ổn định trong container và đáp �
 
 ### Biến môi trường liên quan
 
-| Biến | Loại | Yêu cầu |
-|---|---|---|
-| `BUILD_MODE` | Không nhạy cảm | Giá trị production là `production` |
-| `PORT` | Không nhạy cảm | Mặc định container `3000` |
-| `ALLOWED_ORIGINS` | Không nhạy cảm | Chứa Vercel production URL; không dùng wildcard với credentials |
-| `MONGODB_URI_PRODUCTION` | Secret | Lấy từ Secrets Manager |
-| `DATABASE_NAME` | Không nhạy cảm | Tên database production |
-| `CACHE_ENABLED` | Không nhạy cảm | `false` trong phase đầu |
-| JWT/Brevo/Cloudinary variables | Secret | Lấy từ Secrets Manager |
+| Biến                          | Loại             | Yêu cầu                                                           |
+| ------------------------------ | ----------------- | ------------------------------------------------------------------- |
+| `BUILD_MODE`                 | Không nhạy cảm | Giá trị production là`production`                              |
+| `PORT`                       | Không nhạy cảm | Mặc định container`3000`                                       |
+| `ALLOWED_ORIGINS`            | Không nhạy cảm | Chứa Vercel production URL; không dùng wildcard với credentials |
+| `MONGODB_URI_PRODUCTION`     | Secret            | Lấy từ Secrets Manager                                            |
+| `DATABASE_NAME`              | Không nhạy cảm | Tên database production                                            |
+| `CACHE_ENABLED`              | Không nhạy cảm | `false` trong phase đầu                                         |
+| JWT/Brevo/Cloudinary variables | Secret            | Lấy từ Secrets Manager                                            |
 
 ### Cách kiểm tra
 
