@@ -5,7 +5,7 @@ import { businessJobRegistry } from '~/v2/infrastructure/jobs/jobRegistry'
 import { env } from '~/config/environment'
 
 /**
- * V2WorkerBootstrap — starts and stops V2 background workers.
+ * V2WorkerBootstrap ï¿½ starts and stops V2 background workers.
  *
  * Workers:
  * 1. Outbox consumer loop: periodically dispatches committed outbox events to
@@ -13,7 +13,7 @@ import { env } from '~/config/environment'
  * 2. Snapshot scheduler: Agenda-backed recurring job that triggers daily
  *    balance-snapshot generation for active financial spaces.
  *
- * Design contract: background-jobs.md §runtime/bootstrap; DEC-020.
+ * Design contract: background-jobs.md ï¿½runtime/bootstrap; DEC-020.
  */
 
 const DEFAULT_OUTBOX_INTERVAL_MS = 30_000
@@ -27,13 +27,28 @@ const getOutboxIntervalMs = () => {
 }
 
 const getAgendaStoreConfig = () => {
-  const address = env.AGENDA_MONGODB_URI
+  const raw = env.AGENDA_MONGODB_URI
   const databaseName = env.AGENDA_DATABASE_NAME
-  if (!address || !databaseName) return null
-  return { address, databaseName, collection: 'v2_jobs' }
+  if (!raw || !databaseName) return null
+
+  const [mainPart, query] = raw.split('?')
+  const base = mainPart.endsWith('/')
+    ? mainPart.slice(0, -1)
+    : mainPart
+
+  const address = query
+    ? `${base}/${databaseName}?${query}`
+    : `${base}/${databaseName}`
+
+  return {
+    address,
+    databaseName,
+    collection: 'v2_jobs',
+    workerId: 'v2-worker'
+  }
 }
 
-export const startV2Workers = () => {
+export const startV2Workers = async () => {
   const outboxIntervalMs = getOutboxIntervalMs()
 
   // --- Outbox consumer loop ---
@@ -70,13 +85,13 @@ export const startV2Workers = () => {
       }
     })
 
+    await scheduler.start().catch((error) => {
+      console.error('V2 snapshot scheduler failed to start:', error)
+    })
+
     const stableKey = 'v2.snapshot.daily:recurring'
     scheduler.scheduleRecurring('v2.snapshot.daily', 'every 15 minutes', {}, stableKey).catch((error) => {
       console.error('[V2WorkerBootstrap] Failed to schedule snapshot job:', error)
-    })
-
-    scheduler.start().catch((error) => {
-      console.error('V2 snapshot scheduler failed to start:', error)
     })
   }
 
