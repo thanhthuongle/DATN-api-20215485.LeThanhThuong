@@ -1,11 +1,5 @@
 import { env } from '~/config/environment'
 
-export const WHITELIST_DOMAINS = [
-  'https://hey-money.vercel.app',
-  'https://hey-money-git-master-su-gia-hoa-binhs-projects-a8f56a9c.vercel.app',
-  'https://hey-money-g32xbngkz-su-gia-hoa-binhs-projects-a8f56a9c.vercel.app'
-]
-
 export const OWNER_TYPE = {
   INDIVIDUAL: 'individual',
   FAMILY: 'family'

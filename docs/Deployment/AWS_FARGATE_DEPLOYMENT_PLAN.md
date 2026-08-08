@@ -79,15 +79,15 @@ Chuẩn bị ứng dụng để chạy ổn định trong container và đáp �
 - [X] Thêm endpoint `GET /health` trả HTTP `200` khi process đã sẵn sàng nhận request.
 - [X] Đảm bảo health endpoint không phụ thuộc Redis và không làm lộ thông tin nhạy cảm.
 - [X] Chuẩn hóa ứng dụng lắng nghe trên `PORT`, mặc định local là `8017`. Kỳ vọng ứng dụng khởi tạo ở port 8017 bằng dodockeerr.
-- [ ] Thay CORS whitelist hard-code bằng biến `ALLOWED_ORIGINS` dạng danh sách phân tách bằng dấu phẩy.
-- [ ] Giữ `credentials: true` và chỉ cho phép các origin được khai báo rõ ràng.
-- [ ] Giữ `CACHE_ENABLED=false` làm mặc định cho deployment đầu tiên.
+- [X] Thay CORS whitelist hard-code bằng biến `CORS_ALLOWED_ORIGINS` dạng danh sách phân tách bằng dấu phẩy.
+- [X] Giữ `credentials: true` và chỉ cho phép các origin được khai báo rõ ràng.
+- [X] Giữ `CACHE_ENABLED=false` làm mặc định cho deployment đầu tiên.
 - [ ] Startup thất bại phải kết thúc bằng exit code khác `0`.
 - [ ] Xử lý `SIGTERM` và `SIGINT` theo thứ tự: ngừng nhận request mới, đóng HTTP/Socket.IO, dừng Agenda, đóng MongoDB rồi kết thúc process.
 - [ ] Đảm bảo shutdown có timeout để container không treo vô hạn.
-- [ ] Không log JWT, cookie, MongoDB URI, API key hoặc secret.
-- [ ] Cập nhật `.env.example` với đầy đủ tên biến nhưng không chứa giá trị thật.
-- [ ] Cập nhật tài liệu chạy production/local nếu command khởi động thay đổi.
+- [X] Không log JWT, cookie, MongoDB URI, API key hoặc secret.
+- [X] Cập nhật `.env.example` với đầy đủ tên biến nhưng không chứa giá trị thật.
+- [X] Cập nhật tài liệu chạy production/local nếu command khởi động thay đổi.
 - [ ] Chạy lint, build và các test hiện có.
 - [ ] Chạy GitNexus `detect_changes` để xác nhận chỉ các symbol và flow dự kiến bị ảnh hưởng.
 
@@ -96,8 +96,7 @@ Chuẩn bị ứng dụng để chạy ổn định trong container và đáp �
 | Biến                          | Loại             | Yêu cầu                                                           |
 | ------------------------------ | ----------------- | ------------------------------------------------------------------- |
 | `BUILD_MODE`                 | Không nhạy cảm | Giá trị production là`production`                              |
-| `PORT`                       | Không nhạy cảm | Mặc định container`3000`                                       |
-| `ALLOWED_ORIGINS`            | Không nhạy cảm | Chứa Vercel production URL; không dùng wildcard với credentials |
+| `CORS_ALLOWED_ORIGINS`       | Không nhạy cảm | Chứa Vercel production URL; không dùng wildcard với credentials |
 | `MONGODB_URI_PRODUCTION`     | Secret            | Lấy từ Secrets Manager                                            |
 | `DATABASE_NAME`              | Không nhạy cảm | Tên database production                                            |
 | `CACHE_ENABLED`              | Không nhạy cảm | `false` trong phase đầu                                         |
