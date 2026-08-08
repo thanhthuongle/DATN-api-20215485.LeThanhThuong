@@ -1,9 +1,7 @@
-/* eslint-disable no-console */
 import express from 'express'
-import exitHook from 'async-exit-hook'
 import { CONNECT_DB, CLOSE_DB } from '~/config/mongodb'
 import { env } from '~/config/environment'
-import { APIs } from './routes'
+import { createAPIs } from './routes'
 import { errorHandlingMiddleware } from './middlewares/errorHandlingMiddleware'
 import cors from 'cors'
 import { corsOptions } from './config/cors'
@@ -16,6 +14,12 @@ import { initSocketServer } from './sockets'
 import { initializeCacheClient } from '~/utils/cache/cacheClient'
 import { cacheStatsMiddleware } from '~/middlewares/cacheStatsMiddleware'
 import qs from 'qs'
+import { SHUTDOWN_TIMEOUT_MS } from './utils/constants'
+
+let httpServer = null
+let ioServer = null
+let isShuttingDown = false
+let isReady = false
 
 const START_SERVER = () => {
   const app = express()
@@ -39,43 +43,102 @@ const START_SERVER = () => {
 
   app.use(cacheStatsMiddleware)
 
-  app.use('/', APIs)
+  app.use('/', createAPIs({ isReady: () => isReady, isShuttingDown: () => isShuttingDown }))
 
   app.use(errorHandlingMiddleware)
 
-  const server = http.createServer(app)
-  initSocketServer(server, corsOptions)
+  httpServer = http.createServer(app)
+  ioServer = initSocketServer(httpServer, corsOptions)
 
-  if (env.BUILD_MODE === 'production') {
-    server.listen(process.env.PORT, async () => {
-      // eslint-disable-next-line no-console
-      console.log(`5. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT}/`)
-    })
-  } else {
-    // Môi trường local dev
-    server.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, async () => {
-      // eslint-disable-next-line no-console
-      console.log(`5. Hello ${env.AUTHOR}, Server is running at http://${env.LOCAL_DEV_APP_HOST}:${env.LOCAL_DEV_APP_PORT}/`)
-    })
-  }
+  return new Promise((resolve, reject) => {
+    httpServer.once('error', reject)
 
-  exitHook(async () => {
-    // eslint-disable-next-line no-console
-    console.log('6. Server is shutting down...')
-    await agenda.stop()
-    CLOSE_DB()
-    // eslint-disable-next-line no-console
-    console.log('7. DisConnected from MongoDB Cloud Atlas...')
+    const onListening = () => {
+      httpServer.off('error', reject)
+      resolve()
+    }
+
+    if (env.BUILD_MODE === 'production') {
+      httpServer.listen(process.env.PORT, () => {
+        console.info(`5. Hello ${env.AUTHOR}, Server is running at Port: ${process.env.PORT}/`)
+        onListening()
+      })
+    } else {
+      // Môi trường local dev
+      httpServer.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, () => {
+        console.info(`5. Hello ${env.AUTHOR}, Server is running at http://${env.LOCAL_DEV_APP_HOST}:${env.LOCAL_DEV_APP_PORT}/`)
+        onListening()
+      })
+    }
   })
+}
+
+const closeHttpServer = () => {
+  if (!httpServer) return Promise.resolve()
+
+  return new Promise((resolve, reject) => {
+    httpServer.close((error) => {
+      if (error) return reject(error)
+      resolve()
+    })
+  })
+}
+
+const closeSocketServer = () => {
+  if (!ioServer) return Promise.resolve()
+
+  return new Promise((resolve) => {
+    ioServer.close(() => resolve())
+  })
+}
+
+const gracefulShutdown = async (signal) => {
+  if (isShuttingDown) return
+
+  isShuttingDown = true
+  isReady = false
+
+  console.info(`Received ${signal}. Starting graceful shutdown...`)
+
+  const forceExitTimer = setTimeout(() => {
+    console.error('Graceful shutdown timed out. Forcing exit.')
+    process.exit(1)
+  }, SHUTDOWN_TIMEOUT_MS)
+
+  forceExitTimer.unref()
+
+  try {
+    // Bắt đầu ngừng nhận HTTP request mới.
+    const httpClosing = closeHttpServer()
+
+    // Đóng các WebSocket connection hiện tại.
+    await closeSocketServer()
+
+    // Chờ HTTP request đang chạy kết thúc.
+    await httpClosing
+
+    // Ngừng nhận và xử lý Agenda jobs.
+    await agenda.stop()
+
+    // Đóng MongoDB sau cùng vì request/job có thể còn cần database.
+    await CLOSE_DB()
+
+    clearTimeout(forceExitTimer)
+
+    console.info('Graceful shutdown completed.')
+    process.exit(0)
+  } catch (error) {
+    clearTimeout(forceExitTimer)
+    console.error('Graceful shutdown failed:', error)
+    process.exit(1)
+  }
 }
 
 (async () => {
   try {
-    // eslint-disable-next-line no-console
-    console.log('1. Connecting to MongoDB...')
+    console.info('1. Connecting to MongoDB...')
     await CONNECT_DB()
-    // eslint-disable-next-line no-console
-    console.log('2. Connected to MongoDB')
+    console.info('2. Connected to MongoDB')
 
     // ✅ init cache client
     if (env.CACHE_ENABLED) {
@@ -86,16 +149,40 @@ const START_SERVER = () => {
     seedBanksIfEmpty()
 
     // ✅ init agenda
-    console.log('3. Initializing Agenda...')
+    console.info('3. Initializing Agenda...')
     // await agenda.mongo(GET_DB(), 'system_tasks')
     loadSystemTasks(agenda)
     await agenda.start()
-    console.log('4. Agenda started.')
+    console.info('4. Agenda started.')
 
-    START_SERVER()
+    await START_SERVER()
+
+    isReady = true
+
+    process.once('SIGTERM', () => {
+      void gracefulShutdown('SIGTERM')
+    })
+
+    process.once('SIGINT', () => {
+      void gracefulShutdown('SIGINT')
+    })
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error)
-    process.exit(0)
+    console.error('Application startup failed:', error)
+
+    try {
+      await agenda.stop()
+      console.info('Agenda stopped.')
+    } catch (shutdownError) {
+      console.error('Failed to stop Agenda:', shutdownError)
+    }
+
+    try {
+      await CLOSE_DB()
+      console.info('Disconnected from MongoDB.')
+    } catch (shutdownError) {
+      console.error('Failed to close MongoDB:', shutdownError)
+    }
+
+    process.exit(1)
   }
 })()
