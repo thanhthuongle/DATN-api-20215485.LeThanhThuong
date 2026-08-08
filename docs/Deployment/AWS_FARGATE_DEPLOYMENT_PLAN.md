@@ -12,15 +12,15 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 
 ## Tổng quan tiến độ
 
-| # | Giai đoạn                             | Trạng thái          | Ghi chú |
-| -: | --------------------------------------- | --------------------- | -------- |
-| 1 | Tinh chỉnh source                      | `Đang thực hiện` |          |
-| 2 | Docker build và kiểm thử local       | Chưa bắt đầu      |          |
-| 3 | Tạo AWS infrastructure bằng Terraform | Chưa bắt đầu      |          |
-| 4 | Deploy thủ công lần đầu            | Chưa bắt đầu      |          |
-| 5 | Thiết lập GitHub CI/CD                | Chưa bắt đầu      |          |
-| 6 | Domain, HTTPS và smoke test            | Chưa bắt đầu      |          |
-| 7 | Monitoring và rollback test            | Chưa bắt đầu      |          |
+|    # | Giai đoạn                             | Trạng thái       | Ghi chú |
+| ---: | ------------------------------------- | ---------------- | ------- |
+|    1 | Tinh chỉnh source                     | `Đang thực hiện` |         |
+|    2 | Docker build và kiểm thử local        | Chưa bắt đầu     |         |
+|    3 | Tạo AWS infrastructure bằng Terraform | Chưa bắt đầu     |         |
+|    4 | Deploy thủ công lần đầu               | Chưa bắt đầu     |         |
+|    5 | Thiết lập GitHub CI/CD                | Chưa bắt đầu     |         |
+|    6 | Domain, HTTPS và smoke test           | Chưa bắt đầu     |         |
+|    7 | Monitoring và rollback test           | Chưa bắt đầu     |         |
 
 ## Quyết định kiến trúc đã chốt
 
@@ -39,8 +39,8 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 
 > Chỉ ghi identifier, hostname và ARN không nhạy cảm. Không ghi secret hoặc connection string.
 
-| Thông tin                        | Giá trị             |
-| --------------------------------- | --------------------- |
+| Thông tin                         | Giá trị             |
+| --------------------------------- | ------------------- |
 | AWS Account ID                    | `TBD`               |
 | AWS Region                        | `ap-southeast-1`    |
 | Terraform state bucket            | `TBD`               |
@@ -82,41 +82,41 @@ Chuẩn bị ứng dụng để chạy ổn định trong container và đáp �
 - [X] Thay CORS whitelist hard-code bằng biến `CORS_ALLOWED_ORIGINS` dạng danh sách phân tách bằng dấu phẩy.
 - [X] Giữ `credentials: true` và chỉ cho phép các origin được khai báo rõ ràng.
 - [X] Giữ `CACHE_ENABLED=false` làm mặc định cho deployment đầu tiên.
-- [ ] Startup thất bại phải kết thúc bằng exit code khác `0`.
-- [ ] Xử lý `SIGTERM` và `SIGINT` theo thứ tự: ngừng nhận request mới, đóng HTTP/Socket.IO, dừng Agenda, đóng MongoDB rồi kết thúc process.
-- [ ] Đảm bảo shutdown có timeout để container không treo vô hạn.
+- [X] Startup thất bại phải kết thúc bằng exit code khác `0`.
+- [X] Xử lý `SIGTERM` và `SIGINT` theo thứ tự: ngừng nhận request mới, đóng HTTP/Socket.IO, dừng Agenda, đóng MongoDB rồi kết thúc process.
+- [X] Đảm bảo shutdown có timeout để container không treo vô hạn.
 - [X] Không log JWT, cookie, MongoDB URI, API key hoặc secret.
 - [X] Cập nhật `.env.example` với đầy đủ tên biến nhưng không chứa giá trị thật.
 - [X] Cập nhật tài liệu chạy production/local nếu command khởi động thay đổi.
-- [ ] Chạy lint, build và các test hiện có.
-- [ ] Chạy GitNexus `detect_changes` để xác nhận chỉ các symbol và flow dự kiến bị ảnh hưởng.
+- [X] Chạy lint, build và các test hiện có.
+- [X] Chạy GitNexus `detect_changes` để xác nhận chỉ các symbol và flow dự kiến bị ảnh hưởng.
 
 ### Biến môi trường liên quan
 
-| Biến                          | Loại             | Yêu cầu                                                           |
-| ------------------------------ | ----------------- | ------------------------------------------------------------------- |
-| `BUILD_MODE`                 | Không nhạy cảm | Giá trị production là`production`                              |
-| `CORS_ALLOWED_ORIGINS`       | Không nhạy cảm | Chứa Vercel production URL; không dùng wildcard với credentials |
-| `MONGODB_URI_PRODUCTION`     | Secret            | Lấy từ Secrets Manager                                            |
-| `DATABASE_NAME`              | Không nhạy cảm | Tên database production                                            |
-| `CACHE_ENABLED`              | Không nhạy cảm | `false` trong phase đầu                                         |
-| JWT/Brevo/Cloudinary variables | Secret            | Lấy từ Secrets Manager                                            |
+| Biến                           | Loại           | Yêu cầu                                                         |
+| ------------------------------ | -------------- | --------------------------------------------------------------- |
+| `BUILD_MODE`                   | Không nhạy cảm | Giá trị production là`production`                               |
+| `CORS_ALLOWED_ORIGINS`         | Không nhạy cảm | Chứa Vercel production URL; không dùng wildcard với credentials |
+| `MONGODB_URI_PRODUCTION`       | Secret         | Lấy từ Secrets Manager                                          |
+| `DATABASE_NAME`                | Không nhạy cảm | Tên database production                                         |
+| `CACHE_ENABLED`                | Không nhạy cảm | `false` trong phase đầu                                         |
+| JWT/Brevo/Cloudinary variables | Secret         | Lấy từ Secrets Manager                                          |
 
 ### Cách kiểm tra
 
-- [ ] `GET /health` trả `200` và response tối giản.
-- [ ] Origin hợp lệ gọi API kèm cookie thành công.
-- [ ] Origin không nằm trong allowlist bị từ chối.
-- [ ] Gửi `SIGTERM` và xác nhận process đóng kết nối rồi exit thành công.
-- [ ] Cố tình cung cấp MongoDB URI sai và xác nhận process exit non-zero.
-- [ ] Tìm kiếm repository để đảm bảo không phát sinh secret mới trong file tracked.
+- [X] `GET /health` trả `200` và response tối giản.
+- [X] Origin hợp lệ gọi API kèm cookie thành công.
+- [X] Origin không nằm trong allowlist bị từ chối.
+- [X] Gửi `SIGTERM` và xác nhận process đóng kết nối rồi exit thành công.
+- [X] Cố tình cung cấp MongoDB URI sai và xác nhận process exit non-zero.
+- [X] Tìm kiếm repository để đảm bảo không phát sinh secret mới trong file tracked.
 
 ### Tiêu chí hoàn thành
 
-- [ ] Lint, build và test đều thành công.
-- [ ] Health check, CORS và graceful shutdown đã được kiểm chứng local.
-- [ ] `.env.example` đầy đủ và không chứa secret.
-- [ ] GitNexus không báo phạm vi thay đổi ngoài dự kiến.
+- [X] Lint, build và test đều thành công.
+- [X] Health check, CORS và graceful shutdown đã được kiểm chứng local.
+- [X] `.env.example` đầy đủ và không chứa secret.
+- [X] GitNexus không báo phạm vi thay đổi ngoài dự kiến.
 
 ### Rủi ro và rollback
 

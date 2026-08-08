@@ -99,3 +99,5 @@ export const TRUST_LEVEL_LOAN = {
 }
 
 export const WEBSITE_DOMAIN = env.BUILD_MODE === 'production' ? env.WEBSITE_DOMAIN_PRODUCTION : env.WEBSITE_DOMAIN_DEVELOPMENT
+
+export const SHUTDOWN_TIMEOUT_MS = 25000
