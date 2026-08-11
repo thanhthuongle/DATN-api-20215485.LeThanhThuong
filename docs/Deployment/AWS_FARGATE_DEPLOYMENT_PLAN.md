@@ -148,10 +148,10 @@ Tạo image production nhỏ, tái lập được, không chứa secret và ch�
 - [X] Tạo `.dockerignore` loại trừ `.env`, `.git`, `node_modules`, coverage, cache, log và tài liệu không cần thiết.
 - [X] Không bake biến môi trường hoặc secret production vào image.
 - [X] Gắn OCI labels tối thiểu cho source revision và repository.
-- [ ] Build image local với tag Git SHA.
-- [ ] Chạy container bằng file env local ngoài image.
-- [ ] Kiểm tra image history/layers không chứa secret.
-- [ ] Ghi lại command build, run và smoke test trong tài liệu dự án.
+- [X] Build image local với tag Git SHA.
+- [X] Chạy container bằng file env local ngoài image.
+- [X] Kiểm tra image history/layers không chứa secret.
+- [X] Ghi lại command build, run và smoke test trong tài liệu dự án.
 
 ### Tài nguyên liên quan
 
@@ -162,19 +162,21 @@ Tạo image production nhỏ, tái lập được, không chứa secret và ch�
 
 ### Cách kiểm tra
 
-- [ ] Docker build thành công từ clean checkout.
-- [ ] Container chạy bằng non-root user.
-- [ ] `/health` trả `200` qua mapped port.
-- [ ] Login/API cơ bản và Socket.IO hoạt động từ container.
-- [ ] Agenda khởi động đúng một lần.
-- [ ] Ứng dụng hoạt động khi không có `REDIS_URL` và `CACHE_ENABLED=false`.
-- [ ] Dừng container và xác nhận graceful shutdown xuất hiện trong log.
+- [X] Docker build thành công từ clean checkout.
+  Lệnh build image local: docker build --build-arg "SOURCE_REPOSITORY=$(git rev-parse master)" --build-arg "SOURCE_REVISION=$(git rev-parse master)" -t TAGNAME .
+- [X] Container chạy bằng non-root user.
+  docker run -d --name containerName --env-file env-path -p 8017:8017 --restart unless-stopped imageName:imageTag
+- [X] `/health` trả `200` qua mapped port.
+- [X] Login/API cơ bản và Socket.IO hoạt động từ container.
+- [X] Agenda khởi động đúng một lần.
+- [X] Ứng dụng hoạt động khi không có `REDIS_URL` và `CACHE_ENABLED=false`.
+- [X] Dừng container và xác nhận graceful shutdown xuất hiện trong log.
 
 ### Tiêu chí hoàn thành
 
-- [ ] Image có thể build và chạy độc lập trên máy khác chỉ với Docker và biến môi trường hợp lệ.
-- [ ] Không có secret trong image hoặc build log.
-- [ ] Smoke test container thành công.
+- [X] Image có thể build và chạy độc lập trên máy khác chỉ với Docker và biến môi trường hợp lệ.
+- [X] Không có secret trong image hoặc build log.
+- [X] Smoke test container thành công.
 
 ### Rủi ro và rollback
 

@@ -1,4 +1,4 @@
-FROM node:22-alpine AS dependencies
+FROM node:22.19.0-alpine AS dependencies
 
 WORKDIR /app
 
@@ -14,13 +14,13 @@ COPY src ./src
 RUN yarn build
 
 
-FROM node:22-alpine AS runner
+FROM node:22.19.0-alpine AS runner
 
 ARG SOURCE_REPOSITORY="unknown"
 ARG SOURCE_REVISION="unknown"
 
 LABEL org.opencontainers.image.source=$SOURCE_REPOSITORY \
-      org.opencontainers.image.revision=$SOURCE_REVISION
+  org.opencontainers.image.revision=$SOURCE_REVISION
 
 ENV NODE_ENV=production
 ENV BUILD_MODE=production
