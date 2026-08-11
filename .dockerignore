@@ -1,0 +1,36 @@
+# dependencies
+/node_modules
+package-lock.json
+/.pnp
+.pnp.js
+
+# Prisma 7 generates a TypeScript client from the reviewed schema.
+/src/generated/prisma
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production.*
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.agents/
+.claude/
+
+/redis-data
+
+#git
+.git/
+.gitignore
