@@ -12,15 +12,15 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 
 ## Tổng quan tiến độ
 
-|    # | Giai đoạn                             | Trạng thái       | Ghi chú |
-| ---: | ------------------------------------- | ---------------- | ------- |
-|    1 | Tinh chỉnh source                     | `Đang thực hiện` |         |
-|    2 | Docker build và kiểm thử local        | Chưa bắt đầu     |         |
-|    3 | Tạo AWS infrastructure bằng Terraform | Chưa bắt đầu     |         |
-|    4 | Deploy thủ công lần đầu               | Chưa bắt đầu     |         |
-|    5 | Thiết lập GitHub CI/CD                | Chưa bắt đầu     |         |
-|    6 | Domain, HTTPS và smoke test           | Chưa bắt đầu     |         |
-|    7 | Monitoring và rollback test           | Chưa bắt đầu     |         |
+|    # | Giai đoạn                             | Trạng thái   | Ghi chú |
+| ---: | ------------------------------------- | ------------ | ------- |
+|    1 | Tinh chỉnh source                     | `Hoàn thành` |         |
+|    2 | Docker build và kiểm thử local        | `Hoàn thành` |         |
+|    3 | Tạo AWS infrastructure bằng Terraform | `Hoàn thành` |         |
+|    4 | Deploy thủ công lần đầu               | Chưa bắt đầu |         |
+|    5 | Thiết lập GitHub CI/CD                | Chưa bắt đầu |         |
+|    6 | Domain, HTTPS và smoke test           | Chưa bắt đầu |         |
+|    7 | Monitoring và rollback test           | Chưa bắt đầu |         |
 
 ## Quyết định kiến trúc đã chốt
 
@@ -30,7 +30,7 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 - [X] Hạ tầng được khai báo và quản lý bằng Terraform.
 - [X] ECS task chạy trong private subnet và truy cập Internet qua một NAT Gateway có Elastic IP tĩnh.
 - [X] Domain và DNS tiếp tục được quản lý tại nhà cung cấp ngoài AWS.
-- [X] Backend bắt đầu với một ECS task (`desired_count=1`).
+- [X] Backend bắt đầu với một ECS task (`desired_count=1`) `sau khi image đầu tiên được deploy ở Giai đoạn 4.`
 - [X] Agenda tiếp tục chạy chung với API trong giai đoạn đầu.
 - [X] Frontend tiếp tục chạy trên Vercel.
 - [X] Application Load Balancer xử lý HTTPS, WebSocket và chuyển tiếp request tới ECS; không thêm Nginx vào backend.
@@ -39,25 +39,25 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 
 > Chỉ ghi identifier, hostname và ARN không nhạy cảm. Không ghi secret hoặc connection string.
 
-| Thông tin                         | Giá trị             |
-| --------------------------------- | ------------------- |
-| AWS Account ID                    | `TBD`               |
-| AWS Region                        | `ap-southeast-1`    |
-| Terraform state bucket            | `TBD`               |
-| API domain                        | `api.<your-domain>` |
-| MongoDB Atlas region              | `TBD`               |
-| ECR repository                    | `TBD`               |
-| ECS cluster                       | `TBD`               |
-| ECS service                       | `TBD`               |
-| ECS task definition family        | `TBD`               |
-| ALB DNS name                      | `TBD`               |
-| ALB ARN                           | `TBD`               |
-| Target group ARN                  | `TBD`               |
-| NAT Elastic IP                    | `TBD`               |
-| ACM certificate ARN               | `TBD`               |
-| CloudWatch log group              | `TBD`               |
-| GitHub Actions deploy role ARN    | `TBD`               |
-| GitHub Actions Terraform role ARN | `TBD`               |
+| Thông tin                         | Giá trị                                                                                                              |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| AWS Account ID                    | `232499238146`                                                                                                       |
+| AWS Region                        | `ap-southeast-1`                                                                                                     |
+| Terraform state bucket            | `heymoney-terraform-state-232499238146-ap-southeast-1`                                                               |
+| API domain                        | `api.<your-domain>`                                                                                                  |
+| MongoDB Atlas region              | `HONG KONG (ap-east-1)`                                                                                              |
+| ECR repository                    | `232499238146.dkr.ecr.ap-southeast-1.amazonaws.com/heymoney-api`                                                     |
+| ECS cluster                       | `heymoney-production`                                                                                                |
+| ECS service                       | `heymoney-production-api`                                                                                            |
+| ECS task definition family        | `heymoney-production-api`                                                                                            |
+| ALB DNS name                      | `heymoney-production-alb-25405697.ap-southeast-1.elb.amazonaws.com`                                                  |
+| ALB ARN                           | `arn:aws:elasticloadbalancing:ap-southeast-1:232499238146:loadbalancer/app/heymoney-production-alb/49892853bcfb1051` |
+| Target group ARN                  | `arn:aws:elasticloadbalancing:ap-southeast-1:232499238146:targetgroup/heymoney-production-api/afe975ac6b8cf7d6`      |
+| NAT Elastic IP                    | `52.77.112.105`                                                                                                      |
+| ACM certificate ARN               | `TBD`                                                                                                                |
+| CloudWatch log group              | `/ecs/heymoney-production-api`                                                                                       |
+| GitHub Actions deploy role ARN    | `TBD`                                                                                                                |
+| GitHub Actions Terraform role ARN | `TBD`                                                                                                                |
 
 ---
 
@@ -199,30 +199,30 @@ Tạo hạ tầng AWS có thể tái lập, bảo mật và đủ nhỏ cho đ�
 
 ### Checklist đầu việc
 
-- [ ] Bootstrap S3 bucket cho Terraform state với encryption, versioning và block public access.
-- [ ] Bật S3 state locking và tách bootstrap state khỏi production state.
-- [ ] Pin Terraform và provider versions.
-- [ ] Tạo VPC tại `ap-southeast-1`.
-- [ ] Tạo hai public subnet và hai private subnet ở hai Availability Zone.
-- [ ] Tạo Internet Gateway và route tables phù hợp.
-- [ ] Tạo một NAT Gateway cùng Elastic IP và route outbound cho private subnets.
-- [ ] Tạo ALB ở public subnets.
-- [ ] Tạo ALB security group chỉ nhận HTTP/HTTPS công khai.
-- [ ] Tạo ECS security group chỉ nhận port `3000` từ ALB security group.
-- [ ] Tạo private ECR repository với image scanning, encryption và lifecycle policy.
-- [ ] Tạo ECS cluster, task definition và service sử dụng Fargate.
-- [ ] Đặt task ban đầu ở mức `0.25 vCPU/0.5 GB RAM`, `desired_count=1`.
-- [ ] Tắt public IP cho ECS task.
-- [ ] Tạo target group kiểm tra `GET /health`.
-- [ ] Bật ECS deployment circuit breaker và automatic rollback.
-- [ ] Tạo CloudWatch log group với retention 14 ngày.
-- [ ] Tạo ECS execution role và application task role riêng, áp dụng least privilege.
-- [ ] Tạo Secrets Manager entries cho MongoDB, JWT, Brevo và Cloudinary secrets; nhập giá trị bằng kênh bảo mật, không đưa vào Terraform state nếu có thể tránh.
-- [ ] Cấu hình task definition lấy secret trực tiếp từ Secrets Manager.
-- [ ] Tạo AWS Budget và cảnh báo chi phí thực tế/dự báo.
-- [ ] Chạy `terraform fmt -check`, `validate` và review `plan` trước khi apply.
-- [ ] Apply hạ tầng và ghi identifier không nhạy cảm vào bảng thông tin triển khai.
-- [ ] Whitelist NAT Elastic IP trong MongoDB Atlas Network Access.
+- [X] Bootstrap S3 bucket cho Terraform state với encryption, versioning và block public access.
+- [X] Bật S3 state locking và tách bootstrap state khỏi production state.
+- [X] Pin Terraform và provider versions.
+- [X] Tạo VPC tại `ap-southeast-1`.
+- [X] Tạo hai public subnet và hai private subnet ở hai Availability Zone.
+- [X] Tạo Internet Gateway và route tables phù hợp.
+- [X] Tạo một NAT Gateway cùng Elastic IP và route outbound cho private subnets.
+- [X] Tạo ALB ở public subnets.
+- [X] Tạo ALB security group chỉ nhận HTTP/HTTPS công khai.
+- [X] Tạo ECS security group chỉ nhận port `8017` từ ALB security group.
+- [X] Tạo private ECR repository với image scanning, encryption và lifecycle policy.
+- [X] Tạo ECS cluster, task definition và service sử dụng Fargate.
+- [X] Đặt task ở mức `0.25 vCPU/0.5 GB RAM`; giữ `desired_count=0` cho đến khi image Git SHA được push ở Giai đoạn 4, sau đó tăng lên `1`.
+- [X] Tắt public IP cho ECS task.
+- [X] Tạo target group kiểm tra `GET /health`.
+- [X] Bật ECS deployment circuit breaker và automatic rollback.
+- [X] Tạo CloudWatch log group với retention 14 ngày.
+- [X] Tạo ECS execution role và application task role riêng, áp dụng least privilege.
+- [X] Tạo Secrets Manager entries cho MongoDB, JWT, Brevo và Cloudinary secrets; nhập giá trị bằng kênh bảo mật, không đưa vào Terraform state nếu có thể tránh.
+- [X] Cấu hình task definition lấy secret trực tiếp từ Secrets Manager.
+- [X] Tạo AWS Budget và cảnh báo chi phí thực tế/dự báo.
+- [X] Chạy `terraform fmt -check`, `validate` và review `plan` trước khi apply.
+- [X] Apply hạ tầng và ghi identifier không nhạy cảm vào bảng thông tin triển khai.
+- [X] Whitelist NAT Elastic IP trong MongoDB Atlas Network Access.
 
 ### Tài nguyên liên quan
 
@@ -235,20 +235,20 @@ Tạo hạ tầng AWS có thể tái lập, bảo mật và đủ nhỏ cho đ�
 
 ### Cách kiểm tra
 
-- [ ] `terraform plan` sau apply không còn thay đổi ngoài dự kiến.
-- [ ] ECS task không có public IP.
-- [ ] ECS security group không nhận traffic trực tiếp từ Internet.
-- [ ] ECR không public và image scanning được bật.
-- [ ] NAT Elastic IP là IP duy nhất được Atlas cho phép từ AWS deployment.
-- [ ] IAM role không có wildcard permission không cần thiết.
-- [ ] CloudWatch log group và Budget alarm tồn tại.
+- [X] `terraform plan` sau apply không còn thay đổi ngoài dự kiến.
+- [X] ECS task không có public IP.
+- [X] ECS security group không nhận traffic trực tiếp từ Internet.
+- [X] ECR không public và image scanning được bật.
+- [X] NAT Elastic IP là IP duy nhất được Atlas cho phép từ AWS deployment.
+- [X] IAM role không có wildcard permission không cần thiết.
+- [X] CloudWatch log group và Budget alarm tồn tại.
 
 ### Tiêu chí hoàn thành
 
-- [ ] Hạ tầng được tạo hoàn toàn từ Terraform.
-- [ ] Network, IAM, logging và secret injection đã sẵn sàng cho deployment.
-- [ ] Atlas đã whitelist NAT Elastic IP.
-- [ ] Terraform state được lưu an toàn và có versioning.
+- [X] Hạ tầng được tạo hoàn toàn từ Terraform.
+- [X] Network, IAM, logging và secret injection đã sẵn sàng cho deployment.
+- [X] Atlas đã whitelist NAT Elastic IP.
+- [X] Terraform state được lưu an toàn và có versioning.
 
 ### Rủi ro và rollback
 
