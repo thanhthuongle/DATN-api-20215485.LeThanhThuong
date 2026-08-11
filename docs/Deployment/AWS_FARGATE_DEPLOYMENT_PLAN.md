@@ -139,15 +139,15 @@ Tạo image production nhỏ, tái lập được, không chứa secret và ch�
 
 ### Checklist đầu việc
 
-- [ ] Tạo multi-stage `Dockerfile` sử dụng Node.js LTS với version được pin rõ ràng.
-- [ ] Cài dependencies từ lockfile bằng chế độ immutable/frozen.
-- [ ] Build Babel ở build stage.
-- [ ] Runtime stage chỉ chứa build output và production dependencies.
-- [ ] Tạo non-root user và chạy ứng dụng bằng user này.
-- [ ] Expose port `3000` và khai báo Docker health check gọi `/health`.
-- [ ] Tạo `.dockerignore` loại trừ `.env`, `.git`, `node_modules`, coverage, cache, log và tài liệu không cần thiết.
-- [ ] Không bake biến môi trường hoặc secret production vào image.
-- [ ] Gắn OCI labels tối thiểu cho source revision và repository.
+- [X] Tạo multi-stage `Dockerfile` sử dụng Node.js LTS với version được pin rõ ràng.
+- [X] Cài dependencies từ lockfile bằng chế độ immutable/frozen.
+- [X] Build Babel ở build stage.
+- [X] Runtime stage chỉ chứa build output và production dependencies.
+- [X] Tạo non-root user và chạy ứng dụng bằng user này.
+- [X] Expose port `8017` và khai báo Docker health check gọi `/health`.
+- [X] Tạo `.dockerignore` loại trừ `.env`, `.git`, `node_modules`, coverage, cache, log và tài liệu không cần thiết.
+- [X] Không bake biến môi trường hoặc secret production vào image.
+- [X] Gắn OCI labels tối thiểu cho source revision và repository.
 - [ ] Build image local với tag Git SHA.
 - [ ] Chạy container bằng file env local ngoài image.
 - [ ] Kiểm tra image history/layers không chứa secret.
