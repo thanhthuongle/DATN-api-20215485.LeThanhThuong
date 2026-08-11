@@ -12,15 +12,15 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 
 ## Tổng quan tiến độ
 
-|    # | Giai đoạn                             | Trạng thái   | Ghi chú |
-| ---: | ------------------------------------- | ------------ | ------- |
-|    1 | Tinh chỉnh source                     | `Hoàn thành` |         |
-|    2 | Docker build và kiểm thử local        | `Hoàn thành` |         |
-|    3 | Tạo AWS infrastructure bằng Terraform | `Hoàn thành` |         |
-|    4 | Deploy thủ công lần đầu               | Chưa bắt đầu |         |
-|    5 | Thiết lập GitHub CI/CD                | Chưa bắt đầu |         |
-|    6 | Domain, HTTPS và smoke test           | Chưa bắt đầu |         |
-|    7 | Monitoring và rollback test           | Chưa bắt đầu |         |
+|    # | Giai đoạn                             | Trạng thái       | Ghi chú |
+| ---: | ------------------------------------- | ---------------- | ------- |
+|    1 | Tinh chỉnh source                     | `Hoàn thành`     |         |
+|    2 | Docker build và kiểm thử local        | `Hoàn thành`     |         |
+|    3 | Tạo AWS infrastructure bằng Terraform | `Hoàn thành`     |         |
+|    4 | Deploy thủ công lần đầu               | `Đang thực hiện` |         |
+|    5 | Thiết lập GitHub CI/CD                | Chưa bắt đầu     |         |
+|    6 | Domain, HTTPS và smoke test           | Chưa bắt đầu     |         |
+|    7 | Monitoring và rollback test           | Chưa bắt đầu     |         |
 
 ## Quyết định kiến trúc đã chốt
 
