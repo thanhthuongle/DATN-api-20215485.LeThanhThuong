@@ -272,19 +272,19 @@ Chứng minh image, AWS network, secrets, ECS, ALB và Atlas hoạt động trư
 
 ### Checklist đầu việc
 
-- [ ] Đăng nhập Docker vào ECR bằng credential ngắn hạn.
-- [ ] Build image từ commit đã xác định.
-- [ ] Tag image bằng full Git SHA và push lên ECR.
-- [ ] Kiểm tra kết quả ECR image scan trước khi deploy.
-- [ ] Tạo task definition revision tham chiếu image SHA/digest.
-- [ ] Cập nhật ECS service và chờ service stable.
-- [ ] Kiểm tra task pull image và inject secret thành công.
-- [ ] Kiểm tra target chuyển sang healthy.
-- [ ] Kiểm tra CloudWatch nhận startup/runtime log.
-- [ ] Xác nhận ECS kết nối Atlas qua NAT EIP.
-- [ ] Xác nhận Agenda khởi động một lần và collection job hoạt động.
-- [ ] Xác nhận Redis không được khởi tạo.
-- [ ] Ghi task definition revision và image SHA đã deploy.
+- [X] Đăng nhập Docker vào ECR bằng credential ngắn hạn.
+- [X] Build image từ commit đã xác định.
+- [X] Tag image bằng full Git SHA và push lên ECR.
+- [X] Kiểm tra kết quả ECR image scan trước khi deploy.
+- [X] Tạo task definition revision tham chiếu image SHA/digest.
+- [X] Cập nhật ECS service và chờ service stable.
+- [X] Kiểm tra task pull image và inject secret thành công.
+- [X] Kiểm tra target chuyển sang healthy.
+- [X] Kiểm tra CloudWatch nhận startup/runtime log.
+- [X] Xác nhận ECS kết nối Atlas qua NAT EIP.
+- [X] Xác nhận Agenda khởi động một lần và collection job hoạt động.
+- [X] Xác nhận Redis không được khởi tạo.
+- [X] Ghi task definition revision và image SHA đã deploy.
 
 ### Tài nguyên liên quan
 
@@ -296,18 +296,295 @@ Chứng minh image, AWS network, secrets, ECS, ALB và Atlas hoạt động trư
 
 ### Cách kiểm tra
 
-- [ ] ALB gọi `/health` thành công.
-- [ ] API đọc/ghi thử nghiệm vào Atlas thành công.
-- [ ] Một luồng transaction MongoDB quan trọng chạy thành công.
-- [ ] Agenda tạo/lock/run job thành công.
-- [ ] Socket.IO handshake và WebSocket upgrade thành công qua ALB.
-- [ ] Không có secret trong ECS event hoặc CloudWatch log.
+- [X] ALB gọi `/health` thành công.
+- [X] API đọc/ghi thử nghiệm vào Atlas thành công.
+- [X] Một luồng transaction MongoDB quan trọng chạy thành công.
+- [X] Agenda tạo/lock/run job thành công.
+- [X] Socket.IO handshake và WebSocket upgrade thành công qua ALB.
+- [X] Không có secret trong ECS event hoặc CloudWatch log.
+
+### Runbook PowerShell đã kiểm chứng
+
+Chạy từ thư mục gốc repository. Deployment chỉ lấy source từ `origin/master`; không lấy SHA của `master` rồi build bằng working tree của nhánh khác.
+
+#### 1. Chuẩn bị biến và đăng nhập ECR
+
+```powershell
+git fetch origin master
+
+$awsRegion = "ap-southeast-1"
+$gitSha = git rev-parse origin/master
+$awsAccountId = aws sts get-caller-identity --query Account --output text
+$ecrRegistry = "$awsAccountId.dkr.ecr.$awsRegion.amazonaws.com"
+$ecrRepository = "$ecrRegistry/heymoney-api"
+$imageUri = "${ecrRepository}:${gitSha}"
+$sourceRepository = "https://github.com/thanhthuongle/DATN-api-20215485.LeThanhThuong"
+
+aws ecr get-login-password --region $awsRegion |
+  docker login --username AWS --password-stdin $ecrRegistry
+```
+
+#### 2. Build đúng source `master`, push và scan
+
+Tắt provenance/SBOM và xuất `type=docker` để ECR Basic Scanning nhận single-image manifest thay vì OCI image index.
+
+```powershell
+docker buildx build `
+  --platform linux/amd64 `
+  --provenance=false `
+  --sbom=false `
+  --output type=docker `
+  --build-arg "SOURCE_REPOSITORY=$sourceRepository" `
+  --build-arg "SOURCE_REVISION=$gitSha" `
+  --tag $imageUri `
+  "${sourceRepository}.git#$gitSha"
+
+$imageInfo = (docker image inspect $imageUri | ConvertFrom-Json)[0]
+[PSCustomObject]@{
+  Architecture = $imageInfo.Architecture
+  OS           = $imageInfo.Os
+  Revision     = $imageInfo.Config.Labels.'org.opencontainers.image.revision'
+} | Format-List
+
+docker push $imageUri
+
+$ecrImage = aws ecr describe-images --region $awsRegion `
+  --repository-name heymoney-api --image-ids "imageTag=$gitSha" `
+  --output json | ConvertFrom-Json
+$imageDigest = $ecrImage.imageDetails[0].imageDigest
+
+aws ecr describe-image-scan-findings --region $awsRegion `
+  --repository-name heymoney-api --image-id "imageDigest=$imageDigest" `
+  --query '{Status:imageScanStatus.status,CompletedAt:imageScanFindings.imageScanCompletedAt,SeverityCounts:imageScanFindings.findingSeverityCounts}' `
+  --output json
+```
+
+Nếu scan chưa tồn tại, chạy một lần `aws ecr start-image-scan` cho image rồi truy vấn lại bằng digest. Không deploy trước khi review `CRITICAL`/`HIGH` hoặc ghi nhận risk acceptance rõ ràng.
+
+#### 3. Tạo task definition revision nhưng chưa chạy task
+
+```powershell
+terraform -chdir=infra/terraform/environments/production plan `
+  -var="container_image_tag=$gitSha" -var="ecs_desired_count=0" `
+  -out=phase4-taskdef.tfplan
+
+terraform -chdir=infra/terraform/environments/production show `
+  -no-color phase4-taskdef.tfplan
+
+terraform -chdir=infra/terraform/environments/production apply `
+  phase4-taskdef.tfplan
+```
+
+Plan chỉ được thay task definition và cập nhật service trỏ tới revision mới; `desired_count` phải vẫn bằng `0`.
+
+#### 4. Scale service lên một task
+
+```powershell
+terraform -chdir=infra/terraform/environments/production plan `
+  -var="container_image_tag=$gitSha" -var="ecs_desired_count=1" `
+  -out=phase4-scaleup.tfplan
+
+terraform -chdir=infra/terraform/environments/production show `
+  -no-color phase4-scaleup.tfplan
+
+terraform -chdir=infra/terraform/environments/production apply `
+  phase4-scaleup.tfplan
+```
+
+Plan scale-up chỉ được đổi `aws_ecs_service.api.desired_count` từ `0` sang `1`.
+
+#### 5. Kiểm tra ECS, target group, health và log
+
+```powershell
+$cluster = terraform -chdir=infra/terraform/environments/production output -raw ecs_cluster_name
+$serviceName = terraform -chdir=infra/terraform/environments/production output -raw ecs_service_name
+$targetGroupArn = terraform -chdir=infra/terraform/environments/production output -raw target_group_arn
+$albDns = terraform -chdir=infra/terraform/environments/production output -raw alb_dns_name
+$logGroup = terraform -chdir=infra/terraform/environments/production output -raw cloudwatch_log_group_name
+
+aws ecs describe-services --region $awsRegion --cluster $cluster --services $serviceName `
+  --query 'services[0].{Status:status,Desired:desiredCount,Running:runningCount,Pending:pendingCount,TaskDefinition:taskDefinition,RolloutState:deployments[0].rolloutState}' `
+  --output json
+
+aws elbv2 describe-target-health --region $awsRegion --target-group-arn $targetGroupArn `
+  --query 'TargetHealthDescriptions[].{TargetId:Target.Id,Port:Target.Port,State:TargetHealth.State,Reason:TargetHealth.Reason}' `
+  --output table
+
+curl.exe --include --silent --show-error --max-time 20 "http://$albDns/health"
+
+$env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONUTF8 = "1"
+aws logs tail $logGroup --region $awsRegion --since 30m --format short
+```
+
+Log startup phải có kết nối MongoDB, `Agenda started` và server port `8017`; không được có Redis connection attempt hoặc secret value.
+
+#### 6. Smoke test API có cookie qua HTTP tạm thời
+
+Cookie production có `Secure=true`, nên trình duyệt không gửi cookie qua HTTP. Trước Giai đoạn 6 chỉ smoke test bằng cách nạp cookie thủ công vào session; không hạ `Secure=false`.
+
+```powershell
+$testEmail = Read-Host "Test account email"
+$securePassword = Read-Host "Test account password" -AsSecureString
+$testPassword = [System.Net.NetworkCredential]::new("", $securePassword).Password
+$loginBody = @{ email = $testEmail; password = $testPassword } | ConvertTo-Json
+
+$loginResponse = Invoke-WebRequest -Uri "http://$albDns/users/login" -Method Post `
+  -ContentType "application/json" -Body $loginBody -UseBasicParsing
+$loginResult = $loginResponse.Content | ConvertFrom-Json
+
+$testSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$accessCookie = New-Object System.Net.Cookie("accessToken", $loginResult.accessToken, "/", $albDns)
+$testSession.Cookies.Add($accessCookie)
+
+Invoke-WebRequest -Uri "http://$albDns/banks" -Method Get `
+  -WebSession $testSession -UseBasicParsing
+```
+
+Endpoint category ở revision đã deploy cần truyền `q[type]`; gọi không có `q` trả `500`.
+
+```powershell
+Invoke-WebRequest `
+  -Uri "http://$albDns/categories/individual?q%5Btype%5D=income" `
+  -Method Get -WebSession $testSession -UseBasicParsing
+```
+
+Smoke test MongoDB transaction dùng amount `0` để không đổi số dư, nhưng vẫn tạo một transaction test thật:
+
+```powershell
+$accountsResponse = Invoke-WebRequest -Uri "http://$albDns/accounts/individual" `
+  -Method Get -WebSession $testSession -UseBasicParsing
+$accounts = $accountsResponse.Content | ConvertFrom-Json
+
+$categoriesResponse = Invoke-WebRequest `
+  -Uri "http://$albDns/categories/individual?q%5Btype%5D=income" `
+  -Method Get -WebSession $testSession -UseBasicParsing
+$categories = $categoriesResponse.Content | ConvertFrom-Json
+
+$smokeName = "DEPLOYMENT_SMOKE_TEST_$(Get-Date -Format yyyyMMdd)"
+$transactionBody = @{
+  type            = "income"
+  categoryId      = [string]$categories[0]._id
+  name            = $smokeName
+  description     = "AWS manual deployment smoke test"
+  amount          = 0
+  transactionTime = (Get-Date).ToUniversalTime().ToString("o")
+  detailInfo      = @{
+    moneyTargetType = "account"
+    moneyTargetId   = [string]$accounts[0]._id
+  }
+} | ConvertTo-Json -Depth 5
+
+$transactionResponse = Invoke-WebRequest `
+  -Uri "http://$albDns/transactions/individual" -Method Post `
+  -WebSession $testSession -ContentType "application/json" `
+  -Body $transactionBody -UseBasicParsing
+$transaction = $transactionResponse.Content | ConvertFrom-Json
+
+$detailResponse = Invoke-WebRequest `
+  -Uri "http://$albDns/transactions/individual/$($transaction._id)" `
+  -Method Get -WebSession $testSession -UseBasicParsing
+$persistedTransaction = $detailResponse.Content | ConvertFrom-Json
+
+[PSCustomObject]@{
+  CreatedHTTP  = $transactionResponse.StatusCode
+  ReadHTTP     = $detailResponse.StatusCode
+  IdMatched    = ([string]$persistedTransaction._id) -eq ([string]$transaction._id)
+  AmountIsZero = $persistedTransaction.amount -eq 0
+  DetailExists = $null -ne $persistedTransaction.detailInfo
+} | Format-List
+```
+
+#### 7. Smoke test Agenda và Socket.IO
+
+Endpoint sau tạo một notification test thật cho test account:
+
+```powershell
+$agendaResponse = Invoke-WebRequest -Uri "http://$albDns/notifications/test" `
+  -Method Get -WebSession $testSession -UseBasicParsing
+
+Start-Sleep -Seconds 5
+$notificationsResponse = Invoke-WebRequest -Uri "http://$albDns/notifications" `
+  -Method Get -WebSession $testSession -UseBasicParsing
+$notifications = $notificationsResponse.Content | ConvertFrom-Json
+@($notifications | Where-Object { $_.notificationData.title -eq "Test socket" }).Count
+```
+
+Kiểm tra WebSocket authenticated handshake bằng .NET `ClientWebSocket`:
+
+```powershell
+$socketUri = [Uri]"ws://$albDns/socket.io/?EIO=4&transport=websocket"
+$webSocket = [System.Net.WebSockets.ClientWebSocket]::new()
+$webSocket.Options.SetRequestHeader("Cookie", "accessToken=$($loginResult.accessToken)")
+
+$connectTimeout = [System.Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(30))
+$webSocket.ConnectAsync($socketUri, $connectTimeout.Token).GetAwaiter().GetResult()
+
+$buffer = New-Object byte[] 8192
+$receiveTimeout = [System.Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(30))
+$openResult = $webSocket.ReceiveAsync([ArraySegment[byte]]::new($buffer), $receiveTimeout.Token).GetAwaiter().GetResult()
+$openPacket = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $openResult.Count)
+
+$connectBytes = [System.Text.Encoding]::UTF8.GetBytes("40")
+$sendTimeout = [System.Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(30))
+$webSocket.SendAsync([ArraySegment[byte]]::new($connectBytes), [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $sendTimeout.Token).GetAwaiter().GetResult()
+
+$buffer = New-Object byte[] 8192
+$ackTimeout = [System.Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(30))
+$connectResult = $webSocket.ReceiveAsync([ArraySegment[byte]]::new($buffer), $ackTimeout.Token).GetAwaiter().GetResult()
+$connectPacket = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $connectResult.Count)
+
+[PSCustomObject]@{
+  WebSocketState        = $webSocket.State
+  EngineOpenReceived    = $openPacket.StartsWith("0{")
+  SocketIOAuthenticated = $connectPacket.StartsWith("40")
+} | Format-List
+
+$webSocket.Dispose()
+$loginResult = $null
+$testPassword = $null
+$loginBody = $null
+```
+
+#### 8. Xác minh digest runtime và Terraform drift
+
+```powershell
+$taskArn = aws ecs list-tasks --region $awsRegion --cluster $cluster `
+  --service-name $serviceName --desired-status RUNNING --query 'taskArns[0]' --output text
+
+$runtimeDigest = aws ecs describe-tasks --region $awsRegion --cluster $cluster --tasks $taskArn `
+  --query 'tasks[0].containers[0].imageDigest' --output text
+
+[PSCustomObject]@{
+  GitSHA        = $gitSha
+  ECRDigest     = $imageDigest
+  RuntimeDigest = $runtimeDigest
+  DigestMatched = $imageDigest -eq $runtimeDigest
+} | Format-List
+
+terraform -chdir=infra/terraform/environments/production plan `
+  -var="container_image_tag=$gitSha" -var="ecs_desired_count=1" `
+  -detailed-exitcode -no-color
+```
+
+Terraform phải báo `No changes` và trả exit code `0`.
+
+### Bản ghi deployment thủ công 2026-08-12
+
+- Source Git SHA: `4c2323d03b2c8fd4a55f48adb1f2f5b047b5389f` (`origin/master`).
+- ECR/runtime digest: `sha256:5502763278590d4b47b5292ac1763496635593cae82c7ef2f126ef64cb76af4b`.
+- ECS task definition: `heymoney-production-api:2`.
+- ECR Basic Scan: `3 CRITICAL`, `18 HIGH`, `18 MEDIUM`, `4 LOW`; risk được chấp nhận tạm thời cho lần deploy đồ án này.
+- ALB `/health`, Atlas read/write, MongoDB transaction, Agenda và Socket.IO đều đã smoke test thành công.
+- Smoke test tạo một transaction amount `0` tên `DEPLOYMENT_SMOKE_TEST_20260812` và một notification `Test socket` trong test account.
+- HTTPS chưa cấu hình; cookie `Secure` chỉ được kiểm thử bằng session thủ công. Không hạ bảo mật cookie; hoàn thiện HTTPS ở Giai đoạn 6.
+- Ghi nhận bug: `GET /categories/individual` không có `q` trả `500`; response POST transaction có `detailInfo=null` nhưng GET detail trả dữ liệu đúng.
 
 ### Tiêu chí hoàn thành
 
-- [ ] ECS service stable với một healthy task.
-- [ ] API, Atlas, Agenda, Socket.IO và logs đều hoạt động.
-- [ ] Có thể xác định chính xác source commit từ image đang chạy.
+- [X] ECS service stable với một healthy task.
+- [X] API, Atlas, Agenda, Socket.IO và logs đều hoạt động.
+- [X] Có thể xác định chính xác source commit từ image đang chạy.
 
 ### Rủi ro và rollback
 
