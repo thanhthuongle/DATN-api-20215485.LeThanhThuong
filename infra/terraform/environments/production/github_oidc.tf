@@ -419,6 +419,17 @@ data "aws_iam_policy_document" "github_actions_terraform_apply_infrastructure" {
   }
 
   statement {
+    sid    = "DescribeCloudWatchLogGroups"
+    effect = "Allow"
+
+    actions = [
+      "logs:DescribeLogGroups"
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "ManageProductionSecretsMetadata"
     effect = "Allow"
 
@@ -456,7 +467,7 @@ data "aws_iam_policy_document" "github_actions_terraform_apply_infrastructure" {
     ]
 
     resources = [
-      "arn:aws:budgets::232499238146:budget/heymoney-production-monthly"
+      "arn:aws:budgets::232499238146:budget/heymoney-production-monthly-cost"
     ]
   }
 
