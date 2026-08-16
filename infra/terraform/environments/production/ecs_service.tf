@@ -47,6 +47,12 @@ resource "aws_ecs_service" "api" {
     aws_ecs_cluster_capacity_providers.main
   ]
 
+  lifecycle {
+    ignore_changes = [
+      task_definition
+    ]
+  }
+
   tags = {
     Name = "heymoney-production-api"
   }
