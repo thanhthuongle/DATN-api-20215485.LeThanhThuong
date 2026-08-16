@@ -12,15 +12,15 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 
 ## Tổng quan tiến độ
 
-|    # | Giai đoạn                             | Trạng thái       | Ghi chú |
-| ---: | ------------------------------------- | ---------------- | ------- |
-|    1 | Tinh chỉnh source                     | `Hoàn thành`     |         |
-|    2 | Docker build và kiểm thử local        | `Hoàn thành`     |         |
-|    3 | Tạo AWS infrastructure bằng Terraform | `Hoàn thành`     |         |
-|    4 | Deploy thủ công lần đầu               | `Hoàn thành`     |         |
-|    5 | Thiết lập GitHub CI/CD                | `Đang thực hiện` |         |
-|    6 | Domain, HTTPS và smoke test           | Chưa bắt đầu     |         |
-|    7 | Monitoring và rollback test           | Chưa bắt đầu     |         |
+|    # | Giai đoạn                             | Trạng thái   | Ghi chú |
+| ---: | ------------------------------------- | ------------ | ------- |
+|    1 | Tinh chỉnh source                     | `Hoàn thành` |         |
+|    2 | Docker build và kiểm thử local        | `Hoàn thành` |         |
+|    3 | Tạo AWS infrastructure bằng Terraform | `Hoàn thành` |         |
+|    4 | Deploy thủ công lần đầu               | `Hoàn thành` |         |
+|    5 | Thiết lập GitHub CI/CD                | `Hoàn thành` |         |
+|    6 | Domain, HTTPS và smoke test           | Chưa bắt đầu |         |
+|    7 | Monitoring và rollback test           | Chưa bắt đầu |         |
 
 ## Quyết định kiến trúc đã chốt
 
@@ -613,15 +613,15 @@ Tự động kiểm tra mọi thay đổi và tự động deploy bản hợp l�
 - [X] Tạo AWS IAM OIDC provider cho GitHub Actions.
 - [X] Tạo deploy role với trust policy giới hạn đúng repository, branch `master` và production environment.
 - [X] Tạo Terraform role riêng, không dùng chung application deploy role.
-- [ ] Tạo workflow deploy chỉ chạy sau khi CI thành công trên `master`.
-- [ ] Build image một lần, tag bằng full Git SHA và push ECR.
-- [ ] Cập nhật ECS task definition bằng image SHA/digest.
-- [ ] Deploy ECS service, chờ service stable và chạy smoke test `/health`.
-- [ ] Workflow phải fail nếu image scan policy, deployment hoặc smoke test thất bại.
-- [ ] Tạo Terraform workflow chạy fmt/validate/plan trên pull request.
-- [ ] Terraform apply chỉ chạy từ `master` thông qua production approval.
-- [ ] Bật branch protection yêu cầu CI pass trước khi merge.
-- [ ] Ghi hướng dẫn rollback workflow về image SHA/task revision trước.
+- [X] Tạo workflow deploy chỉ chạy sau khi CI thành công trên `master`.
+- [X] Build image một lần, tag bằng full Git SHA và push ECR.
+- [X] Cập nhật ECS task definition bằng image SHA/digest.
+- [X] Deploy ECS service, chờ service stable và chạy smoke test `/health`.
+- [X] Workflow phải fail nếu image scan policy, deployment hoặc smoke test thất bại.
+- [X] Tạo Terraform workflow chạy fmt/validate/plan trên pull request.
+- [X] Terraform apply chỉ chạy từ `master` thông qua production approval.
+- [X] Bật branch protection yêu cầu CI pass trước khi merge.
+- [X] Ghi hướng dẫn rollback workflow về image SHA/task revision trước.
 
 ### Tài nguyên liên quan
 
@@ -633,17 +633,17 @@ Tự động kiểm tra mọi thay đổi và tự động deploy bản hợp l�
 ### Cách kiểm tra
 
 - [ ] Pull request lỗi lint/build bị chặn.
-- [ ] Pull request hợp lệ tạo Terraform plan nhưng không apply.
-- [ ] Merge vào `master` tạo image mang đúng commit SHA.
-- [ ] ECS deploy revision mới và service trở lại stable.
-- [ ] Workflow không chứa AWS access key dài hạn.
-- [ ] Workflow từ branch không được phép không thể assume production role.
+- [X] Pull request hợp lệ tạo Terraform plan nhưng không apply.
+- [X] Merge vào `master` tạo image mang đúng commit SHA.
+- [X] ECS deploy revision mới và service trở lại stable.
+- [X] Workflow không chứa AWS access key dài hạn.
+- [X] Workflow từ branch không được phép không thể assume production role.
 
 ### Tiêu chí hoàn thành
 
-- [ ] Push hợp lệ lên `master` tự động triển khai tới ECS.
-- [ ] Mọi image đang chạy truy vết được về Git commit.
-- [ ] CI/CD có least-privilege OIDC và production approval.
+- [X] Push hợp lệ lên `master` tự động triển khai tới ECS.
+- [X] Mọi image đang chạy truy vết được về Git commit.
+- [X] CI/CD có least-privilege OIDC và production approval.
 - [ ] Có quy trình rollback được ghi chép và thử nghiệm ở giai đoạn 7.
 
 ### Rủi ro và rollback
@@ -651,6 +651,22 @@ Tự động kiểm tra mọi thay đổi và tự động deploy bản hợp l�
 - Workflow sai có thể deploy nhầm image; luôn deploy SHA/digest, không dựa duy nhất vào `latest`.
 - Thu hồi hoặc disable deploy role khi phát hiện trust policy sai.
 - Rollback bằng task definition revision trước, không rebuild source cũ dưới tag mới.
+
+### Runbook rollback ECS
+
+Rollback sử dụng task definition revision đã chạy ổn định trước đó; không rebuild source cũ dưới tag mới.
+
+> Không chạy nguyên văn giá trị `<revision>`. Phải thay bằng revision hợp lệ lấy từ lệnh `list-task-definitions`. Không thực hiện rollback thử cho tới giai đoạn 7.
+
+```bash
+aws ecs list-task-definitions \
+  --region ap-southeast-1 \
+  --family-prefix heymoney-production-api \
+  --status ACTIVE \
+  --sort DESC \
+  --max-items 10 \
+  --output table
+```
 
 ---
 
