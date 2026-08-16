@@ -1,0 +1,188 @@
+name: Terraform production
+
+on:
+  pull_request:
+    branches:
+      - master
+      - feature/deploy-aws
+    paths:
+      - "infra/terraform/environments/production/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-production-${{ github.event_name }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_WORKING_DIRECTORY: infra/terraform/environments/production
+
+jobs:
+  plan:
+    name: Terraform plan
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+          terraform_wrapper: false
+
+      - name: Configure read-only AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: github-actions-terraform-plan
+          allowed-account-ids: "232499238146"
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+
+      - name: Initialize Terraform
+        run: terraform init -input=false
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+
+      - name: Validate Terraform
+        run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+
+      - name: Read current ECS deployment variables
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+        run: |
+          set -euo pipefail
+
+          cluster="$(terraform output -raw ecs_cluster_name)"
+          service="$(terraform output -raw ecs_service_name)"
+
+          service_json="$(
+            aws ecs describe-services \
+              --region "${{ vars.AWS_REGION }}" \
+              --cluster "$cluster" \
+              --services "$service" \
+              --output json
+          )"
+
+          desired_count="$(jq -r '.services[0].desiredCount' <<< "$service_json")"
+          task_definition="$(jq -r '.services[0].taskDefinition' <<< "$service_json")"
+
+          image="$(
+            aws ecs describe-task-definition \
+              --region "${{ vars.AWS_REGION }}" \
+              --task-definition "$task_definition" \
+              --query 'taskDefinition.containerDefinitions[0].image' \
+              --output text
+          )"
+
+          image_tag="${image##*:}"
+
+          if [[ -z "$image_tag" || "$image_tag" == "$image" ]]; then
+            echo "Cannot determine the current immutable image tag."
+            exit 1
+          fi
+
+          echo "TF_VAR_ecs_desired_count=$desired_count" >> "$GITHUB_ENV"
+          echo "TF_VAR_container_image_tag=$image_tag" >> "$GITHUB_ENV"
+
+          echo "Planning with desired_count=$desired_count"
+          echo "Planning with image tag=$image_tag"
+
+      - name: Create Terraform plan
+        run: terraform plan -input=false -no-color -out=tfplan
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+
+  apply:
+    name: Terraform apply
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v6
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+          terraform_wrapper: false
+
+      - name: Configure production AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: github-actions-terraform-apply
+          allowed-account-ids: "232499238146"
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+
+      - name: Initialize Terraform
+        run: terraform init -input=false
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+
+      - name: Validate Terraform
+        run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+
+      - name: Read current ECS deployment variables
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+        run: |
+          set -euo pipefail
+
+          cluster="$(terraform output -raw ecs_cluster_name)"
+          service="$(terraform output -raw ecs_service_name)"
+
+          service_json="$(
+            aws ecs describe-services \
+              --region "${{ vars.AWS_REGION }}" \
+              --cluster "$cluster" \
+              --services "$service" \
+              --output json
+          )"
+
+          desired_count="$(jq -r '.services[0].desiredCount' <<< "$service_json")"
+          task_definition="$(jq -r '.services[0].taskDefinition' <<< "$service_json")"
+
+          image="$(
+            aws ecs describe-task-definition \
+              --region "${{ vars.AWS_REGION }}" \
+              --task-definition "$task_definition" \
+              --query 'taskDefinition.containerDefinitions[0].image' \
+              --output text
+          )"
+
+          image_tag="${image##*:}"
+
+          if [[ -z "$image_tag" || "$image_tag" == "$image" ]]; then
+            echo "Cannot determine the current immutable image tag."
+            exit 1
+          fi
+
+          echo "TF_VAR_ecs_desired_count=$desired_count" >> "$GITHUB_ENV"
+          echo "TF_VAR_container_image_tag=$image_tag" >> "$GITHUB_ENV"
+
+      - name: Create reviewed Terraform plan
+        run: terraform plan -input=false -no-color -out=tfplan
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+
+      - name: Apply Terraform plan
+        run: terraform apply -input=false -auto-approve tfplan
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
