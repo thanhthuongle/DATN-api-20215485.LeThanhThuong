@@ -169,11 +169,23 @@ jobs:
               --output text
           )"
 
-          echo "Previous task definition: $previous_task_definition"
+          echo "Previous running task definition: $previous_task_definition"
+
+          task_definition_family="${previous_task_definition%:*}"
+
+          template_task_definition="$(
+            aws ecs describe-task-definition \
+              --region "$AWS_REGION" \
+              --task-definition "$task_definition_family" \
+              --query "taskDefinition.taskDefinitionArn" \
+              --output text
+          )"
+
+          echo "Latest task definition template: $template_task_definition"
 
           aws ecs describe-task-definition \
             --region "$AWS_REGION" \
-            --task-definition "$previous_task_definition" \
+            --task-definition "$template_task_definition" \
             --query "taskDefinition" \
             --output json > task-definition.json
 

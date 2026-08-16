@@ -77,14 +77,18 @@ jobs:
           )"
 
           desired_count="$(jq -r '.services[0].desiredCount' <<< "$service_json")"
-          task_definition="$(jq -r '.services[0].taskDefinition' <<< "$service_json")"
+
+          managed_container_definitions="$(
+            terraform show -json |
+              jq -r '
+                .values.root_module.resources[]
+                | select(.address == "aws_ecs_task_definition.api")
+                | .values.container_definitions
+              '
+          )"
 
           image="$(
-            aws ecs describe-task-definition \
-              --region "${{ vars.AWS_REGION }}" \
-              --task-definition "$task_definition" \
-              --query 'taskDefinition.containerDefinitions[0].image' \
-              --output text
+            jq -r '.[0].image' <<< "$managed_container_definitions"
           )"
 
           image_tag="${image##*:}"
@@ -169,14 +173,18 @@ jobs:
           )"
 
           desired_count="$(jq -r '.services[0].desiredCount' <<< "$service_json")"
-          task_definition="$(jq -r '.services[0].taskDefinition' <<< "$service_json")"
+
+          managed_container_definitions="$(
+            terraform show -json |
+              jq -r '
+                .values.root_module.resources[]
+                | select(.address == "aws_ecs_task_definition.api")
+                | .values.container_definitions
+              '
+          )"
 
           image="$(
-            aws ecs describe-task-definition \
-              --region "${{ vars.AWS_REGION }}" \
-              --task-definition "$task_definition" \
-              --query 'taskDefinition.containerDefinitions[0].image' \
-              --output text
+            jq -r '.[0].image' <<< "$managed_container_definitions"
           )"
 
           image_tag="${image##*:}"
