@@ -14,42 +14,46 @@ import { bankRoutes } from './bankRoute'
 import { notificationRoutes } from './notificationRoute'
 import { loanRoutes } from './loanRoute'
 
-const Router = express.Router()
+export const createAPIs = ({ isReady, isShuttingDown }) => {
+  const Router = express.Router()
 
-Router.get('/', (req, res) => {
-  res.end('<h1>Hello World!</h1><hr>')
-})
+  Router.get('/health', (req, res) => {
+    if (!isReady() || isShuttingDown()) {
+      return res.status(StatusCodes.SERVICE_UNAVAILABLE).json({
+        status: 'not_ready'
+      })
+    }
 
-Router.get('/status', (req, res) => {
-  res.status(StatusCodes.OK).json({
-    message: 'APIs are ready to use'
+    res.status(StatusCodes.OK).json({
+      message: 'APIs are ready to use'
+    })
   })
-})
 
-Router.use('/users', userRoutes)
+  Router.use('/users', userRoutes)
 
-Router.use('/transactions', transactionRoutes)
+  Router.use('/transactions', transactionRoutes)
 
-Router.use('/categories', categoryRoutes)
+  Router.use('/categories', categoryRoutes)
 
-Router.use('/accounts', accountRoutes)
+  Router.use('/accounts', accountRoutes)
 
-Router.use('/savings', savingRoutes)
+  Router.use('/savings', savingRoutes)
 
-Router.use('/accumulations', accumulationRoutes)
+  Router.use('/accumulations', accumulationRoutes)
 
-Router.use('/moneySources', moneySourceRoutes)
+  Router.use('/moneySources', moneySourceRoutes)
 
-Router.use('/budgets', budgetRoutes)
+  Router.use('/budgets', budgetRoutes)
 
-Router.use('/families', familyRoutes)
+  Router.use('/families', familyRoutes)
 
-Router.use('/contacts', contactRoutes)
+  Router.use('/contacts', contactRoutes)
 
-Router.use('/banks', bankRoutes)
+  Router.use('/banks', bankRoutes)
 
-Router.use('/notifications', notificationRoutes)
+  Router.use('/notifications', notificationRoutes)
 
-Router.use('/loans', loanRoutes)
+  Router.use('/loans', loanRoutes)
 
-export const APIs = Router
+  return Router
+}
