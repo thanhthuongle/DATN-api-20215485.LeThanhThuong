@@ -40,7 +40,7 @@ data "aws_iam_policy_document" "github_actions_deploy_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:thanhthuongle/HeyMoney-API:environment:production"
+        "repo:thanhthuongle@92387369/HeyMoney-API@967128973:environment:production"
       ]
     }
   }
@@ -175,7 +175,7 @@ data "aws_iam_policy_document" "github_actions_terraform_plan_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:thanhthuongle/HeyMoney-API:pull_request"
+        "repo:thanhthuongle@92387369/HeyMoney-API@967128973:pull_request"
       ]
     }
   }
@@ -221,7 +221,7 @@ data "aws_iam_policy_document" "github_actions_terraform_apply_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:thanhthuongle/HeyMoney-API:environment:production"
+        "repo:thanhthuongle@92387369/HeyMoney-API@967128973:environment:production"
       ]
     }
   }

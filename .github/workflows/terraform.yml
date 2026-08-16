@@ -39,46 +39,6 @@ jobs:
           terraform_version: 1.15.8
           terraform_wrapper: false
 
-      - name: Inspect non-sensitive OIDC identity
-        shell: bash
-        env:
-          PLAN_ROLE_ARN: ${{ vars.AWS_TERRAFORM_PLAN_ROLE_ARN }}
-        run: |
-          set -euo pipefail
-
-          echo "Configured plan role: $PLAN_ROLE_ARN"
-
-          response="$(
-            curl \
-              --fail \
-              --silent \
-              --show-error \
-              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com"
-          )"
-
-          token="$(jq -r '.value' <<< "$response")"
-          payload="$(cut -d '.' -f 2 <<< "$token")"
-
-          case $((${#payload} % 4)) in
-            2) payload="${payload}==" ;;
-            3) payload="${payload}=" ;;
-          esac
-
-          printf '%s' "$payload" |
-            tr '_-' '/+' |
-            base64 --decode |
-            jq '{
-              iss,
-              aud,
-              sub,
-              repository,
-              repository_owner,
-              ref,
-              event_name,
-              job_workflow_ref
-            }'
-
       - name: Configure read-only AWS credentials through OIDC
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
@@ -143,6 +103,16 @@ jobs:
       - name: Create Terraform plan
         run: terraform plan -input=false -no-color -out=tfplan
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+        env:
+          TF_VAR_database_name: ${{ vars.TF_DATABASE_NAME }}
+          TF_VAR_cors_allowed_origins: ${{ vars.TF_CORS_ALLOWED_ORIGINS }}
+          TF_VAR_access_token_life: ${{ vars.TF_ACCESS_TOKEN_LIFE }}
+          TF_VAR_refresh_token_life: ${{ vars.TF_REFRESH_TOKEN_LIFE }}
+          TF_VAR_admin_email_address: ${{ vars.TF_ADMIN_EMAIL_ADDRESS }}
+          TF_VAR_admin_email_name: ${{ vars.TF_ADMIN_EMAIL_NAME }}
+          TF_VAR_cloudinary_cloud_name: ${{ vars.TF_CLOUDINARY_CLOUD_NAME }}
+          TF_VAR_website_domain_production: ${{ vars.TF_WEBSITE_DOMAIN_PRODUCTION }}
+          TF_VAR_budget_notification_email: ${{ secrets.TF_BUDGET_NOTIFICATION_EMAIL }}
 
   apply:
     name: Terraform apply
@@ -222,6 +192,16 @@ jobs:
       - name: Create reviewed Terraform plan
         run: terraform plan -input=false -no-color -out=tfplan
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+        env:
+          TF_VAR_database_name: ${{ vars.TF_DATABASE_NAME }}
+          TF_VAR_cors_allowed_origins: ${{ vars.TF_CORS_ALLOWED_ORIGINS }}
+          TF_VAR_access_token_life: ${{ vars.TF_ACCESS_TOKEN_LIFE }}
+          TF_VAR_refresh_token_life: ${{ vars.TF_REFRESH_TOKEN_LIFE }}
+          TF_VAR_admin_email_address: ${{ vars.TF_ADMIN_EMAIL_ADDRESS }}
+          TF_VAR_admin_email_name: ${{ vars.TF_ADMIN_EMAIL_NAME }}
+          TF_VAR_cloudinary_cloud_name: ${{ vars.TF_CLOUDINARY_CLOUD_NAME }}
+          TF_VAR_website_domain_production: ${{ vars.TF_WEBSITE_DOMAIN_PRODUCTION }}
+          TF_VAR_budget_notification_email: ${{ secrets.TF_BUDGET_NOTIFICATION_EMAIL }}
 
       - name: Apply Terraform plan
         run: terraform apply -input=false -auto-approve tfplan
