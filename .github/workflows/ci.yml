@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, build and Docker validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.19.0
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: Install dependencies from lockfile
+        run: yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build application
+        run: yarn build
+
+      - name: Validate Docker image build
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            --provenance=false \
+            --sbom=false \
+            --build-arg "SOURCE_REPOSITORY=${{ github.server_url }}/${{ github.repository }}" \
+            --build-arg "SOURCE_REVISION=${{ github.sha }}" \
+            -t "heymoney-api:ci-${{ github.sha }}" \
+            .
