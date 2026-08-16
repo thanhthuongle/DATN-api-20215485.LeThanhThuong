@@ -4,10 +4,6 @@ on:
   pull_request:
     branches:
       - master
-      - feature/deploy-aws
-    paths:
-      - "infra/terraform/environments/production/**"
-      - ".github/workflows/terraform.yml"
   workflow_dispatch:
 
 permissions:
