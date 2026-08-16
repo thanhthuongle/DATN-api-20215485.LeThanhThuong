@@ -462,7 +462,10 @@ data "aws_iam_policy_document" "github_actions_terraform_apply_infrastructure" {
     effect = "Allow"
 
     actions = [
+      "budgets:ListTagsForResource",
       "budgets:ModifyBudget",
+      "budgets:TagResource",
+      "budgets:UntagResource",
       "budgets:ViewBudget"
     ]
 
