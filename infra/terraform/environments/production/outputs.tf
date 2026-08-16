@@ -66,3 +66,18 @@ output "application_secret_names" {
   description = "Secrets Manager names that require values before deployment"
   value       = local.application_secret_names
 }
+
+output "github_actions_deploy_role_arn" {
+  description = "IAM role assumed by the production application deployment workflow"
+  value       = aws_iam_role.github_actions_deploy.arn
+}
+
+output "github_actions_terraform_plan_role_arn" {
+  description = "IAM role assumed by Terraform plan workflows on pull requests"
+  value       = aws_iam_role.github_actions_terraform_plan.arn
+}
+
+output "github_actions_terraform_apply_role_arn" {
+  description = "IAM role assumed by Terraform apply workflows through the production environment"
+  value       = aws_iam_role.github_actions_terraform_apply.arn
+}

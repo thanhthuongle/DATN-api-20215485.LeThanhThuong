@@ -39,25 +39,25 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 
 > Chỉ ghi identifier, hostname và ARN không nhạy cảm. Không ghi secret hoặc connection string.
 
-| Thông tin                         | Giá trị                                                                                                              |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| AWS Account ID                    | `232499238146`                                                                                                       |
-| AWS Region                        | `ap-southeast-1`                                                                                                     |
-| Terraform state bucket            | `heymoney-terraform-state-232499238146-ap-southeast-1`                                                               |
-| API domain                        | `api.<your-domain>`                                                                                                  |
-| MongoDB Atlas region              | `HONG KONG (ap-east-1)`                                                                                              |
-| ECR repository                    | `232499238146.dkr.ecr.ap-southeast-1.amazonaws.com/heymoney-api`                                                     |
-| ECS cluster                       | `heymoney-production`                                                                                                |
-| ECS service                       | `heymoney-production-api`                                                                                            |
-| ECS task definition family        | `heymoney-production-api`                                                                                            |
-| ALB DNS name                      | `heymoney-production-alb-25405697.ap-southeast-1.elb.amazonaws.com`                                                  |
-| ALB ARN                           | `arn:aws:elasticloadbalancing:ap-southeast-1:232499238146:loadbalancer/app/heymoney-production-alb/49892853bcfb1051` |
-| Target group ARN                  | `arn:aws:elasticloadbalancing:ap-southeast-1:232499238146:targetgroup/heymoney-production-api/afe975ac6b8cf7d6`      |
-| NAT Elastic IP                    | `52.77.112.105`                                                                                                      |
-| ACM certificate ARN               | `TBD`                                                                                                                |
-| CloudWatch log group              | `/ecs/heymoney-production-api`                                                                                       |
-| GitHub Actions deploy role ARN    | `TBD`                                                                                                                |
-| GitHub Actions Terraform role ARN | `TBD`                                                                                                                |
+| Thông tin                         | Giá trị                                                                                                                                                                    |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AWS Account ID                    | `232499238146`                                                                                                                                                             |
+| AWS Region                        | `ap-southeast-1`                                                                                                                                                           |
+| Terraform state bucket            | `heymoney-terraform-state-232499238146-ap-southeast-1`                                                                                                                     |
+| API domain                        | `api.<your-domain>`                                                                                                                                                        |
+| MongoDB Atlas region              | `HONG KONG (ap-east-1)`                                                                                                                                                    |
+| ECR repository                    | `232499238146.dkr.ecr.ap-southeast-1.amazonaws.com/heymoney-api`                                                                                                           |
+| ECS cluster                       | `heymoney-production`                                                                                                                                                      |
+| ECS service                       | `heymoney-production-api`                                                                                                                                                  |
+| ECS task definition family        | `heymoney-production-api`                                                                                                                                                  |
+| ALB DNS name                      | `heymoney-production-alb-25405697.ap-southeast-1.elb.amazonaws.com`                                                                                                        |
+| ALB ARN                           | `arn:aws:elasticloadbalancing:ap-southeast-1:232499238146:loadbalancer/app/heymoney-production-alb/49892853bcfb1051`                                                       |
+| Target group ARN                  | `arn:aws:elasticloadbalancing:ap-southeast-1:232499238146:targetgroup/heymoney-production-api/afe975ac6b8cf7d6`                                                            |
+| NAT Elastic IP                    | `52.77.112.105`                                                                                                                                                            |
+| ACM certificate ARN               | `TBD`                                                                                                                                                                      |
+| CloudWatch log group              | `/ecs/heymoney-production-api`                                                                                                                                             |
+| GitHub Actions deploy role ARN    | `arn:aws:iam::232499238146:role/heymoney-production-github-deploy-role`                                                                                                    |
+| GitHub Actions Terraform role ARN | ``arn:aws:iam::232499238146:role/heymoney-production-github-terraform-plan-role`; Apply: `arn:aws:iam::232499238146:role/heymoney-production-github-terraform-apply-role`` |
 
 ---
 
@@ -607,12 +607,12 @@ Tự động kiểm tra mọi thay đổi và tự động deploy bản hợp l�
 
 ### Checklist đầu việc
 
-- [ ] Tạo workflow CI chạy trên pull request và push.
-- [ ] CI thực hiện install từ lockfile, lint, build, test và Docker build validation.
-- [ ] Tạo GitHub Environment `production` và cấu hình approval phù hợp.
-- [ ] Tạo AWS IAM OIDC provider cho GitHub Actions.
-- [ ] Tạo deploy role với trust policy giới hạn đúng repository, branch `master` và production environment.
-- [ ] Tạo Terraform role riêng, không dùng chung application deploy role.
+- [X] Tạo workflow CI chạy trên pull request và push.
+- [X] CI thực hiện install từ lockfile, lint, build, test và Docker build validation.
+- [X] Tạo GitHub Environment `production` và cấu hình approval phù hợp.
+- [X] Tạo AWS IAM OIDC provider cho GitHub Actions.
+- [X] Tạo deploy role với trust policy giới hạn đúng repository, branch `master` và production environment.
+- [X] Tạo Terraform role riêng, không dùng chung application deploy role.
 - [ ] Tạo workflow deploy chỉ chạy sau khi CI thành công trên `master`.
 - [ ] Build image một lần, tag bằng full Git SHA và push ECR.
 - [ ] Cập nhật ECS task definition bằng image SHA/digest.

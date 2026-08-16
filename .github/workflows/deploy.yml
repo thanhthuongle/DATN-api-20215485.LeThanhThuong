@@ -1,0 +1,254 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy to ECS
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+      ALB_HEALTH_URL: ${{ vars.ALB_HEALTH_URL }}
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Configure AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-actions-production-deploy
+          allowed-account-ids: "232499238146"
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2.1.6
+
+      - name: Build and push immutable image
+        id: image
+        shell: bash
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          set -euo pipefail
+
+          IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          echo "uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+          if aws ecr describe-images \
+            --region "$AWS_REGION" \
+            --repository-name "$ECR_REPOSITORY" \
+            --image-ids "imageTag=${IMAGE_TAG}" \
+            >/dev/null 2>&1; then
+            echo "Image ${IMAGE_URI} already exists; reusing immutable tag."
+            exit 0
+          fi
+
+          docker build \
+            --platform linux/amd64 \
+            --provenance=false \
+            --sbom=false \
+            --build-arg "SOURCE_REPOSITORY=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --build-arg "SOURCE_REVISION=${IMAGE_TAG}" \
+            --tag "$IMAGE_URI" \
+            .
+
+          docker push "$IMAGE_URI"
+
+      - name: Enforce ECR scan policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scan_status=""
+
+          for attempt in {1..30}; do
+            scan_status="$(
+              aws ecr describe-image-scan-findings \
+                --region "$AWS_REGION" \
+                --repository-name "$ECR_REPOSITORY" \
+                --image-id "imageTag=${IMAGE_TAG}" \
+                --query "imageScanStatus.status" \
+                --output text 2>/dev/null || true
+            )"
+
+            echo "Scan attempt ${attempt}: ${scan_status:-NOT_AVAILABLE}"
+
+            if [[ "$scan_status" == "COMPLETE" ]]; then
+              break
+            fi
+
+            if [[ "$scan_status" == "FAILED" || "$scan_status" == "UNSUPPORTED_IMAGE" ]]; then
+              echo "ECR scan failed with status: $scan_status"
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          if [[ "$scan_status" != "COMPLETE" ]]; then
+            echo "ECR scan did not complete before timeout."
+            exit 1
+          fi
+
+          critical="$(
+            aws ecr describe-image-scan-findings \
+              --region "$AWS_REGION" \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-id "imageTag=${IMAGE_TAG}" \
+              --query "imageScanFindings.findingSeverityCounts.CRITICAL" \
+              --output text
+          )"
+
+          high="$(
+            aws ecr describe-image-scan-findings \
+              --region "$AWS_REGION" \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-id "imageTag=${IMAGE_TAG}" \
+              --query "imageScanFindings.findingSeverityCounts.HIGH" \
+              --output text
+          )"
+
+          [[ "$critical" == "None" ]] && critical=0
+          [[ "$high" == "None" ]] && high=0
+
+          echo "ECR findings: CRITICAL=${critical}, HIGH=${high}"
+          echo "Allowed: CRITICAL<=${{ vars.ECR_MAX_CRITICAL }}, HIGH<=${{ vars.ECR_MAX_HIGH }}"
+
+          if (( critical > ${{ vars.ECR_MAX_CRITICAL }} )); then
+            echo "CRITICAL vulnerability threshold exceeded."
+            exit 1
+          fi
+
+          if (( high > ${{ vars.ECR_MAX_HIGH }} )); then
+            echo "HIGH vulnerability threshold exceeded."
+            exit 1
+          fi
+
+      - name: Register task definition and deploy ECS service
+        shell: bash
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        run: |
+          set -euo pipefail
+
+          previous_task_definition="$(
+            aws ecs describe-services \
+              --region "$AWS_REGION" \
+              --cluster "$ECS_CLUSTER" \
+              --services "$ECS_SERVICE" \
+              --query "services[0].taskDefinition" \
+              --output text
+          )"
+
+          echo "Previous task definition: $previous_task_definition"
+
+          aws ecs describe-task-definition \
+            --region "$AWS_REGION" \
+            --task-definition "$previous_task_definition" \
+            --query "taskDefinition" \
+            --output json > task-definition.json
+
+          jq --arg image "$IMAGE_URI" \
+            '.containerDefinitions[0].image = $image
+             | del(
+                 .taskDefinitionArn,
+                 .revision,
+                 .status,
+                 .requiresAttributes,
+                 .compatibilities,
+                 .registeredAt,
+                 .registeredBy,
+                 .deregisteredAt
+               )' \
+            task-definition.json > next-task-definition.json
+
+          next_task_definition="$(
+            aws ecs register-task-definition \
+              --region "$AWS_REGION" \
+              --cli-input-json file://next-task-definition.json \
+              --query "taskDefinition.taskDefinitionArn" \
+              --output text
+          )"
+
+          echo "New task definition: $next_task_definition"
+
+          aws ecs update-service \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$next_task_definition" \
+            >/dev/null
+
+          if ! aws ecs wait services-stable \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"; then
+            echo "Deployment failed; restoring $previous_task_definition"
+
+            aws ecs update-service \
+              --region "$AWS_REGION" \
+              --cluster "$ECS_CLUSTER" \
+              --service "$ECS_SERVICE" \
+              --task-definition "$previous_task_definition" \
+              >/dev/null
+
+            aws ecs wait services-stable \
+              --region "$AWS_REGION" \
+              --cluster "$ECS_CLUSTER" \
+              --services "$ECS_SERVICE" || true
+
+            exit 1
+          fi
+
+      - name: Smoke test production health endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..12}; do
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 15 \
+              "$ALB_HEALTH_URL"; then
+              echo
+              echo "Production health check passed."
+              exit 0
+            fi
+
+            echo "Health attempt ${attempt} failed; retrying..."
+            sleep 10
+          done
+
+          echo "Production health check failed."
+          exit 1
