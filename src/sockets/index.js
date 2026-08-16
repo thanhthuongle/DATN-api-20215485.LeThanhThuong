@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import { Server } from 'socket.io'
 import { JwtProvider } from '~/providers/JwtProvider'
 import { env } from '~/config/environment'
