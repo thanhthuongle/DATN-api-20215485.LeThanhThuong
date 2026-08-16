@@ -39,6 +39,46 @@ jobs:
           terraform_version: 1.15.8
           terraform_wrapper: false
 
+      - name: Inspect non-sensitive OIDC identity
+        shell: bash
+        env:
+          PLAN_ROLE_ARN: ${{ vars.AWS_TERRAFORM_PLAN_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+
+          echo "Configured plan role: $PLAN_ROLE_ARN"
+
+          response="$(
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com"
+          )"
+
+          token="$(jq -r '.value' <<< "$response")"
+          payload="$(cut -d '.' -f 2 <<< "$token")"
+
+          case $((${#payload} % 4)) in
+            2) payload="${payload}==" ;;
+            3) payload="${payload}=" ;;
+          esac
+
+          printf '%s' "$payload" |
+            tr '_-' '/+' |
+            base64 --decode |
+            jq '{
+              iss,
+              aud,
+              sub,
+              repository,
+              repository_owner,
+              ref,
+              event_name,
+              job_workflow_ref
+            }'
+
       - name: Configure read-only AWS credentials through OIDC
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
