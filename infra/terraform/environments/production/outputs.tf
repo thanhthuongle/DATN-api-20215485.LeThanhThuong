@@ -81,3 +81,19 @@ output "github_actions_terraform_apply_role_arn" {
   description = "IAM role assumed by Terraform apply workflows through the production environment"
   value       = aws_iam_role.github_actions_terraform_apply.arn
 }
+
+output "acm_certificate_arn" {
+  description = "ACM certificate ARN for the production API domain"
+  value       = aws_acm_certificate.api.arn
+}
+
+output "acm_dns_validation_records" {
+  description = "DNS records that must be created at the external DNS provider"
+  value = [
+    for option in aws_acm_certificate.api.domain_validation_options : {
+      name  = option.resource_record_name
+      type  = option.resource_record_type
+      value = option.resource_record_value
+    }
+  ]
+}
