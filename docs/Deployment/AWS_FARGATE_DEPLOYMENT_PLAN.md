@@ -19,7 +19,7 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 |    3 | Tạo AWS infrastructure bằng Terraform | `Hoàn thành` |         |
 |    4 | Deploy thủ công lần đầu               | `Hoàn thành` |         |
 |    5 | Thiết lập GitHub CI/CD                | `Hoàn thành` |         |
-|    6 | Domain, HTTPS và smoke test           | Chưa bắt đầu |         |
+|    6 | Domain, HTTPS và smoke test           | `Hoàn thành` |         |
 |    7 | Monitoring và rollback test           | Chưa bắt đầu |         |
 
 ## Quyết định kiến trúc đã chốt
@@ -44,7 +44,7 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 | AWS Account ID                    | `232499238146`                                                                                                                                                             |
 | AWS Region                        | `ap-southeast-1`                                                                                                                                                           |
 | Terraform state bucket            | `heymoney-terraform-state-232499238146-ap-southeast-1`                                                                                                                     |
-| API domain                        | `api.<your-domain>`                                                                                                                                                        |
+| API domain                        | `api.heymoney.dpdns.org`                                                                                                                                                   |
 | MongoDB Atlas region              | `HONG KONG (ap-east-1)`                                                                                                                                                    |
 | ECR repository                    | `232499238146.dkr.ecr.ap-southeast-1.amazonaws.com/heymoney-api`                                                                                                           |
 | ECS cluster                       | `heymoney-production`                                                                                                                                                      |
@@ -54,7 +54,7 @@ Tài liệu này là checklist thực thi và nghiệm thu việc triển khai b
 | ALB ARN                           | `arn:aws:elasticloadbalancing:ap-southeast-1:232499238146:loadbalancer/app/heymoney-production-alb/49892853bcfb1051`                                                       |
 | Target group ARN                  | `arn:aws:elasticloadbalancing:ap-southeast-1:232499238146:targetgroup/heymoney-production-api/afe975ac6b8cf7d6`                                                            |
 | NAT Elastic IP                    | `52.77.112.105`                                                                                                                                                            |
-| ACM certificate ARN               | `TBD`                                                                                                                                                                      |
+| ACM certificate ARN               | `arn:aws:acm:ap-southeast-1:232499238146:certificate/0bddfaa9-d4da-415d-acc0-e3b04ca65423`                                                                                 |
 | CloudWatch log group              | `/ecs/heymoney-production-api`                                                                                                                                             |
 | GitHub Actions deploy role ARN    | `arn:aws:iam::232499238146:role/heymoney-production-github-deploy-role`                                                                                                    |
 | GitHub Actions Terraform role ARN | ``arn:aws:iam::232499238146:role/heymoney-production-github-terraform-plan-role`; Apply: `arn:aws:iam::232499238146:role/heymoney-production-github-terraform-apply-role`` |
@@ -683,17 +683,17 @@ Công khai API qua domain ổn định, HTTPS/WSS hợp lệ và cho phép front
 
 ### Checklist đầu việc
 
-- [ ] Chốt hostname `api.<domain>` và ghi vào bảng thông tin triển khai.
-- [ ] Yêu cầu ACM public certificate tại `ap-southeast-1`.
-- [ ] Lấy ACM DNS validation CNAME từ Terraform output.
-- [ ] Thêm validation record tại DNS provider và chờ certificate chuyển sang `Issued`.
-- [ ] Tạo ALB HTTPS listener port `443` gắn ACM certificate.
-- [ ] Cấu hình listener port `80` redirect vĩnh viễn sang HTTPS.
-- [ ] Thêm DNS record `api.<domain>` trỏ tới ALB theo khả năng CNAME/ALIAS/ANAME của provider.
-- [ ] Cập nhật `ALLOWED_ORIGINS` với Vercel production URL và frontend custom domain nếu có.
-- [ ] Cập nhật frontend API/WebSocket base URL sang HTTPS/WSS production URL.
-- [ ] Redeploy task nếu cấu hình environment thay đổi.
-- [ ] Kiểm tra certificate chain, hostname và thời hạn hợp lệ.
+- [X] Chốt hostname `api.<domain>` và ghi vào bảng thông tin triển khai.
+- [X] Yêu cầu ACM public certificate tại `ap-southeast-1`.
+- [X] Lấy ACM DNS validation CNAME từ Terraform output.
+- [X] Thêm validation record tại DNS provider và chờ certificate chuyển sang `Issued`.
+- [X] Tạo ALB HTTPS listener port `443` gắn ACM certificate.
+- [X] Cấu hình listener port `80` redirect vĩnh viễn sang HTTPS.
+- [X] Thêm DNS record `api.<domain>` trỏ tới ALB theo khả năng CNAME/ALIAS/ANAME của provider.
+- [X] Cập nhật `ALLOWED_ORIGINS` với Vercel production URL và frontend custom domain nếu có.
+- [X] Cập nhật frontend API/WebSocket base URL sang HTTPS/WSS production URL.
+- [X] Redeploy task nếu cấu hình environment thay đổi.
+- [X] Kiểm tra certificate chain, hostname và thời hạn hợp lệ.
 
 ### Tài nguyên liên quan
 
@@ -704,19 +704,29 @@ Công khai API qua domain ổn định, HTTPS/WSS hợp lệ và cho phép front
 
 ### Cách kiểm tra
 
-- [ ] `http://api.<domain>` redirect sang HTTPS.
-- [ ] `https://api.<domain>/health` trả `200` với certificate hợp lệ.
-- [ ] FE Vercel login và gửi cookie `Secure`, `SameSite=None` thành công.
-- [ ] Refresh token flow hoạt động.
-- [ ] Socket.IO kết nối qua `wss://` và giữ kết nối ổn định.
-- [ ] Origin không hợp lệ bị CORS từ chối.
-- [ ] Không gọi API qua ALB HTTP endpoint trong cấu hình frontend production.
+- [X] `http://api.<domain>` redirect sang HTTPS.
+- [X] `https://api.<domain>/health` trả `200` với certificate hợp lệ.
+- [X] FE Vercel login và gửi cookie `Secure`, `SameSite=None` thành công.
+- [X] Refresh token flow hoạt động.
+- [X] Socket.IO kết nối qua `wss://` và giữ kết nối ổn định.
+- [X] Origin không hợp lệ bị CORS từ chối.
+- [X] Không gọi API qua ALB HTTP endpoint trong cấu hình frontend production.
 
 ### Tiêu chí hoàn thành
 
-- [ ] REST API và WebSocket chỉ được frontend gọi qua HTTPS/WSS production domain.
-- [ ] Cookie authentication, CORS và refresh token hoạt động end-to-end.
-- [ ] HTTP tự động redirect và TLS certificate hợp lệ.
+- [X] REST API và WebSocket chỉ được frontend gọi qua HTTPS/WSS production domain.
+- [X] Cookie authentication, CORS và refresh token hoạt động end-to-end.
+- [X] HTTP tự động redirect và TLS certificate hợp lệ.
+
+### Bản ghi nghiệm thu 2026-08-17
+
+- API domain: `https://api.heymoney.dpdns.org`.
+- Frontend production: `https://hey-money.vercel.app`.
+- DNS được quản lý tại Cloudflare; ACM validation và API CNAME để `DNS only`.
+- ACM certificate ở trạng thái `ISSUED`, hostname khớp và certificate chain trả `Verify return code: 0 (ok)`.
+- HTTP port `80` redirect `301`; HTTPS port `443` forward tới ECS target group.
+- Login, protected API, refresh token, CORS và Socket.IO/WSS đã smoke test thành công.
+- Giữ nguyên ACM validation CNAME để certificate được tự động gia hạn.
 
 ### Rủi ro và rollback
 
