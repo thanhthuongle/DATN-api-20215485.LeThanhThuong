@@ -383,6 +383,22 @@ data "aws_iam_policy_document" "github_actions_terraform_apply_infrastructure" {
   }
 
   statement {
+    sid    = "ManageProductionCertificate"
+    effect = "Allow"
+
+    actions = [
+      "acm:AddTagsToCertificate",
+      "acm:DeleteCertificate",
+      "acm:DescribeCertificate",
+      "acm:ListTagsForCertificate",
+      "acm:RemoveTagsFromCertificate",
+      "acm:RequestCertificate"
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "ManageProductionECS"
     effect = "Allow"
 
