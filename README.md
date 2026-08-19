@@ -53,8 +53,8 @@
 
 1. **Clone Back-end**
     ```sh
-    git clone https://github.com/thanhthuongle/DATN-api-20215485.LeThanhThuong.git
-    cd DATN-api-20215485.LeThanhThuong
+    git clone https://github.com/thanhthuongle/HeyMoney-API.git
+    cd HeyMoney-API
     ```
 
 2. **Cài đặt các phụ thuộc**
